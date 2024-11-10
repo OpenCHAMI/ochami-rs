@@ -28,7 +28,7 @@ pub struct Component {
     pub sub_role: Option<String>,
     #[serde(rename(serialize = "Nid"))]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub nid: Option<i32>,
+    pub nid: Option<u32>,
     #[serde(rename(serialize = "SubType"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subtype: Option<String>,
