@@ -14,4 +14,6 @@ pub enum Error {
     NetError(#[from] reqwest::Error),
     #[error("ERROR - CSM: {0}")]
     CsmError(Value),
+    #[error("ERROR - field '{0}' missing")]
+    MissingField(String),
 }
