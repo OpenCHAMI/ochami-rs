@@ -1,6 +1,6 @@
 use config::Value;
 
-use crate::{error::Error, hsm::inventory::types::HWInventoryByFRU};
+use crate::{backend_api::hsm::inventory::types::HWInventoryByFRU, error::Error};
 
 pub fn get(
     auth_token: &str,

@@ -1,8 +1,8 @@
 use config::Value;
 
 use crate::{
+    backend_api::hsm::inventory::types::{HWInventory, HWInventoryByLocation},
     error::Error,
-    hsm::inventory::types::{HWInventory, HWInventoryByLocation},
 };
 
 pub fn get_query(

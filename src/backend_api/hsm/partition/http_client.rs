@@ -2,15 +2,15 @@ use config::Value;
 
 use crate::error::Error;
 
-use super::types::{HsmGroup, Member};
+use super::types::{Member, Partition};
 
 pub fn get(
-    auth_token: &str,
     base_url: &str,
+    auth_token: &str,
     root_cert: &[u8],
-    group: Option<&str>,
+    name: Option<&str>,
     tag: Option<&str>,
-) -> Result<Vec<HsmGroup>, Error> {
+) -> Result<Vec<Partition>, Error> {
     let client_builder = reqwest::blocking::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -26,11 +26,11 @@ pub fn get(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}", base_url, "smd/hsm/v2/groups");
+    let api_url: String = format!("{}/{}", base_url, "hsm/v2/partitions");
 
     let response = client
         .get(api_url)
-        .query(&[group, tag])
+        .query(&[name, tag])
         .bearer_auth(auth_token)
         .send()
         .map_err(|error| Error::NetError(error))?;
@@ -43,11 +43,11 @@ pub fn get(
 }
 
 pub fn get_one(
-    auth_token: &str,
     base_url: &str,
+    auth_token: &str,
     root_cert: &[u8],
-    group_label: &str,
-) -> Result<HsmGroup, Error> {
+    partition_name: &str,
+) -> Result<Partition, Error> {
     let client_builder = reqwest::blocking::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -63,7 +63,7 @@ pub fn get_one(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}/{}", base_url, "smd/hsm/v2/groups", group_label);
+    let api_url: String = format!("{}/{}/{}", base_url, "hsm/v2/partitions", partition_name);
 
     let response = client
         .get(api_url)
@@ -78,11 +78,7 @@ pub fn get_one(
     }
 }
 
-pub fn get_labels(
-    auth_token: &str,
-    base_url: &str,
-    root_cert: &[u8],
-) -> Result<Vec<String>, Error> {
+pub fn get_names(base_url: &str, auth_token: &str, root_cert: &[u8]) -> Result<Vec<String>, Error> {
     let client_builder = reqwest::blocking::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -98,7 +94,7 @@ pub fn get_labels(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}", base_url, "smd/hsm/v2/groups/labels");
+    let api_url: String = format!("{}/{}", base_url, "hsm/v2/partitions/names");
 
     let response = client
         .get(api_url)
@@ -114,10 +110,10 @@ pub fn get_labels(
 }
 
 pub fn get_members(
-    auth_token: &str,
     base_url: &str,
+    auth_token: &str,
     root_cert: &[u8],
-    group_label: &str,
+    partition_name: &str,
 ) -> Result<Member, Error> {
     let client_builder = reqwest::blocking::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
@@ -134,7 +130,7 @@ pub fn get_members(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/smd/hsm/v2/groups/{}/members", base_url, group_label);
+    let api_url: String = format!("{}/hsm/v2/partitions/{}/members", base_url, partition_name);
 
     let response = client
         .get(api_url)
@@ -153,8 +149,8 @@ pub fn post(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    group: HsmGroup,
-) -> Result<HsmGroup, Error> {
+    partition: Partition,
+) -> Result<Value, Error> {
     let client_builder = reqwest::blocking::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -170,12 +166,12 @@ pub fn post(
         client_builder.build()?
     };
 
-    let api_url: String = base_url.to_owned() + "/smd/hsm/v2/groups";
+    let api_url: String = base_url.to_owned() + "/hsm/v2/partitions";
 
     let response = client
         .post(api_url)
         .bearer_auth(auth_token)
-        .json(&group)
+        .json(&partition)
         .send()
         .map_err(|error| Error::NetError(error))?;
 
@@ -208,7 +204,7 @@ pub fn post_members(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/smd/hsm/v2/groups/{}/members", base_url, partition_name);
+    let api_url: String = format!("{}/hsm/v2/partitions/{}/members", base_url, partition_name);
 
     let response = client
         .post(api_url)
@@ -228,7 +224,7 @@ pub fn delete_one(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    group_label: &str,
+    partition_name: &str,
 ) -> Result<Value, Error> {
     let client_builder = reqwest::blocking::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
@@ -245,7 +241,7 @@ pub fn delete_one(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}/{}", base_url, "smd/hsm/v2/groups", group_label);
+    let api_url: String = format!("{}/hsm/v2/partitions/{}", base_url, partition_name);
 
     let response = client
         .delete(api_url)
@@ -264,7 +260,7 @@ pub fn delete_member(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    group_label: &str,
+    partition_name: &str,
     xname: &str,
 ) -> Result<Value, Error> {
     let client_builder = reqwest::blocking::Client::builder()
@@ -283,8 +279,8 @@ pub fn delete_member(
     };
 
     let api_url: String = format!(
-        "{}/smd/hsm/v2/groups/{}/members/{}",
-        base_url, group_label, xname
+        "{}/hsm/v2/partitions/{}/members/{}",
+        base_url, partition_name, xname
     );
 
     let response = client
