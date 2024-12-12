@@ -2,17 +2,17 @@ use config::Value;
 
 use crate::error::Error;
 
-use super::types::{HsmGroup, Member};
+use super::types::{Group, Member};
 
-pub fn get(
+pub async fn get(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     label: Option<&str>,
     tag: Option<&str>,
-) -> Result<Vec<HsmGroup>, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+) -> Result<Vec<Group>, Error> {
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -28,17 +28,23 @@ pub fn get(
 
     let api_url: String = format!("{}/{}", base_url, "hsm/v2/groups");
 
-    let response = client
+    let response_rslt = client
         .get(api_url)
         .query(&[label, tag])
         .bearer_auth(auth_token)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await
+        .map_err(|error| Error::NetError(error));
+
+    let response = response_rslt?;
 
     if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
+        response
+            .json()
+            .await
+            .map_err(|error| Error::NetError(error))
     } else {
-        Err(Error::CsmError(response.json()?))
+        Err(Error::Message(response.text().await?))
     }
 }
 
@@ -47,7 +53,7 @@ pub fn get_one(
     auth_token: &str,
     root_cert: &[u8],
     group_label: &str,
-) -> Result<HsmGroup, Error> {
+) -> Result<Group, Error> {
     let client_builder = reqwest::blocking::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -153,8 +159,8 @@ pub fn post(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    group: HsmGroup,
-) -> Result<HsmGroup, Error> {
+    group: Group,
+) -> Result<Group, Error> {
     let client_builder = reqwest::blocking::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 

@@ -17,6 +17,7 @@ pub fn get_command() -> Command {
         .about("Get data from backend")
         .subcommand(get_group_command())
         .subcommand(get_partition_command())
+        .subcommand(get_bootparameters_command())
 }
 
 pub fn add_command() -> Command {
@@ -26,6 +27,7 @@ pub fn add_command() -> Command {
         .about("Create new data to backend")
         .subcommand(add_group_command())
         .subcommand(add_partition_command())
+        .subcommand(add_boot_parameters_command())
 }
 
 pub fn update_command() -> Command {
@@ -53,6 +55,14 @@ pub fn get_partition_command() -> Command {
         .arg(arg!(-t --tags <VALUE> "Partition tags"))
 }
 
+pub fn get_bootparameters_command() -> Command {
+    Command::new("bootparameters")
+        .visible_alias("b")
+        .about("Get partitions")
+        .arg(arg!(-H --hosts <VALUE> "Comma separated list of hosts"))
+    // TODO: add the rest of arguments
+}
+
 pub fn add_group_command() -> Command {
     Command::new("group")
         .visible_alias("g")
@@ -75,6 +85,20 @@ pub fn add_partition_command() -> Command {
         .arg(arg!(-d --description <VALUE> "Partition description"))
         .arg(arg!(-m --members <VALUE> "Comma separated list of nodes."))
         .arg(arg!(-t --tags <VALUE> "Comma separated list of tags"))
+}
+
+pub fn add_boot_parameters_command() -> Command {
+    Command::new("bootparameters")
+        .visible_alias("b")
+        .arg_required_else_help(true)
+        .about("Create new boot parameters")
+        .arg(arg!(-H --hosts <VALUE> "Comma separated list of ").required(true))
+        .arg(arg!(-m --macs <VALUE> "Comma separated list of mac addresses."))
+        .arg(arg!(-n --nids <VALUE> "Comma separated list of nids"))
+        .arg(arg!(-p --params <VALUE> "List of kernel parameters").required(true))
+        .arg(arg!(-k --kernel <VALUE> "S3 url to kernel image file").required(true))
+        .arg(arg!(-i --initrd <VALUE> "S3 url to initrd image file").required(true))
+        .arg(arg!(-c --"cloud-init" <VALUE> "Cloud-init data"))
 }
 
 pub fn update_group_command() -> Command {

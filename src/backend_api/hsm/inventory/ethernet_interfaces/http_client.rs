@@ -264,7 +264,7 @@ pub fn delete_ip_address(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    group_label: &str,
+    _group_label: &str,
     eth_interface_id: &str,
     ip_address: &str,
 ) -> Result<Value, Error> {
