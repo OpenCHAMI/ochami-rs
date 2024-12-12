@@ -2,14 +2,14 @@ use std::{io::Read, path::PathBuf};
 
 use directories::ProjectDirs;
 use error::Error;
-use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 
 pub mod backend_api;
 pub mod cli;
 pub mod error;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // start procesing configuration
     let settings = config::Config::builder()
         .add_source(config::File::with_name("config.toml"))
@@ -78,13 +78,9 @@ fn main() {
     // Create CLI
     let matches = crate::cli::build_cli::build_cli().get_matches();
     // Process user command
-    let cli_rslt = crate::cli::process_commands::process_cli(
-        matches,
-        &base_url,
-        &auth_token,
-        &root_cert,
-        &settings,
-    );
+    let cli_rslt =
+        crate::cli::process_commands::process_cli(matches, &base_url, &auth_token, &root_cert)
+            .await;
 
     match cli_rslt {
         Ok(_) => (),
