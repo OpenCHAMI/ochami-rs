@@ -19,8 +19,3 @@ pub struct Member {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ids: Option<Vec<String>>,
 }
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct XnameId {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-}

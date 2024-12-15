@@ -1,8 +1,7 @@
+use reqwest::Error;
 use serde_json::Value;
 
 use core::result::Result;
-
-use crate::error::Error;
 
 use super::types::BootParameters;
 
@@ -29,18 +28,14 @@ pub fn post(
 
     let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
-    let response = client
+    let _response = client
         .post(api_url)
         .bearer_auth(auth_token)
         .json(&boot_parameters)
-        .send()
-        .map_err(|error| Error::NetError(error))?;
+        .send()?
+        .error_for_status()?;
 
-    if response.status().is_success() {
-        Ok(())
-    } else {
-        Err(Error::Message(response.text()?))
-    }
+    Ok(())
 }
 
 /// Change nodes boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/put/
@@ -48,8 +43,8 @@ pub async fn put(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    boot_parameters: BootParameters,
-) -> Result<BootParameters, Error> {
+    boot_parameters: &BootParameters,
+) -> Result<BootParameters, infra::error::Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -72,27 +67,31 @@ pub async fn put(
         .json(&boot_parameters)
         .bearer_auth(auth_token)
         .send()
-        .await
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response
-            .json()
-            .await
-            .map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::Message(response.text().await?))
+    if let Err(e) = response.error_for_status_ref() {
+        let error_payload = response.json::<Value>().await?;
+        let error = infra::error::Error::RequestError {
+            response: e,
+            payload: serde_json::to_string_pretty(&error_payload)?,
+        };
+        return Err(error);
     }
+
+    response
+        .json()
+        .await
+        .map_err(|e| infra::error::Error::NetError(e))
 }
 
-pub fn patch(
+pub async fn patch(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     boot_parameters: &BootParameters,
-) -> Result<Vec<BootParameters>, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+) -> Result<BootParameters, infra::error::Error> {
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -111,16 +110,23 @@ pub fn patch(
     let response = client
         .patch(api_url)
         .json(&boot_parameters)
-        // .json(&serde_json::json!({"hosts": xnames, "params": params, "kernel": kernel, "initrd": initrd})) // Encapsulating configuration.layers
         .bearer_auth(auth_token)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::CsmError(response.json()?))
+    if let Err(e) = response.error_for_status_ref() {
+        let error_payload = response.json::<Value>().await?;
+        let error = infra::error::Error::RequestError {
+            response: e,
+            payload: serde_json::to_string_pretty(&error_payload)?,
+        };
+        return Err(error);
     }
+
+    response
+        .json()
+        .await
+        .map_err(|e| infra::error::Error::NetError(e))
 }
 
 /* pub async fn get(
@@ -208,24 +214,13 @@ pub async fn get(
         None
     };
 
-    let response = client
+    client
         .get(url_api)
         .query(&params)
         .bearer_auth(auth_token)
         .send()
+        .await?
+        .error_for_status()?
+        .json()
         .await
-        .map_err(|error| Error::NetError(error))?;
-
-    if response.status().is_success() {
-        response
-            .json()
-            .await
-            .map_err(|error| Error::NetError(error))
-    } else {
-        let payload = response
-            .text()
-            .await
-            .map_err(|error| Error::NetError(error))?;
-        Err(Error::Message(payload))
-    }
 }

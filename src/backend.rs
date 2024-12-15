@@ -1,10 +1,11 @@
+use std::collections::HashMap;
+
 use infra::{
     self,
     contracts::BackendTrait,
     error::Error,
     types::{BootParameters, HsmGroup, Member},
 };
-use serde_json::Value;
 
 use crate::backend_api::{self, bss};
 
@@ -28,8 +29,15 @@ impl BackendTrait for Ochami {
         "in silla backend".to_string()
     }
 
-    fn get_hsm_name_available(&self, _token: &str) -> Result<Vec<String>, Error> {
-        Ok(Vec::new())
+    async fn get_hsm_name_available(&self, token: &str) -> Result<Vec<String>, Error> {
+        let hsm_group_vec_rslt = self.get_all_hsm(token).await;
+
+        hsm_group_vec_rslt.and_then(|hsm_group_vec| {
+            Ok(hsm_group_vec
+                .iter()
+                .map(|hsm_group| hsm_group.label.clone())
+                .collect())
+        })
     }
 
     async fn get_api_token(&self, _site_name: &str) -> Result<String, Error> {
@@ -41,7 +49,7 @@ impl BackendTrait for Ochami {
         &self,
         auth_token: &str,
         hsm_group_name_vec: Vec<String>,
-    ) -> Result<Vec<String>, Error> {
+    ) -> Result<Vec<String>, infra::error::Error> {
         crate::backend_api::hsm::group::utils::get_member_vec_from_hsm_name_vec_2(
             auth_token,
             &self.base_url,
@@ -61,10 +69,9 @@ impl BackendTrait for Ochami {
             None,
             None,
         )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))?;
+        .await?;
 
-        // Convert all HSM groups from mesa to infra
+        // Convert from BootParameters (silla) to BootParameters (infra)
         let mut hsm_group_vec = Vec::new();
 
         for hsm_group_backend in hsm_group_backend_vec {
@@ -116,7 +123,7 @@ impl BackendTrait for Ochami {
             &Some(nodes.to_vec()),
         )
         .await
-        .map_err(|e| Error::Message(e.to_string()))?;
+        .map_err(|e| Error::NetError(e))?;
 
         let mut boot_parameter_infra_vec = vec![];
 
@@ -150,17 +157,35 @@ impl BackendTrait for Ochami {
             cloud_init: boot_parameter.cloud_init.clone(),
         };
 
-        bss::http_client::put(&self.base_url, auth_token, &self.root_cert, boot_parameters)
-            .await
-            .map_err(|e| Error::Message(e.to_string()))
-            .map(|bp| BootParameters {
-                hosts: bp.hosts,
-                macs: bp.macs,
-                nids: bp.nids,
-                params: bp.params,
-                kernel: bp.kernel,
-                initrd: bp.initrd,
-                cloud_init: bp.cloud_init,
-            })
+        bss::http_client::patch(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            &boot_parameters,
+        )
+        .await
+        .map(|bp| BootParameters {
+            hosts: bp.hosts,
+            macs: bp.macs,
+            nids: bp.nids,
+            params: bp.params,
+            kernel: bp.kernel,
+            initrd: bp.initrd,
+            cloud_init: bp.cloud_init,
+        })
+    }
+
+    async fn get_hsm_map_and_filter_by_hsm_name_vec(
+        &self,
+        auth_token: &str,
+        hsm_name_vec: Vec<&str>,
+    ) -> Result<HashMap<String, Vec<String>>, Error> {
+        crate::backend_api::hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            hsm_name_vec,
+        )
+        .await
     }
 }
