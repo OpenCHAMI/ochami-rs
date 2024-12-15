@@ -1,8 +1,15 @@
 use config::Value;
-
-use crate::error::Error;
+use infra::error::Error;
 
 use super::types::{Group, Member};
+
+pub async fn get_all(
+    base_url: &str,
+    auth_token: &str,
+    root_cert: &[u8],
+) -> Result<Vec<Group>, Error> {
+    get(base_url, auth_token, root_cert, None, None).await
+}
 
 pub async fn get(
     base_url: &str,
@@ -28,15 +35,13 @@ pub async fn get(
 
     let api_url: String = format!("{}/{}", base_url, "hsm/v2/groups");
 
-    let response_rslt = client
+    let response = client
         .get(api_url)
-        .query(&[label, tag])
+        .query(&[("label", label), ("tag", tag)])
         .bearer_auth(auth_token)
         .send()
         .await
-        .map_err(|error| Error::NetError(error));
-
-    let response = response_rslt?;
+        .map_err(|error| Error::NetError(error))?;
 
     if response.status().is_success() {
         response

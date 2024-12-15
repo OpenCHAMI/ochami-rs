@@ -1,9 +1,9 @@
-use std::{sync::Arc, time::Instant};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use infra::error::Error;
 use tokio::sync::Semaphore;
 
-use crate::backend_api::hsm::group::http_client::get;
+use crate::backend_api::hsm::group::{http_client, types::Group};
 
 pub async fn get_member_vec_from_hsm_name_vec_2(
     auth_token: &str,
@@ -33,14 +33,16 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
         tasks.spawn(async move {
             let _permit = permit; // Wait semaphore to allow new tasks https://github.com/tokio-rs/tokio/discussions/2648#discussioncomment-34885
 
-            get(
+            let hsm_vec: Result<Vec<Group>, Error> = http_client::get(
                 &base_url_string,
                 &auth_token_string,
                 &root_cert_vec,
                 Some(&hsm_name),
                 None,
             )
-            .await
+            .await;
+
+            hsm_vec
         });
     }
 
@@ -70,4 +72,39 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
     log::info!("Time elapsed to get HSM members is: {:?}", duration);
 
     Ok(hsm_group_member_vec)
+}
+
+// Returns a HashMap with keys being the hsm names/labels the user has access a curated list of xnames
+// for each hsm name as values
+pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
+    auth_token: &str,
+    base_url: &str,
+    root_cert: &[u8],
+    hsm_name_vec: Vec<&str>,
+) -> Result<HashMap<String, Vec<String>>, Error> {
+    let hsm_group_vec = http_client::get_all(base_url, auth_token, root_cert).await?;
+
+    Ok(filter_and_convert_to_map(hsm_name_vec, hsm_group_vec))
+}
+
+/// Given a list of HsmGroup struct and a list of Hsm group names, it will filter out those
+/// not in the Hsm group names and convert from HsmGroup struct to HashMap
+pub fn filter_and_convert_to_map(
+    hsm_name_vec: Vec<&str>,
+    hsm_group_vec: Vec<Group>,
+) -> HashMap<String, Vec<String>> {
+    let mut hsm_group_map: HashMap<String, Vec<String>> = HashMap::new();
+
+    for hsm_group in hsm_group_vec {
+        if hsm_name_vec.contains(&hsm_group.label.as_str()) {
+            hsm_group_map.entry(hsm_group.label).or_insert(
+                hsm_group
+                    .members
+                    .and_then(|members| Some(members.ids.unwrap_or_default()))
+                    .unwrap(),
+            );
+        }
+    }
+
+    hsm_group_map
 }

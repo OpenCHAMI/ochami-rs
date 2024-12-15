@@ -205,7 +205,7 @@ pub async fn add_boot_parameters(
     bss::http_client::post(base_url, auth_token, root_cert, boot_parameters); */
 
     let boot_parameters_rslt =
-        bss::http_client::put(base_url, auth_token, root_cert, boot_parameters).await;
+        bss::http_client::put(base_url, auth_token, root_cert, &boot_parameters).await;
 
     match boot_parameters_rslt {
         Ok(_) => println!("Boot parameters created"),
