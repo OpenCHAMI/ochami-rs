@@ -1,4 +1,4 @@
-use reqwest::Error;
+use crate::error::Error;
 use serde_json::Value;
 
 use core::result::Result;
@@ -39,14 +39,12 @@ pub fn post(
 }
 
 /// Change nodes boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/put/
-// FIXME: change return type from Result<BootParameters, backend_dispatcher::error::Error> to
-// Result<BootParameters, reqwest::error::Error>
 pub async fn put(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     boot_parameters: &BootParameters,
-) -> Result<BootParameters, backend_dispatcher::error::Error> {
+) -> Result<BootParameters, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -73,17 +71,14 @@ pub async fn put(
 
     if let Err(e) = response.error_for_status_ref() {
         let error_payload = response.json::<Value>().await?;
-        let error = backend_dispatcher::error::Error::RequestError {
+        let error = Error::RequestError {
             response: e,
             payload: serde_json::to_string_pretty(&error_payload)?,
         };
         return Err(error);
     }
 
-    response
-        .json()
-        .await
-        .map_err(|e| backend_dispatcher::error::Error::NetError(e))
+    response.json().await.map_err(|e| Error::NetError(e))
 }
 
 pub async fn patch(
@@ -91,7 +86,7 @@ pub async fn patch(
     auth_token: &str,
     root_cert: &[u8],
     boot_parameters: &BootParameters,
-) -> Result<(), backend_dispatcher::error::Error> {
+) -> Result<(), Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -118,7 +113,7 @@ pub async fn patch(
 
     if let Err(e) = response.error_for_status_ref() {
         let error_payload = response.json::<Value>().await?;
-        let error = backend_dispatcher::error::Error::RequestError {
+        let error = Error::RequestError {
             response: e,
             payload: serde_json::to_string_pretty(&error_payload)?,
         };
@@ -127,56 +122,6 @@ pub async fn patch(
 
     Ok(())
 }
-
-/* pub async fn get(
-    shasta_token: &str,
-    shasta_base_url: &str,
-    shasta_root_cert: &[u8],
-    xnames: &[String],
-) -> Result<Vec<BootParameters>, reqwest::Error> {
-    let start = Instant::now();
-
-    let chunk_size = 30;
-
-    let mut boot_params_vec = Vec::new();
-
-    let mut tasks = tokio::task::JoinSet::new();
-
-    let sem = Arc::new(Semaphore::new(10)); // CSM 1.3.1 higher number of concurrent tasks won't
-
-    for sub_node_list in xnames.chunks(chunk_size) {
-        let shasta_token_string = shasta_token.to_string();
-        let shasta_base_url_string = shasta_base_url.to_string();
-        let shasta_root_cert_vec = shasta_root_cert.to_vec();
-
-        let permit = Arc::clone(&sem).acquire_owned().await;
-
-        let node_vec = sub_node_list.to_vec();
-
-        tasks.spawn(async move {
-            let _permit = permit; // Wait semaphore to allow new tasks https://github.com/tokio-rs/tokio/discussions/2648#discussioncomment-34885
-
-            get_raw(
-                &shasta_token_string,
-                &shasta_base_url_string,
-                &shasta_root_cert_vec,
-                &node_vec,
-            )
-            .unwrap()
-        });
-    }
-
-    while let Some(message) = tasks.join_next().await {
-        if let Ok(mut node_status_vec) = message {
-            boot_params_vec.append(&mut node_status_vec);
-        }
-    }
-
-    let duration = start.elapsed();
-    log::info!("Time elapsed to get BSS bootparameters is: {:?}", duration);
-
-    Ok(boot_params_vec)
-} */
 
 /// Get node boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/get/
 /// NOTE: MANTA MIGRATION! the 'url_api' value changes compared to CSM
@@ -213,13 +158,21 @@ pub async fn get(
         None
     };
 
-    client
+    let response = client
         .get(url_api)
         .query(&params)
         .bearer_auth(auth_token)
         .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await
+        .await?;
+
+    if let Err(e) = response.error_for_status_ref() {
+        let error_payload = response.json::<Value>().await?;
+        let error = Error::RequestError {
+            response: e,
+            payload: serde_json::to_string_pretty(&error_payload)?,
+        };
+        return Err(error);
+    }
+
+    response.json().await.map_err(|e| Error::NetError(e))
 }

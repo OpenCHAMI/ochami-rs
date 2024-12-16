@@ -28,6 +28,12 @@ impl BackendTrait for Ochami {
         "in silla backend".to_string()
     }
 
+    async fn get_api_token(&self, _site_name: &str) -> Result<String, Error> {
+        backend_api::authentication::get_api_token()
+            .await
+            .map_err(|_e| Error::Message("environment variable 'AUTH_TOKEN' not found".to_string()))
+    }
+
     async fn get_hsm_name_available(&self, token: &str) -> Result<Vec<String>, Error> {
         let hsm_group_vec_rslt = self.get_all_hsm(token).await;
 
@@ -37,10 +43,6 @@ impl BackendTrait for Ochami {
                 .map(|hsm_group| hsm_group.label.clone())
                 .collect())
         })
-    }
-
-    async fn get_api_token(&self, _site_name: &str) -> Result<String, Error> {
-        backend_api::authentication::get_api_token().await
     }
 
     // FIXME: rename function to 'get_hsm_group_members'
@@ -118,7 +120,7 @@ impl BackendTrait for Ochami {
             &Some(nodes.to_vec()),
         )
         .await
-        .map_err(|e| Error::NetError(e))?;
+        .map_err(|e| Error::Message(e.to_string()))?;
 
         let mut boot_parameter_infra_vec = vec![];
 
@@ -159,6 +161,7 @@ impl BackendTrait for Ochami {
             &boot_parameters,
         )
         .await
+        .map_err(|e| Error::Message(e.to_string()))
     }
 
     async fn get_hsm_map_and_filter_by_hsm_name_vec(
@@ -173,5 +176,6 @@ impl BackendTrait for Ochami {
             hsm_name_vec,
         )
         .await
+        .map_err(|e| Error::Message(e.to_string()))
     }
 }
