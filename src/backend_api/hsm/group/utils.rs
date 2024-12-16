@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
-use backend_dispatcher::error::Error;
+use crate::error::Error;
 use tokio::sync::Semaphore;
 
 use crate::backend_api::hsm::group::{http_client, types::Group};
@@ -40,8 +40,7 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
                 Some(&hsm_name),
                 None,
             )
-            .await
-            .map_err(|e| Error::Message(e.to_string()));
+            .await;
 
             hsm_vec
         });

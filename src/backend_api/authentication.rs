@@ -1,6 +1,5 @@
-use backend_dispatcher::error::Error;
+use std::env::VarError;
 
-pub async fn get_api_token() -> Result<String, Error> {
+pub async fn get_api_token() -> Result<String, VarError> {
     std::env::var("ACCESS_TOKEN")
-        .map_err(|_e| Error::Message("environment variable 'AUTH_TOKEN' not found".to_string()))
 }
