@@ -1,5 +1,5 @@
+use crate::error::Error;
 use config::Value;
-use infra::error::Error;
 
 use super::types::{Group, Member};
 
@@ -85,7 +85,7 @@ pub fn get_one(
     if response.status().is_success() {
         response.json().map_err(|error| Error::NetError(error))
     } else {
-        Err(Error::CsmError(response.json()?))
+        Err(Error::Message(response.text()?))
     }
 }
 
@@ -120,7 +120,7 @@ pub fn get_labels(
     if response.status().is_success() {
         response.json().map_err(|error| Error::NetError(error))
     } else {
-        Err(Error::CsmError(response.json()?))
+        Err(Error::Message(response.text()?))
     }
 }
 
@@ -156,7 +156,7 @@ pub fn get_members(
     if response.status().is_success() {
         response.json().map_err(|error| Error::NetError(error))
     } else {
-        Err(Error::CsmError(response.json()?))
+        Err(Error::Message(response.text()?))
     }
 }
 
@@ -233,7 +233,7 @@ pub fn post_members(
     if response.status().is_success() {
         response.json().map_err(|error| Error::NetError(error))
     } else {
-        Err(Error::CsmError(response.json()?))
+        Err(Error::Message(response.text()?))
     }
 }
 
@@ -269,7 +269,7 @@ pub fn delete_one(
     if response.status().is_success() {
         response.json().map_err(|error| Error::NetError(error))
     } else {
-        Err(Error::CsmError(response.json()?))
+        Err(Error::Message(response.text()?))
     }
 }
 
@@ -309,6 +309,6 @@ pub fn delete_member(
     if response.status().is_success() {
         response.json().map_err(|error| Error::NetError(error))
     } else {
-        Err(Error::CsmError(response.json()?))
+        Err(Error::Message(response.text()?))
     }
 }

@@ -1,4 +1,4 @@
-use infra::error::Error;
+use backend_dispatcher::error::Error;
 
 pub async fn get_api_token() -> Result<String, Error> {
     std::env::var("ACCESS_TOKEN")
