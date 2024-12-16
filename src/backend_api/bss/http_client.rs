@@ -89,7 +89,7 @@ pub async fn patch(
     auth_token: &str,
     root_cert: &[u8],
     boot_parameters: &BootParameters,
-) -> Result<BootParameters, infra::error::Error> {
+) -> Result<(), infra::error::Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -123,10 +123,7 @@ pub async fn patch(
         return Err(error);
     }
 
-    response
-        .json()
-        .await
-        .map_err(|e| infra::error::Error::NetError(e))
+    Ok(())
 }
 
 /* pub async fn get(

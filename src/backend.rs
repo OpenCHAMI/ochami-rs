@@ -146,7 +146,7 @@ impl BackendTrait for Ochami {
         &self,
         auth_token: &str,
         boot_parameter: &BootParameters,
-    ) -> Result<BootParameters, Error> {
+    ) -> Result<(), Error> {
         let boot_parameters = bss::types::BootParameters {
             hosts: boot_parameter.hosts.clone(),
             macs: boot_parameter.macs.clone(),
@@ -164,15 +164,6 @@ impl BackendTrait for Ochami {
             &boot_parameters,
         )
         .await
-        .map(|bp| BootParameters {
-            hosts: bp.hosts,
-            macs: bp.macs,
-            nids: bp.nids,
-            params: bp.params,
-            kernel: bp.kernel,
-            initrd: bp.initrd,
-            cloud_init: bp.cloud_init,
-        })
     }
 
     async fn get_hsm_map_and_filter_by_hsm_name_vec(
