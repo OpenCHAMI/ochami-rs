@@ -39,12 +39,14 @@ pub fn post(
 }
 
 /// Change nodes boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/put/
+// FIXME: change return type from Result<BootParameters, backend_dispatcher::error::Error> to
+// Result<BootParameters, reqwest::error::Error>
 pub async fn put(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     boot_parameters: &BootParameters,
-) -> Result<BootParameters, infra::error::Error> {
+) -> Result<BootParameters, backend_dispatcher::error::Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -71,7 +73,7 @@ pub async fn put(
 
     if let Err(e) = response.error_for_status_ref() {
         let error_payload = response.json::<Value>().await?;
-        let error = infra::error::Error::RequestError {
+        let error = backend_dispatcher::error::Error::RequestError {
             response: e,
             payload: serde_json::to_string_pretty(&error_payload)?,
         };
@@ -81,7 +83,7 @@ pub async fn put(
     response
         .json()
         .await
-        .map_err(|e| infra::error::Error::NetError(e))
+        .map_err(|e| backend_dispatcher::error::Error::NetError(e))
 }
 
 pub async fn patch(
@@ -89,7 +91,7 @@ pub async fn patch(
     auth_token: &str,
     root_cert: &[u8],
     boot_parameters: &BootParameters,
-) -> Result<(), infra::error::Error> {
+) -> Result<(), backend_dispatcher::error::Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -116,7 +118,7 @@ pub async fn patch(
 
     if let Err(e) = response.error_for_status_ref() {
         let error_payload = response.json::<Value>().await?;
-        let error = infra::error::Error::RequestError {
+        let error = backend_dispatcher::error::Error::RequestError {
             response: e,
             payload: serde_json::to_string_pretty(&error_payload)?,
         };

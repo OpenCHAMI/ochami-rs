@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
-use infra::{
-    self,
+use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
     types::{BootParameters, HsmGroup, Member},
 };
 
-use crate::backend_api::{self, bss};
+use crate::backend_api::{self, bss, hsm};
 
 pub struct Ochami {
     base_url: String,
@@ -49,7 +48,7 @@ impl BackendTrait for Ochami {
         &self,
         auth_token: &str,
         hsm_group_name_vec: Vec<String>,
-    ) -> Result<Vec<String>, infra::error::Error> {
+    ) -> Result<Vec<String>, Error> {
         crate::backend_api::hsm::group::utils::get_member_vec_from_hsm_name_vec_2(
             auth_token,
             &self.base_url,
@@ -62,14 +61,10 @@ impl BackendTrait for Ochami {
 
     async fn get_all_hsm(&self, auth_token: &str) -> Result<Vec<HsmGroup>, Error> {
         // Get all HSM groups
-        let hsm_group_backend_vec = crate::backend_api::hsm::group::http_client::get(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            None,
-            None,
-        )
-        .await?;
+        let hsm_group_backend_vec =
+            hsm::group::http_client::get(&self.base_url, auth_token, &self.root_cert, None, None)
+                .await
+                .map_err(|e| Error::Message(e.to_string()))?;
 
         // Convert from BootParameters (silla) to BootParameters (infra)
         let mut hsm_group_vec = Vec::new();

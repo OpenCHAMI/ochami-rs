@@ -1,11 +1,11 @@
 [package]
 authors = ["Manuel Sopena Ballesteros <msopena@cscs.ch>"]
-name = "silla"
+name = "ochami-rs"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-infra = { path = "../infra" } # Only for development purposes
+backend-dispatcher = { path = "../backend-dispatcher" } # Only for development purposes
 tokio = { version = "1", features = ["full"] }
 uuid = "1.6.1"
 chrono = { version = "0.4.38", features = ["serde"] }
