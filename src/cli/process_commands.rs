@@ -31,6 +31,7 @@ pub async fn process_cli(
             add_boot_parameters(cli_add_boot_parameters, base_url, auth_token, root_cert).await;
         }
     }
+
     Ok(())
 }
 
@@ -47,14 +48,16 @@ pub async fn get_group(
         .get_one("tags")
         .map(|tags: &String| tags.as_str());
 
-    let group_vec = group::http_client::get(base_url, auth_token, root_cert, label, tags_opt)
-        .await
-        .unwrap();
+    let group_vec_rslt =
+        group::http_client::get(base_url, auth_token, root_cert, label, tags_opt).await;
 
-    println!("DEBUG - groups:\n{:#?}", group_vec);
+    match group_vec_rslt {
+        Ok(group_vec) => println!("DEBUG - groups:\n{:#?}", group_vec),
+        Err(e) => eprintln!("ERROR - Coud not get group details. Reason:\n{}", e),
+    }
 }
 
-pub fn get_partition(
+pub async fn get_partition(
     cli_get_partition: &ArgMatches,
     base_url: &str,
     auth_token: &str,
@@ -69,10 +72,13 @@ pub fn get_partition(
         .cloned()
         .map(|tags: &String| tags.as_str());
 
-    let partition_vec =
-        partition::http_client::get(base_url, auth_token, root_cert, name, tags_opt).unwrap();
+    let partition_vec_rslt =
+        partition::http_client::get(base_url, auth_token, root_cert, name, tags_opt).await;
 
-    println!("DEBUG - partitions:\n{:#?}", partition_vec);
+    match partition_vec_rslt {
+        Ok(partition_vec) => println!("DEBUG - partitions:\n{:#?}", partition_vec),
+        Err(e) => eprintln!("ERROR - Could not get partition details. Reason:\n{}", e),
+    }
 }
 
 pub async fn get_bootparameters(
@@ -92,16 +98,21 @@ pub async fn get_bootparameters(
             )
         });
 
-    let partition_vec_rslt =
+    let bootparameters_vec_rslt =
         bss::http_client::get(base_url, auth_token, root_cert, &host_vec_opt).await;
 
-    match partition_vec_rslt {
-        Ok(partition_vec) => println!("{:#?}", partition_vec),
-        Err(e) => eprintln!("{}", e),
+    match bootparameters_vec_rslt {
+        Ok(bootparameters_vec) => println!("{:#?}", bootparameters_vec),
+        Err(e) => eprintln!("ERROR - Could not get boot parameters. Reason:\n{}", e),
     }
 }
 
-pub fn add_group(cli_add_group: &ArgMatches, base_url: &str, auth_token: &str, root_cert: &[u8]) {
+pub async fn add_group(
+    cli_add_group: &ArgMatches,
+    base_url: &str,
+    auth_token: &str,
+    root_cert: &[u8],
+) {
     let label: &String = cli_add_group.get_one("label").unwrap();
     let description_opt: Option<&String> = cli_add_group.get_one("description");
     let member_vec_opt: Option<&Vec<String>> = cli_add_group.get_one("members");
@@ -122,7 +133,7 @@ pub fn add_group(cli_add_group: &ArgMatches, base_url: &str, auth_token: &str, r
         exclusive_group: exclusive_group_opt.cloned(),
     };
 
-    let group_rslt = group::http_client::post(base_url, auth_token, root_cert, group);
+    let group_rslt = group::http_client::post(base_url, auth_token, root_cert, group).await;
 
     match group_rslt {
         Ok(group) => println!("DEBUG - group:\n{:#?}", group),
@@ -130,7 +141,7 @@ pub fn add_group(cli_add_group: &ArgMatches, base_url: &str, auth_token: &str, r
     }
 }
 
-pub fn add_partition(
+pub async fn add_partition(
     cli_add_partition: &ArgMatches,
     base_url: &str,
     auth_token: &str,
@@ -156,7 +167,13 @@ pub fn add_partition(
         tags: tag_vec_opt,
     };
 
-    let _ = partition::http_client::post(base_url, auth_token, root_cert, partition);
+    let partition_rslt =
+        partition::http_client::post(base_url, auth_token, root_cert, partition).await;
+
+    match partition_rslt {
+        Ok(_) => println!("Partition created"),
+        Err(e) => eprintln!("ERROR - Could not add partition. Reason:\n{}", e),
+    }
 }
 
 pub async fn add_boot_parameters(
@@ -209,6 +226,6 @@ pub async fn add_boot_parameters(
 
     match boot_parameters_rslt {
         Ok(_) => println!("Boot parameters created"),
-        Err(e) => eprintln!("{}", e),
+        Err(e) => eprintln!("ERROR - Could not add boot paremeters. Reason:\n{}", e),
     }
 }
