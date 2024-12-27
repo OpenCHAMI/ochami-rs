@@ -1,5 +1,6 @@
+use serde_json::Value;
+
 use crate::error::Error;
-use config::Value;
 
 use super::types::{Group, Member};
 
@@ -40,27 +41,40 @@ pub async fn get(
         .query(&[("label", label), ("tag", tag)])
         .bearer_auth(auth_token)
         .send()
-        .await
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response
-            .json()
-            .await
-            .map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::Message(response.text().await?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn get_one(
+pub async fn get_one(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     group_label: &str,
 ) -> Result<Group, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -76,26 +90,39 @@ pub fn get_one(
 
     let api_url: String = format!("{}/{}/{}", base_url, "hsm/v2/groups", group_label);
 
-    let response = client
-        .get(api_url)
-        .bearer_auth(auth_token)
-        .send()
-        .map_err(|error| Error::NetError(error))?;
+    let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::Message(response.text()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn get_labels(
+pub async fn get_labels(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
 ) -> Result<Vec<String>, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -111,27 +138,40 @@ pub fn get_labels(
 
     let api_url: String = format!("{}/{}", base_url, "hsm/v2/groups/labels");
 
-    let response = client
-        .get(api_url)
-        .bearer_auth(auth_token)
-        .send()
-        .map_err(|error| Error::NetError(error))?;
+    let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::Message(response.text()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn get_members(
+pub async fn get_members(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     group_label: &str,
 ) -> Result<Member, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -147,27 +187,40 @@ pub fn get_members(
 
     let api_url: String = format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
 
-    let response = client
-        .get(api_url)
-        .bearer_auth(auth_token)
-        .send()
-        .map_err(|error| Error::NetError(error))?;
+    let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::Message(response.text()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn post(
+pub async fn post(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     group: Group,
 ) -> Result<Group, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -188,26 +241,41 @@ pub fn post(
         .bearer_auth(auth_token)
         .json(&group)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        let error = response.text();
-        println!("DEBUG - error:\n{:#?}", error);
-        Err(Error::Message(error?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn post_members(
+pub async fn post_members(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     partition_name: &str,
     members: Member,
 ) -> Result<Value, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -228,23 +296,40 @@ pub fn post_members(
         .bearer_auth(auth_token)
         .json(&members)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::Message(response.text()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn delete_one(
+pub async fn delete_one(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     group_label: &str,
 ) -> Result<Value, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -264,24 +349,41 @@ pub fn delete_one(
         .delete(api_url)
         .bearer_auth(auth_token)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::Message(response.text()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn delete_member(
+pub async fn delete_member(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     group_label: &str,
     xname: &str,
 ) -> Result<Value, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -304,11 +406,28 @@ pub fn delete_member(
         .delete(api_url)
         .bearer_auth(auth_token)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::Message(response.text()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }

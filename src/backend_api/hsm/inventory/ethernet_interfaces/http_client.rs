@@ -1,4 +1,4 @@
-use config::Value;
+use serde_json::Value;
 
 use crate::error::Error;
 
@@ -6,7 +6,7 @@ use super::types::{ComponentEthernetInterface, IpAddressMapping};
 
 // Get list of network interfaces
 // ref --> https://csm12-apidocs.svc.cscs.ch/iaas/hardware-state-manager/operation/doCompEthInterfacesGetV2/
-pub fn get(
+pub async fn get(
     auth_token: &str,
     base_url: &str,
     root_cert: &[u8],
@@ -18,8 +18,8 @@ pub fn get(
     olther_than: &str,
     newer_than: &str,
 ) -> Result<Vec<ComponentEthernetInterface>, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -48,23 +48,40 @@ pub fn get(
         ])
         .bearer_auth(auth_token)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::CsmError(response.json()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn get_one(
+pub async fn get_one(
     auth_token: &str,
     base_url: &str,
     root_cert: &[u8],
     eth_interface_id: &str,
 ) -> Result<ComponentEthernetInterface, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -83,27 +100,40 @@ pub fn get_one(
         base_url, eth_interface_id
     );
 
-    let response = client
-        .get(api_url)
-        .bearer_auth(auth_token)
-        .send()
-        .map_err(|error| Error::NetError(error))?;
+    let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::CsmError(response.json()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn get_ip_addresses(
+pub async fn get_ip_addresses(
     auth_token: &str,
     base_url: &str,
     root_cert: &[u8],
     eth_interface_id: &str,
 ) -> Result<Vec<IpAddressMapping>, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -122,20 +152,33 @@ pub fn get_ip_addresses(
         base_url, eth_interface_id
     );
 
-    let response = client
-        .get(api_url)
-        .bearer_auth(auth_token)
-        .send()
-        .map_err(|error| Error::NetError(error))?;
+    let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::CsmError(response.json()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn patch(
+pub async fn patch(
     shasta_token: &str,
     shasta_base_url: &str,
     shasta_root_cert: &[u8],
@@ -155,7 +198,7 @@ pub fn patch(
         component_id: Some(eth_interface_id.to_string()),
     };
 
-    let client_builder = reqwest::blocking::Client::builder()
+    let client_builder = reqwest::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
 
     // Build client
@@ -181,18 +224,36 @@ pub fn patch(
         .bearer_auth(shasta_token)
         .json(&cei)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        Ok(())
-    } else {
-        Err(Error::CsmError(response.json()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    Ok(())
 }
 
-pub fn delete_all(base_url: &str, auth_token: &str, root_cert: &[u8]) -> Result<Value, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+pub async fn delete_all(
+    base_url: &str,
+    auth_token: &str,
+    root_cert: &[u8],
+) -> Result<Value, Error> {
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -212,23 +273,40 @@ pub fn delete_all(base_url: &str, auth_token: &str, root_cert: &[u8]) -> Result<
         .delete(api_url)
         .bearer_auth(auth_token)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::CsmError(response.json()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn delete_one(
+pub async fn delete_one(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     eth_interface_id: &str,
 ) -> Result<Value, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -251,16 +329,33 @@ pub fn delete_one(
         .delete(api_url)
         .bearer_auth(auth_token)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::CsmError(response.json()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }
 
-pub fn delete_ip_address(
+pub async fn delete_ip_address(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
@@ -268,8 +363,8 @@ pub fn delete_ip_address(
     eth_interface_id: &str,
     ip_address: &str,
 ) -> Result<Value, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -292,11 +387,28 @@ pub fn delete_ip_address(
         .delete(api_url)
         .bearer_auth(auth_token)
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        response.json().map_err(|error| Error::NetError(error))
-    } else {
-        Err(Error::CsmError(response.json()?))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
 }

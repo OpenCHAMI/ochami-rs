@@ -5,14 +5,14 @@ use core::result::Result;
 
 use super::types::BootParameters;
 
-pub fn post(
+pub async fn post(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
     boot_parameters: BootParameters,
 ) -> Result<(), Error> {
-    let client_builder = reqwest::blocking::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -28,12 +28,33 @@ pub fn post(
 
     let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
-    let _response = client
+    let response = client
         .post(api_url)
         .bearer_auth(auth_token)
         .json(&boot_parameters)
-        .send()?
-        .error_for_status()?;
+        .send()
+        .await?;
+
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: serde_json::to_string_pretty(&error_payload)?,
+                };
+                return Err(error);
+            }
+        }
+    }
 
     Ok(())
 }
@@ -70,12 +91,24 @@ pub async fn put(
         .await?;
 
     if let Err(e) = response.error_for_status_ref() {
-        let error_payload = response.json::<Value>().await?;
-        let error = Error::RequestError {
-            response: e,
-            payload: serde_json::to_string_pretty(&error_payload)?,
-        };
-        return Err(error);
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: serde_json::to_string_pretty(&error_payload)?,
+                };
+                return Err(error);
+            }
+        }
     }
 
     response.json().await.map_err(|e| Error::NetError(e))
@@ -112,12 +145,24 @@ pub async fn patch(
         .await?;
 
     if let Err(e) = response.error_for_status_ref() {
-        let error_payload = response.json::<Value>().await?;
-        let error = Error::RequestError {
-            response: e,
-            payload: serde_json::to_string_pretty(&error_payload)?,
-        };
-        return Err(error);
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: serde_json::to_string_pretty(&error_payload)?,
+                };
+                return Err(error);
+            }
+        }
     }
 
     Ok(())
@@ -166,12 +211,24 @@ pub async fn get(
         .await?;
 
     if let Err(e) = response.error_for_status_ref() {
-        let error_payload = response.json::<Value>().await?;
-        let error = Error::RequestError {
-            response: e,
-            payload: serde_json::to_string_pretty(&error_payload)?,
-        };
-        return Err(error);
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: serde_json::to_string_pretty(&error_payload)?,
+                };
+                return Err(error);
+            }
+        }
     }
 
     response.json().await.map_err(|e| Error::NetError(e))

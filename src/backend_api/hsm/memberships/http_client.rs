@@ -4,7 +4,7 @@ use crate::error::Error;
 
 use super::types::Membership;
 
-pub fn get(
+pub async fn get(
     shasta_token: &str,
     shasta_base_url: &str,
     shasta_root_cert: &[u8],
@@ -25,7 +25,7 @@ pub fn get(
     partition: Option<&str>,
     group: Option<&str>,
 ) -> Result<Vec<Membership>, Error> {
-    let client_builder = reqwest::blocking::Client::builder()
+    let client_builder = reqwest::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
 
     // Build client
@@ -64,29 +64,41 @@ pub fn get(
         ])
         .header("Authorization", format!("Bearer {}", shasta_token))
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        Ok(response
-            .json::<Vec<Membership>>()
-            .map_err(|error| Error::NetError(error))
-            .unwrap())
-    } else {
-        let payload = response
-            .json::<Value>()
-            .map_err(|error| Error::NetError(error))?;
-        Err(Error::CsmError(payload))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    return Ok(response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
+        .unwrap());
 }
 
-pub fn get_xname(
+pub async fn get_xname(
     shasta_token: &str,
     shasta_base_url: &str,
     shasta_root_cert: &[u8],
     xname: &str,
 ) -> Result<Membership, Error> {
     log::info!("Get membership of node '{}'", xname);
-    let client_builder = reqwest::blocking::Client::builder()
+    let client_builder = reqwest::Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
 
     // Build client
@@ -107,17 +119,29 @@ pub fn get_xname(
         .get(api_url.clone())
         .header("Authorization", format!("Bearer {}", shasta_token))
         .send()
-        .map_err(|error| Error::NetError(error))?;
+        .await?;
 
-    if response.status().is_success() {
-        Ok(response
-            .json::<Membership>()
-            .map_err(|error| Error::NetError(error))
-            .unwrap())
-    } else {
-        let payload = response
-            .json::<Value>()
-            .map_err(|error| Error::NetError(error))?;
-        Err(Error::CsmError(payload))
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::CsmError(error_payload);
+                return Err(error);
+            }
+        }
     }
+
+    return Ok(response
+        .json()
+        .await
+        .map_err(|error| Error::NetError(error))
+        .unwrap());
 }

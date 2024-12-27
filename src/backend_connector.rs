@@ -5,8 +5,12 @@ use backend_dispatcher::{
     error::Error,
     types::{BootParameters, HsmGroup, Member},
 };
+use serde_json::Value;
 
-use crate::backend_api::{self, bss, hsm};
+use crate::backend_api::{
+    self, bss,
+    hsm::{self, group::types::Group},
+};
 
 pub struct Ochami {
     base_url: String,
@@ -35,7 +39,7 @@ impl BackendTrait for Ochami {
     }
 
     async fn get_hsm_name_available(&self, token: &str) -> Result<Vec<String>, Error> {
-        let hsm_group_vec_rslt = self.get_all_hsm(token).await;
+        let hsm_group_vec_rslt = self.get_all_hsm_group(token).await;
 
         hsm_group_vec_rslt.and_then(|hsm_group_vec| {
             Ok(hsm_group_vec
@@ -61,52 +65,80 @@ impl BackendTrait for Ochami {
         .map_err(|e| Error::Message(e.to_string()))
     }
 
-    async fn get_all_hsm(&self, auth_token: &str) -> Result<Vec<HsmGroup>, Error> {
+    async fn get_all_hsm_group(&self, auth_token: &str) -> Result<Vec<HsmGroup>, Error> {
         // Get all HSM groups
         let hsm_group_backend_vec =
             hsm::group::http_client::get(&self.base_url, auth_token, &self.root_cert, None, None)
                 .await
                 .map_err(|e| Error::Message(e.to_string()))?;
 
-        // Convert from BootParameters (silla) to BootParameters (infra)
-        let mut hsm_group_vec = Vec::new();
-
-        for hsm_group_backend in hsm_group_backend_vec {
-            let mut member_vec = Vec::new();
-            let member_vec_backend = hsm_group_backend.members.unwrap().ids.unwrap();
-
-            for member in member_vec_backend {
-                member_vec.push(member);
-            }
-
-            let members = Member {
-                ids: Some(member_vec),
-            };
-
-            let hsm_group = HsmGroup {
-                label: hsm_group_backend.label,
-                description: hsm_group_backend.description,
-                tags: hsm_group_backend.tags,
-                members: Some(members),
-                exclusive_group: hsm_group_backend.exclusive_group,
-            };
-
-            hsm_group_vec.push(hsm_group);
-        }
+        // Convert from HsmGroup (silla) to HsmGroup (infra)
+        let hsm_group_vec = hsm_group_backend_vec.into_iter().map(Group::into).collect();
 
         Ok(hsm_group_vec)
     }
 
-    /* async fn power_reset_sync(
+    async fn get_hsm_group(&self, auth_token: &str, hsm_name: &str) -> Result<HsmGroup, Error> {
+        // Get all HSM groups
+        let hsm_group_backend_vec = hsm::group::http_client::get(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            Some(hsm_name),
+            None,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
+
+        // Error if more than one HSM group found
+        if hsm_group_backend_vec.len() > 1 {
+            return Err(Error::Message(format!(
+                "ERROR - multiple HSM groups with name '{}' found. Exit",
+                hsm_name
+            )));
+        }
+
+        // Convert from HsmGroup (silla) to HsmGroup (infra)
+        let hsm_group_backend = hsm_group_backend_vec.first().unwrap().to_owned();
+
+        let hsm_group: HsmGroup = hsm_group_backend.into();
+
+        Ok(hsm_group)
+    }
+
+    async fn add_hsm_group(
         &self,
         auth_token: &str,
-        nodes: &[String],
-        force: bool,
+        hsm_group: HsmGroup,
+    ) -> Result<HsmGroup, Error> {
+        let hsm_group_backend = crate::backend_api::hsm::group::http_client::post(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            hsm_group.into(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
+
+        let hsm_group: HsmGroup = hsm_group_backend.into();
+
+        Ok(hsm_group)
+    }
+
+    async fn delete_hsm_group(
+        &self,
+        auth_token: &str,
+        hsm_group_name: &str,
     ) -> Result<Value, Error> {
-        Err(Error::Message(
-            "Power reset command not implemented for this backend".to_string(),
-        ))
-    } */
+        crate::backend_api::hsm::group::http_client::delete_one(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            hsm_group_name,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
 
     async fn get_bootparameters(
         &self,
