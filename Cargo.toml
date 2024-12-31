@@ -5,7 +5,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-backend-dispatcher = { path = "../backend-dispatcher" } # Only for development purposes
+# backend-dispatcher = { path = "../backend-dispatcher" } # Only for development purposes
+backend-dispatcher = "0.1.1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 uuid = { version = "1.6.1", default-features = false }
 chrono = { version = "0.4.38", default-features = false }
