@@ -1,6 +1,7 @@
 [package]
 authors = ["Manuel Sopena Ballesteros <msopena@cscs.ch>"]
 name = "ochami-rs"
+description = "Rust bindings for OCHAMI backend"
 version = "0.1.0"
 edition = "2021"
 
