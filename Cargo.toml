@@ -4,6 +4,7 @@ name = "ochami-rs"
 description = "Rust bindings for OCHAMI backend"
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
 
 [dependencies]
 # backend-dispatcher = { path = "../backend-dispatcher" } # Only for development purposes
