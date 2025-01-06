@@ -1,9 +1,54 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
-use crate::error::Error;
+use crate::{backend_api::hsm, error::Error};
 use tokio::sync::Semaphore;
 
 use crate::backend_api::hsm::group::{http_client, types::Group};
+
+use super::{http_client::post_members, types::Member};
+
+/// Add a list of xnames to target HSM group
+/// Returns the new list of nodes in target HSM group
+pub async fn add_hsm_members(
+    auth_token: &str,
+    base_url: &str,
+    root_cert: &[u8],
+    group_label: &str,
+    members: Vec<&str>,
+    dryrun: bool,
+) -> Result<Vec<String>, Error> {
+    // get list of target HSM group members
+    let mut target_hsm_group_member_vec: Vec<String> =
+        hsm::group::http_client::get_members(base_url, auth_token, root_cert, group_label)
+            .await
+            .map(|member| member.ids.unwrap())?;
+
+    // merge HSM group list with the list of xnames provided by the user
+    target_hsm_group_member_vec.extend(members.iter().map(|xname| xname.to_string()));
+
+    target_hsm_group_member_vec.sort();
+    target_hsm_group_member_vec.dedup();
+
+    // *********************************************************************************************************
+    // UPDATE HSM GROUP MEMBERS IN CSM
+    if dryrun {
+        println!(
+            "Add following nodes to HSM group {}:\n{:?}",
+            group_label, members
+        );
+
+        println!("dry-run enabled, changes not persisted.");
+    } else {
+        for xname in members {
+            let member = Member {
+                ids: Some(vec![xname.to_string()]),
+            };
+            let _ = post_members(auth_token, base_url, root_cert, group_label, member).await;
+        }
+    }
+
+    Ok(target_hsm_group_member_vec)
+}
 
 pub async fn get_member_vec_from_hsm_name_vec_2(
     auth_token: &str,
@@ -109,4 +154,27 @@ pub fn filter_and_convert_to_map(
     }
 
     hsm_group_map
+}
+
+/// Receives 2 lists of xnames old xnames to remove from parent HSM group and new xhanges to add to target HSM group, and does just that
+pub async fn update_hsm_group_members(
+    auth_token: &str,
+    base_url: &str,
+    root_cert: &[u8],
+    group_label: &str,
+    group_members_to_delete: &Vec<String>,
+    group_members_to_add: &Vec<String>,
+) -> Result<(), Error> {
+    let group =
+        hsm::group::http_client::get_one(base_url, auth_token, root_cert, group_label).await?;
+
+    let mut group_members = group.members.unwrap().ids.unwrap();
+
+    group_members.retain(|xname| group_members_to_delete.contains(xname));
+
+    for xname in group_members_to_add {
+        group_members.push(xname.to_string());
+    }
+
+    Ok(())
 }
