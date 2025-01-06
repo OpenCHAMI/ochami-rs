@@ -1,11 +1,17 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
-use crate::{backend_api::hsm, error::Error};
+use crate::{
+    backend_api::{hsm, node::utils::validate_xnames_format_and_membership_agaisnt_single_hsm},
+    error::Error,
+};
 use tokio::sync::Semaphore;
 
 use crate::backend_api::hsm::group::{http_client, types::Group};
 
-use super::{http_client::post_members, types::Member};
+use super::{
+    http_client::{delete_member, post_members},
+    types::Member,
+};
 
 /// Add a list of xnames to target HSM group
 /// Returns the new list of nodes in target HSM group
@@ -177,4 +183,118 @@ pub async fn update_hsm_group_members(
     }
 
     Ok(())
+}
+
+/// Moves list of xnames from parent to target HSM group
+pub async fn migrate_hsm_members(
+    shasta_token: &str,
+    shasta_base_url: &str,
+    shasta_root_cert: &[u8],
+    target_hsm_group_name: &str,
+    parent_hsm_group_name: &str,
+    new_target_hsm_members: Vec<&str>,
+    nodryrun: bool,
+) -> Result<(Vec<String>, Vec<String>), Error> {
+    // Check nodes are valid xnames and they belong to parent HSM group
+    if !validate_xnames_format_and_membership_agaisnt_single_hsm(
+        shasta_token,
+        shasta_base_url,
+        shasta_root_cert,
+        new_target_hsm_members.as_slice(),
+        Some(&parent_hsm_group_name.to_string()),
+    )
+    .await
+    {
+        let error_msg = format!("Nodes '{}' not valid", new_target_hsm_members.join(", "));
+        return Err(Error::Message(error_msg));
+        /* eprintln!("Nodes '{}' not valid", new_target_hsm_members.join(", "));
+        std::process::exit(1); */
+    }
+
+    // get list of target HSM group members
+    let mut target_hsm_group_member_vec: Vec<String> = get_member_vec_from_hsm_name_vec_2(
+        shasta_token,
+        shasta_base_url,
+        shasta_root_cert,
+        vec![target_hsm_group_name.to_string()],
+    )
+    .await?;
+
+    // merge HSM group list with the list of xnames provided by the user
+    target_hsm_group_member_vec
+        .extend(new_target_hsm_members.iter().map(|xname| xname.to_string()));
+
+    target_hsm_group_member_vec.sort();
+    target_hsm_group_member_vec.dedup();
+
+    // get list of parent HSM group members
+    let mut parent_hsm_group_member_vec: Vec<String> = get_member_vec_from_hsm_name_vec_2(
+        shasta_token,
+        shasta_base_url,
+        shasta_root_cert,
+        vec![parent_hsm_group_name.to_string()],
+    )
+    .await?;
+
+    parent_hsm_group_member_vec
+        .retain(|parent_member| !target_hsm_group_member_vec.contains(parent_member));
+
+    parent_hsm_group_member_vec.sort();
+    parent_hsm_group_member_vec.dedup();
+
+    // *********************************************************************************************************
+    // UPDATE HSM GROUP MEMBERS IN CSM
+    if !nodryrun {
+        let target_hsm_group = serde_json::json!({
+            "label": target_hsm_group_name,
+            "decription": "",
+            "members": target_hsm_group_member_vec,
+            "tags": []
+        });
+
+        println!(
+            "Target HSM group:\n{}",
+            serde_json::to_string_pretty(&target_hsm_group).unwrap()
+        );
+
+        let parent_hsm_group = serde_json::json!({
+            "label": parent_hsm_group_name,
+            "decription": "",
+            "members": parent_hsm_group_member_vec,
+            "tags": []
+        });
+
+        println!(
+            "Parent HSM group:\n{}",
+            serde_json::to_string_pretty(&parent_hsm_group).unwrap()
+        );
+
+        println!("dry-run enabled, changes not persisted.");
+    } else {
+        for xname in new_target_hsm_members {
+            let member = Member {
+                ids: Some(vec![xname.to_string()]),
+            };
+
+            let _ = post_members(
+                shasta_token,
+                shasta_base_url,
+                shasta_root_cert,
+                target_hsm_group_name,
+                member,
+            )
+            .await;
+
+            let _ = delete_member(
+                shasta_token,
+                shasta_base_url,
+                shasta_root_cert,
+                parent_hsm_group_name,
+                xname,
+            )
+            .await;
+        }
+    }
+
+    Ok((target_hsm_group_member_vec, parent_hsm_group_member_vec))
 }
