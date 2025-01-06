@@ -271,9 +271,9 @@ pub async fn post_members(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    partition_name: &str,
+    group_label: &str,
     members: Member,
-) -> Result<Value, Error> {
+) -> Result<(), Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -289,7 +289,7 @@ pub async fn post_members(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/hsm/v2/groups/{}/members", base_url, partition_name);
+    let api_url: String = format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
 
     let response = client
         .post(api_url)
@@ -316,10 +316,7 @@ pub async fn post_members(
         }
     }
 
-    response
-        .json()
-        .await
-        .map_err(|error| Error::NetError(error))
+    Ok(())
 }
 
 pub async fn delete_one(
@@ -381,7 +378,7 @@ pub async fn delete_member(
     root_cert: &[u8],
     group_label: &str,
     xname: &str,
-) -> Result<Value, Error> {
+) -> Result<(), Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -426,8 +423,5 @@ pub async fn delete_member(
         }
     }
 
-    response
-        .json()
-        .await
-        .map_err(|error| Error::NetError(error))
+    Ok(())
 }
