@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::backend_api::hsm::inventory::types::ComponentType;
+use crate::hsm::inventory::types::ComponentType;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct IpAddressMapping {

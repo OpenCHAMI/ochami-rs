@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::backend_api::hsm;
+use crate::hsm;
 
 /// Validate xname is correct (it uses regex taken from HPE Cray CSM docs)
 pub fn validate_xname_format(xname: &str) -> bool {
