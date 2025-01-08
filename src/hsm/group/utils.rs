@@ -1,12 +1,11 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use crate::{
-    backend_api::{hsm, node::utils::validate_xnames_format_and_membership_agaisnt_single_hsm},
-    error::Error,
+    error::Error, hsm, node::utils::validate_xnames_format_and_membership_agaisnt_single_hsm,
 };
 use tokio::sync::Semaphore;
 
-use crate::backend_api::hsm::group::{http_client, types::Group};
+use crate::hsm::group::{http_client, types::Group};
 
 use super::{
     http_client::{delete_member, post_members},
@@ -15,15 +14,59 @@ use super::{
 
 /// Add a list of xnames to target HSM group
 /// Returns the new list of nodes in target HSM group
-pub async fn add_hsm_members(
+pub async fn add_members(
     auth_token: &str,
     base_url: &str,
     root_cert: &[u8],
     group_label: &str,
-    members: Vec<&str>,
-    dryrun: bool,
+    new_members: Vec<&str>,
 ) -> Result<Vec<String>, Error> {
-    // get list of target HSM group members
+    // Get HSM group from CSM
+    let group_vec = crate::hsm::group::http_client::get(
+        base_url,
+        auth_token,
+        root_cert,
+        Some(&group_label.to_string()),
+        None,
+    )
+    .await?;
+
+    // Check if HSM group found
+    if let Some(group) = group_vec.first().cloned().as_mut() {
+        // Update HSM group members by adding new elements
+        let members = group.add_xnames(
+            new_members
+                .iter()
+                .map(|xname| xname.to_string())
+                .collect::<Vec<String>>()
+                .as_slice(),
+        );
+
+        // Create Member struct
+        let member = crate::hsm::group::types::Member {
+            ids: Some(members.clone()),
+        };
+
+        // Update HSM group in CSM
+        let _ = crate::hsm::group::http_client::post_members(
+            auth_token,
+            base_url,
+            root_cert,
+            group_label,
+            member,
+        )
+        .await;
+
+        Ok(members)
+    } else {
+        // HSM group not found, throw an error
+        Err(Error::Message(format!(
+            "No HSM group '{}' found",
+            group_label
+        )))
+    }
+
+    /* // get list of target HSM group members
     let mut target_hsm_group_member_vec: Vec<String> =
         hsm::group::http_client::get_members(base_url, auth_token, root_cert, group_label)
             .await
@@ -53,7 +96,7 @@ pub async fn add_hsm_members(
         }
     }
 
-    Ok(target_hsm_group_member_vec)
+    Ok(target_hsm_group_member_vec) */
 }
 
 pub async fn get_member_vec_from_hsm_name_vec_2(

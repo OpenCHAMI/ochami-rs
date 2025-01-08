@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use super::BootParameters;
+use super::types::BootParameters;
 
 pub fn convert_kernel_params_to_map(kernel_params: &str) -> HashMap<String, String> {
     kernel_params
