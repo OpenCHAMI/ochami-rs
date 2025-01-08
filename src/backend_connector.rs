@@ -10,6 +10,7 @@ use serde_json::Value;
 use crate::hsm::{self, group::types::Group};
 use crate::{authentication, bss};
 
+#[derive(Clone)]
 pub struct Ochami {
     base_url: String,
     root_cert: Vec<u8>,
@@ -228,6 +229,34 @@ impl BackendTrait for Ochami {
         .map_err(|e| Error::Message(e.to_string()))
     }
 
+    async fn power_on_sync(&self, _auth_token: &str, _nodes: &[String]) -> Result<Value, Error> {
+        Err(Error::Message(
+            "Power on command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn power_off_sync(
+        &self,
+        _auth_token: &str,
+        _nodes: &[String],
+        _force: bool,
+    ) -> Result<serde_json::Value, Error> {
+        Err(Error::Message(
+            "Power off command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn power_reset_sync(
+        &self,
+        _auth_token: &str,
+        _nodes: &[String],
+        _force: bool,
+    ) -> Result<serde_json::Value, Error> {
+        Err(Error::Message(
+            "Power reset command not implemented for this backend".to_string(),
+        ))
+    }
+
     async fn get_bootparameters(
         &self,
         auth_token: &str,
@@ -297,5 +326,24 @@ impl BackendTrait for Ochami {
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn get_member_hw_inventory(&self, auth_token: &str, xname: &str) -> Result<Value, Error> {
+        hsm::inventory::hardware::http_client::get_query(
+            &auth_token,
+            &self.base_url,
+            &self.root_cert,
+            xname,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+        .and_then(|hw_inventory| {
+            serde_json::to_value(hw_inventory).map_err(|e| Error::Message(e.to_string()))
+        })
     }
 }
