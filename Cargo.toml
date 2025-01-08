@@ -2,7 +2,7 @@
 authors = ["Manuel Sopena Ballesteros <msopena@cscs.ch>"]
 name = "ochami-rs"
 description = "Rust bindings for OCHAMI backend"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 license-file = "LICENSE"
 
