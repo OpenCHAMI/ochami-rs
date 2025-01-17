@@ -1,25 +1,24 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use crate::{
-    error::Error, hsm, node::utils::validate_xnames_format_and_membership_agaisnt_single_hsm,
+    error::Error,
+    hsm::{self, group::types::Member},
+    node::utils::validate_xnames_format_and_membership_agaisnt_single_hsm,
 };
 use tokio::sync::Semaphore;
 
 use crate::hsm::group::{http_client, types::Group};
 
-use super::{
-    http_client::{delete_member, post_members},
-    types::Member,
-};
+use super::http_client::{delete_member, post_member};
 
 /// Add a list of xnames to target HSM group
 /// Returns the new list of nodes in target HSM group
-pub async fn add_members(
+pub async fn add_member(
     auth_token: &str,
     base_url: &str,
     root_cert: &[u8],
     group_label: &str,
-    new_members: Vec<&str>,
+    new_member: &str,
 ) -> Result<Vec<String>, Error> {
     // Get HSM group from CSM
     let group_vec = crate::hsm::group::http_client::get(
@@ -33,31 +32,27 @@ pub async fn add_members(
 
     // Check if HSM group found
     if let Some(group) = group_vec.first().cloned().as_mut() {
-        // Update HSM group members by adding new elements
-        let members = group.add_xnames(
-            new_members
-                .iter()
-                .map(|xname| xname.to_string())
-                .collect::<Vec<String>>()
-                .as_slice(),
-        );
-
+        // Update HSM group with new memebers
         // Create Member struct
+        let new_member = new_member.to_string();
         let member = crate::hsm::group::types::Member {
-            ids: Some(members.clone()),
+            id: Some(new_member.clone()),
         };
 
         // Update HSM group in CSM
-        let _ = crate::hsm::group::http_client::post_members(
+        let _ = crate::hsm::group::http_client::post_member(
             auth_token,
             base_url,
             root_cert,
             group_label,
             member,
         )
-        .await;
+        .await?;
 
-        Ok(members)
+        // Generate list of updated group members
+        group.get_members().push(new_member);
+
+        Ok(group.get_members())
     } else {
         // HSM group not found, throw an error
         Err(Error::Message(format!(
@@ -316,10 +311,10 @@ pub async fn migrate_hsm_members(
     } else {
         for xname in new_target_hsm_members {
             let member = Member {
-                ids: Some(vec![xname.to_string()]),
+                id: Some(xname.to_string()),
             };
 
-            let _ = post_members(
+            let _ = post_member(
                 shasta_token,
                 shasta_base_url,
                 shasta_root_cert,

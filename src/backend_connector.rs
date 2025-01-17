@@ -4,17 +4,13 @@ use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
     types::{
-        BootParameters, ComponentArray as FrontEndComponentArray,
-        ComponentArrayPostArray as FrontEndComponentArrayPostArray, Group as FrontEndGroup,
+        BootParameters, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
+        Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
     },
 };
 use serde_json::Value;
 
-use crate::hsm::{
-    self,
-    component::types::{ComponentArray, ComponentArrayPostArray},
-    group::types::Group,
-};
+use crate::hsm::{self, component::types::ComponentArrayPostArray, group::types::Group};
 use crate::{authentication, bss};
 
 #[derive(Clone)]
@@ -39,9 +35,9 @@ impl BackendTrait for Ochami {
     }
 
     async fn get_api_token(&self, _site_name: &str) -> Result<String, Error> {
-        authentication::get_api_token()
-            .await
-            .map_err(|_e| Error::Message("environment variable 'AUTH_TOKEN' not found".to_string()))
+        authentication::get_api_token().await.map_err(|_e| {
+            Error::Message("environment variable 'ACCESS_TOKEN' not found".to_string())
+        })
     }
 
     async fn get_group_name_available(&self, token: &str) -> Result<Vec<String>, Error> {
@@ -71,17 +67,17 @@ impl BackendTrait for Ochami {
         .map_err(|e| Error::Message(e.to_string()))
     }
 
-    async fn post_members(
+    async fn post_member(
         &self,
         auth_token: &str,
         group_label: &str,
-        xnames: &[&str],
-    ) -> Result<(), Error> {
+        xname: &str,
+    ) -> Result<Value, Error> {
         let member = hsm::group::types::Member {
-            ids: Some(xnames.into_iter().map(|value| value.to_string()).collect()),
+            id: Some(xname.to_string()),
         };
 
-        hsm::group::http_client::post_members(
+        hsm::group::http_client::post_member(
             &self.base_url,
             auth_token,
             &self.root_cert,
@@ -96,17 +92,23 @@ impl BackendTrait for Ochami {
         &self,
         auth_token: &str,
         group_label: &str,
-        members: Vec<&str>,
+        new_members: Vec<&str>,
     ) -> Result<Vec<String>, Error> {
-        hsm::group::utils::add_members(
-            auth_token,
-            &self.base_url,
-            &self.root_cert,
-            group_label,
-            members.to_vec(),
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
+        let mut sol: Vec<String> = Vec::new();
+
+        for new_member in new_members {
+            sol = hsm::group::utils::add_member(
+                auth_token,
+                &self.base_url,
+                &self.root_cert,
+                group_label,
+                new_member,
+            )
+            .await
+            .map_err(|e| Error::Message(e.to_string()))?;
+        }
+
+        Ok(sol)
     }
 
     async fn delete_member_from_group(
@@ -342,17 +344,26 @@ impl BackendTrait for Ochami {
         .map_err(|e| Error::Message(e.to_string()))
     }
 
-    async fn get_member_hw_inventory(&self, auth_token: &str, xname: &str) -> Result<Value, Error> {
+    async fn get_inventory_hardware_query(
+        &self,
+        auth_token: &str,
+        xname: &str,
+        r#type: Option<&str>,
+        children: Option<bool>,
+        parents: Option<bool>,
+        partition: Option<&str>,
+        format: Option<&str>,
+    ) -> Result<Value, Error> {
         hsm::inventory::hardware::http_client::get_query(
             &auth_token,
             &self.base_url,
             &self.root_cert,
             xname,
-            None,
-            None,
-            None,
-            None,
-            None,
+            r#type,
+            children,
+            parents,
+            partition,
+            format,
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))
@@ -361,24 +372,41 @@ impl BackendTrait for Ochami {
         })
     }
 
+    async fn post_inventory_hardware(
+        &self,
+        auth_token: &str,
+        hardware: FrontEndHWInventoryByLocationList,
+    ) -> Result<Value, Error> {
+        hsm::inventory::hardware::http_client::post(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            hardware.into(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
     async fn post_nodes(
         &self,
         auth_token: &str,
         component: FrontEndComponentArrayPostArray,
-    ) -> Result<FrontEndComponentArray, Error> {
+    ) -> Result<(), Error> {
         let component_backend: ComponentArrayPostArray = component.into();
-        let component_vec: ComponentArray = hsm::component::http_client::post(
+
+        hsm::component::http_client::post(
             auth_token,
             &self.base_url,
             &self.root_cert,
             component_backend,
         )
         .await
-        .map_err(|e| Error::Message(e.to_string()))?;
+        .map_err(|e| Error::Message(e.to_string()))
+    }
 
-        // let hsm_group_vec = hsm_group_backend_vec.into_iter().map(Group::into).collect();
-        let sol: FrontEndComponentArray = component_vec.into();
-
-        Ok(sol)
+    async fn delete_node(&self, auth_token: &str, id: &str) -> Result<Value, Error> {
+        hsm::component::http_client::delete_one(auth_token, &self.base_url, &self.root_cert, id)
+            .await
+            .map_err(|e| Error::Message(e.to_string()))
     }
 }

@@ -1,6 +1,12 @@
 use backend_dispatcher::types::{Group as FrontEndGroup, Member as FrontEndMember};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct Member {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Group {
     pub label: String,
@@ -9,14 +15,14 @@ pub struct Group {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub members: Option<Member>,
+    pub members: Option<Members>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename(serialize = "exclusiveGroup"))]
     pub exclusive_group: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct Member {
+pub struct Members {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ids: Option<Vec<String>>,
 }
@@ -24,7 +30,7 @@ pub struct Member {
 impl Group {
     pub fn new(label: &str, member_vec_opt: Option<Vec<&str>>) -> Self {
         let members_opt = if let Some(member_vec) = member_vec_opt {
-            Some(Member {
+            Some(Members {
                 ids: Some(member_vec.iter().map(|&id| id.to_string()).collect()),
             })
         } else {
@@ -81,7 +87,7 @@ impl From<FrontEndGroup> for Group {
             member_vec.push(member);
         }
 
-        let members = Member {
+        let members = Members {
             ids: Some(member_vec),
         };
 

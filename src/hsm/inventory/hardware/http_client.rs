@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use crate::{
     error::Error,
-    hsm::inventory::types::{HWInventory, HWInventoryByLocation},
+    hsm::inventory::types::{HWInventory, HWInventoryByLocation, HWInventoryByLocationList},
 };
 
 pub async fn get_query(
@@ -33,7 +33,7 @@ pub async fn get_query(
 
     let api_url: String = format!(
         "{}/{}/{}",
-        base_url, "/smd/hsm/v2/Inventory/Hardware/Query", xname
+        base_url, "hsm/v2/Inventory/Hardware/Query", xname
     );
 
     let response = client
@@ -99,7 +99,7 @@ pub async fn get(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}", base_url, "/smd/hsm/v2/Inventory/Hardware");
+    let api_url: String = format!("{}/{}", base_url, "hsm/v2/Inventory/Hardware");
 
     let response = client
         .get(api_url)
@@ -153,10 +153,7 @@ pub async fn get_one(
         client_builder.build()?
     };
 
-    let api_url: String = format!(
-        "{}/{}/{}",
-        base_url, "/smd/hsm/v2/Inventory/Hardware", xname
-    );
+    let api_url: String = format!("{}/{}/{}", base_url, "hsm/v2/Inventory/Hardware", xname);
 
     let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
@@ -188,7 +185,7 @@ pub async fn post(
     auth_token: &str,
     base_url: &str,
     root_cert: &[u8],
-    hw_inventory_by_location: HWInventoryByLocation,
+    hardware: HWInventoryByLocationList,
 ) -> Result<Value, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
@@ -205,14 +202,18 @@ pub async fn post(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}", base_url, "/smd/hsm/v2/Inventory/Hardware");
+    let api_url: String = format!("{}/{}", base_url, "hsm/v2/Inventory/Hardware");
+
+    println!("DEBUG - request payload:\n{:#?}", hardware);
 
     let response = client
         .post(api_url)
         .bearer_auth(auth_token)
-        .json(&hw_inventory_by_location)
+        .json(&hardware)
         .send()
         .await?;
+
+    println!("DEBUG - response:\n{:#?}", response);
 
     if let Err(e) = response.error_for_status_ref() {
         match response.status() {
@@ -225,17 +226,21 @@ pub async fn post(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
+                let error_payload = response.json().await?;
                 let error = Error::CsmError(error_payload);
                 return Err(error);
             }
         }
     }
 
-    response
+    let response_payload = response
         .json()
         .await
-        .map_err(|error| Error::NetError(error))
+        .map_err(|error| Error::NetError(error));
+
+    println!("DEBUG - response payload:\n{:#?}", response_payload);
+
+    response_payload
 }
 
 pub async fn delete_all(
@@ -258,7 +263,7 @@ pub async fn delete_all(
         client_builder.build()?
     };
 
-    let api_url: String = base_url.to_owned() + "/smd/hsm/v2/Inventory/Hardware";
+    let api_url: String = base_url.to_owned() + "hsm/v2/Inventory/Hardware";
 
     let response = client
         .delete(api_url)
@@ -311,7 +316,7 @@ pub async fn delete_one(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}/{}", base_url, "smd/hsm/v2/Inventory/Hardware", xname);
+    let api_url: String = format!("{}/{}/{}", base_url, "hsm/v2/Inventory/Hardware", xname);
 
     let response = client
         .delete(api_url)
