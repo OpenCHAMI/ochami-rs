@@ -1,8 +1,8 @@
 use serde_json::Value;
 
-use crate::error::Error;
+use crate::{error::Error, hsm::group::types::Member};
 
-use super::types::{Group, Member};
+use super::types::{Group, Members};
 
 pub async fn get_all(
     base_url: &str,
@@ -169,7 +169,7 @@ pub async fn get_members(
     auth_token: &str,
     root_cert: &[u8],
     group_label: &str,
-) -> Result<Member, Error> {
+) -> Result<Members, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -267,13 +267,13 @@ pub async fn post(
         .map_err(|error| Error::NetError(error))
 }
 
-pub async fn post_members(
-    base_url: &str,
+pub async fn post_member(
     auth_token: &str,
+    base_url: &str,
     root_cert: &[u8],
     group_label: &str,
-    members: Member,
-) -> Result<(), Error> {
+    member: Member,
+) -> Result<Value, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -294,7 +294,7 @@ pub async fn post_members(
     let response = client
         .post(api_url)
         .bearer_auth(auth_token)
-        .json(&members)
+        .json(&member)
         .send()
         .await?;
 
@@ -316,7 +316,10 @@ pub async fn post_members(
         }
     }
 
-    Ok(())
+    response
+        .json()
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
 }
 
 pub async fn delete_one(
