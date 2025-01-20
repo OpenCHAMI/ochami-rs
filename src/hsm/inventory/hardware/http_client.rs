@@ -204,7 +204,10 @@ pub async fn post(
 
     let api_url: String = format!("{}/{}", base_url, "hsm/v2/Inventory/Hardware");
 
-    println!("DEBUG - request payload:\n{:#?}", hardware);
+    println!(
+        "DEBUG - request payload:\n{}",
+        serde_json::to_string_pretty(&hardware).unwrap()
+    );
 
     let response = client
         .post(api_url)
