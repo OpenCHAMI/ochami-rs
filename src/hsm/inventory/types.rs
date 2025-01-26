@@ -623,9 +623,9 @@ impl From<HWInvByLocHSNNIC> for ArtifactSummary {
         ArtifactSummary {
             xname: value.id,
             r#type: ArtifactType::from_str(value.r#type.unwrap().as_str()).unwrap(),
-            info: value
-                .populated_fru
-                .and_then(|hw_inv_by_fru_hsn_nic| hw_inv_by_fru_hsn_nic.hsn_nic_fru_info.model),
+            info: value.populated_fru.and_then(|hw_inv_by_fru_hsn_nic| {
+                hw_inv_by_fru_hsn_nic.node_hsn_nic_fru_info.model
+            }),
         }
     }
 }
@@ -634,7 +634,7 @@ impl Into<HWInvByLocHSNNIC> for ArtifactSummary {
     fn into(self) -> HWInvByLocHSNNIC {
         // NOTE: yes, sounds weird FRU for node accelerator uses FRU for processor... but that is
         // what the API docs says...
-        let hsn_nic_fru_info = HSNNICFRUInfo {
+        let hsn_nic_fru_info = NodeHsnNicFRUInfo {
             manufacturer: None,
             model: self.info,
             part_number: None,
@@ -647,7 +647,7 @@ impl Into<HWInvByLocHSNNIC> for ArtifactSummary {
             r#type: Some(self.r#type.to_string()),
             fru_sub_type: None,
             hw_inventory_by_fru_type: self.r#type.to_string(),
-            hsn_nic_fru_info,
+            node_hsn_nic_fru_info: hsn_nic_fru_info,
         };
 
         let hsn_nic_location_info = HSNNICLocationInfo {
@@ -1057,7 +1057,7 @@ impl Into<FrontEndHWInvByFRUNodeAccel> for HWInvByFRUNodeAccel {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct HSNNICFRUInfo {
+pub struct NodeHsnNicFRUInfo {
     #[serde(rename = "Manufacturer")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manufacturer: Option<String>,
@@ -1075,9 +1075,9 @@ pub struct HSNNICFRUInfo {
     pub serial_number: Option<String>,
 }
 
-impl From<FrontEndHSNNICFRUInfo> for HSNNICFRUInfo {
+impl From<FrontEndHSNNICFRUInfo> for NodeHsnNicFRUInfo {
     fn from(value: FrontEndHSNNICFRUInfo) -> Self {
-        HSNNICFRUInfo {
+        NodeHsnNicFRUInfo {
             manufacturer: value.manufacturer.map(|v| v),
             model: value.model.map(|v| v),
             part_number: value.part_number.map(|v| v),
@@ -1087,7 +1087,7 @@ impl From<FrontEndHSNNICFRUInfo> for HSNNICFRUInfo {
     }
 }
 
-impl Into<FrontEndHSNNICFRUInfo> for HSNNICFRUInfo {
+impl Into<FrontEndHSNNICFRUInfo> for NodeHsnNicFRUInfo {
     fn into(self) -> FrontEndHSNNICFRUInfo {
         FrontEndHSNNICFRUInfo {
             manufacturer: self.manufacturer.map(|v| v),
@@ -1112,8 +1112,8 @@ pub struct HWInvByFRUHSNNIC {
     pub fru_sub_type: Option<String>,
     #[serde(rename = "HWInventoryByFRUType")]
     pub hw_inventory_by_fru_type: String,
-    #[serde(rename = "HSNNICFRUInfo")]
-    pub hsn_nic_fru_info: HSNNICFRUInfo,
+    #[serde(rename = "NodeHsnNicFRUInfo")]
+    pub node_hsn_nic_fru_info: NodeHsnNicFRUInfo,
 }
 
 impl From<FrontEndHWInvByFRUHSNNIC> for HWInvByFRUHSNNIC {
@@ -1123,7 +1123,7 @@ impl From<FrontEndHWInvByFRUHSNNIC> for HWInvByFRUHSNNIC {
             r#type: value.r#type.map(|v| v),
             fru_sub_type: value.fru_sub_type.map(|v| v),
             hw_inventory_by_fru_type: value.hw_inventory_by_fru_type,
-            hsn_nic_fru_info: HSNNICFRUInfo::from(value.hsn_nic_fru_info),
+            node_hsn_nic_fru_info: NodeHsnNicFRUInfo::from(value.hsn_nic_fru_info),
         }
     }
 }
@@ -1135,7 +1135,7 @@ impl Into<FrontEndHWInvByFRUHSNNIC> for HWInvByFRUHSNNIC {
             r#type: self.r#type.map(|v| v),
             fru_sub_type: self.fru_sub_type.map(|v| v),
             hw_inventory_by_fru_type: self.hw_inventory_by_fru_type,
-            hsn_nic_fru_info: self.hsn_nic_fru_info.into(),
+            hsn_nic_fru_info: self.node_hsn_nic_fru_info.into(),
         }
     }
 }
@@ -1882,7 +1882,7 @@ pub struct HWInvByLocHSNNIC {
     pub populated_fru: Option<HWInvByFRUHSNNIC>,
     /* #[serde(rename = "NodeHsnNicLocationInfo")]
     pub node_hsn_nic_location_info: HSNNICLocationInfo, */
-    #[serde(rename = "HSNNICLocationInfo")]
+    #[serde(rename = "NodeHsnNicLocationInfo")]
     pub hsn_nic_location_info: HSNNICLocationInfo,
 }
 
@@ -2340,7 +2340,7 @@ pub struct HWInventory {
     #[serde(rename = "NodeAccelRisers")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub node_accel_risers: Option<Vec<HWInvByLocNodeAccelRiser>>,
-    #[serde(rename = "NodeHsnNICs")]
+    #[serde(rename = "NodeHsnNics")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub node_hsn_nics: Option<Vec<HWInvByLocHSNNIC>>,
     #[serde(rename = "NodeEnclosurePowerSupplies")]
