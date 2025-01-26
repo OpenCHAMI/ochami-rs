@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
+    interfaces::hsm::Component as ComponentTrait,
     types::{
-        BootParameters, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
+        BootParameters, ComponentArray, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
         Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
     },
 };
@@ -27,6 +28,97 @@ impl Ochami {
             base_url: base_url.to_string(),
             root_cert: root_cert.to_vec(),
         }
+    }
+}
+
+impl ComponentTrait for Ochami {
+    async fn get_all_nodes(
+        &self,
+        auth_token: &str,
+        nid_only: Option<&str>,
+    ) -> Result<ComponentArray, Error> {
+        hsm::component::http_client::get(
+            &self.base_url,
+            &self.root_cert,
+            auth_token,
+            None,
+            Some("Node"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            nid_only,
+        )
+        .await
+        .map(|c| c.into())
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn get(
+        &self,
+        auth_token: &str,
+        id: Option<&str>,
+        r#type: Option<&str>,
+        state: Option<&str>,
+        flag: Option<&str>,
+        role: Option<&str>,
+        subrole: Option<&str>,
+        enabled: Option<&str>,
+        software_status: Option<&str>,
+        subtype: Option<&str>,
+        arch: Option<&str>,
+        class: Option<&str>,
+        nid: Option<&str>,
+        nid_start: Option<&str>,
+        nid_end: Option<&str>,
+        partition: Option<&str>,
+        group: Option<&str>,
+        state_only: Option<&str>,
+        flag_only: Option<&str>,
+        role_only: Option<&str>,
+        nid_only: Option<&str>,
+    ) -> Result<ComponentArray, Error> {
+        hsm::component::http_client::get(
+            &self.base_url,
+            &self.root_cert,
+            auth_token,
+            id,
+            r#type,
+            state,
+            flag,
+            role,
+            subrole,
+            enabled,
+            software_status,
+            subtype,
+            arch,
+            class,
+            nid,
+            nid_start,
+            nid_end,
+            partition,
+            group,
+            state_only,
+            flag_only,
+            role_only,
+            nid_only,
+        )
+        .await
+        .map(|c| c.into())
+        .map_err(|e| Error::Message(e.to_string()))
     }
 }
 
@@ -512,8 +604,8 @@ impl BackendTrait for Ochami {
 
             let hsm_components = hsm::component::http_client::get(
                 &self.base_url,
-                shasta_token,
                 &self.root_cert,
+                shasta_token,
                 None,
                 None,
                 None,
