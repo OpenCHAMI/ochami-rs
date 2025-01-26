@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
-    interfaces::hsm::Component as ComponentTrait,
+    interfaces::hsm::HardwareMetadata,
     types::{
-        BootParameters, ComponentArray, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
+        BootParameters, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
         Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
+        HardwareMetadataArray,
     },
 };
 use hostlist_parser::parse;
@@ -31,12 +32,12 @@ impl Ochami {
     }
 }
 
-impl ComponentTrait for Ochami {
+impl HardwareMetadata for Ochami {
     async fn get_all_nodes(
         &self,
         auth_token: &str,
         nid_only: Option<&str>,
-    ) -> Result<ComponentArray, Error> {
+    ) -> Result<HardwareMetadataArray, Error> {
         hsm::component::http_client::get(
             &self.base_url,
             &self.root_cert,
@@ -90,7 +91,7 @@ impl ComponentTrait for Ochami {
         flag_only: Option<&str>,
         role_only: Option<&str>,
         nid_only: Option<&str>,
-    ) -> Result<ComponentArray, Error> {
+    ) -> Result<HardwareMetadataArray, Error> {
         hsm::component::http_client::get(
             &self.base_url,
             &self.root_cert,
