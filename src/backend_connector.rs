@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
-    interfaces::hsm::HardwareMetadata,
+    interfaces::hsm::{GroupTrait, HardwareMetadataTrait},
     types::{
         BootParameters, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
         Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
@@ -32,7 +32,16 @@ impl Ochami {
     }
 }
 
-impl HardwareMetadata for Ochami {
+impl GroupTrait for Ochami {
+    // Returns a list of all groups available to the user
+    // NOTE: We don't have user/Group mapping in OCHAMI (neither OpenFGA not Keycloak user roles)
+    // therefore all groups are available to all users
+    async fn get_group_available(&self, auth_token: &str) -> Result<Vec<FrontEndGroup>, Error> {
+        self.get_all_groups(auth_token).await
+    }
+}
+
+impl HardwareMetadataTrait for Ochami {
     async fn get_all_nodes(
         &self,
         auth_token: &str,
@@ -135,6 +144,9 @@ impl BackendTrait for Ochami {
         })
     }
 
+    // Returns a list of all groups name available to the user
+    // NOTE: We don't have user/Group mapping in OCHAMI (neither OpenFGA not Keycloak user roles)
+    // therefore all groups are available to all users
     async fn get_group_name_available(&self, token: &str) -> Result<Vec<String>, Error> {
         let hsm_group_vec_rslt = self.get_all_groups(token).await;
 
