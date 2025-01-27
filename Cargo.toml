@@ -8,7 +8,7 @@ license-file = "LICENSE"
 
 [dependencies]
 # backend-dispatcher = { path = "../backend-dispatcher" } # Only for development purposes
-backend-dispatcher = "0.1.13"
+backend-dispatcher = "0.1.14"
 strum = { version = "0.25.0", default-features = false }
 strum_macros = "0.25"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
