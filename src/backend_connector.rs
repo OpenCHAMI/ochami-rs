@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
-    interfaces::hsm::{GroupTrait, HardwareMetadataTrait},
+    interfaces::{group::GroupTrait, hardware_metadata::HardwareMetadataTrait},
     types::{
         BootParameters, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
         Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
@@ -38,6 +38,56 @@ impl GroupTrait for Ochami {
     // therefore all groups are available to all users
     async fn get_group_available(&self, auth_token: &str) -> Result<Vec<FrontEndGroup>, Error> {
         self.get_all_groups(auth_token).await
+    }
+
+    async fn add_group(
+        &self,
+        auth_token: &str,
+        hsm_group: FrontEndGroup,
+    ) -> Result<FrontEndGroup, Error> {
+        let hsm_group_backend = hsm::group::http_client::post(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            hsm_group.into(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
+
+        let hsm_group: FrontEndGroup = hsm_group_backend.into();
+
+        Ok(hsm_group)
+    }
+
+    // FIXME: rename function to 'get_hsm_group_members'
+    async fn get_member_vec_from_group_name_vec(
+        &self,
+        auth_token: &str,
+        hsm_group_name_vec: Vec<String>,
+    ) -> Result<Vec<String>, Error> {
+        hsm::group::utils::get_member_vec_from_hsm_name_vec_2(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            hsm_group_name_vec,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn get_group_map_and_filter_by_group_vec(
+        &self,
+        auth_token: &str,
+        hsm_name_vec: Vec<&str>,
+    ) -> Result<HashMap<String, Vec<String>>, Error> {
+        hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            hsm_name_vec,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
     }
 }
 
@@ -156,22 +206,6 @@ impl BackendTrait for Ochami {
                 .map(|hsm_group| hsm_group.label.clone())
                 .collect())
         })
-    }
-
-    // FIXME: rename function to 'get_hsm_group_members'
-    async fn get_member_vec_from_group_name_vec(
-        &self,
-        auth_token: &str,
-        hsm_group_name_vec: Vec<String>,
-    ) -> Result<Vec<String>, Error> {
-        hsm::group::utils::get_member_vec_from_hsm_name_vec_2(
-            auth_token,
-            &self.base_url,
-            &self.root_cert,
-            hsm_group_name_vec,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
     }
 
     async fn post_member(
@@ -295,25 +329,6 @@ impl BackendTrait for Ochami {
         Ok(hsm_group)
     }
 
-    async fn add_group(
-        &self,
-        auth_token: &str,
-        hsm_group: FrontEndGroup,
-    ) -> Result<FrontEndGroup, Error> {
-        let hsm_group_backend = hsm::group::http_client::post(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            hsm_group.into(),
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))?;
-
-        let hsm_group: FrontEndGroup = hsm_group_backend.into();
-
-        Ok(hsm_group)
-    }
-
     async fn delete_group(&self, auth_token: &str, hsm_group_name: &str) -> Result<Value, Error> {
         hsm::group::http_client::delete_one(
             &self.base_url,
@@ -431,21 +446,6 @@ impl BackendTrait for Ochami {
             auth_token,
             &self.root_cert,
             &boot_parameters,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn get_group_map_and_filter_by_group_vec(
-        &self,
-        auth_token: &str,
-        hsm_name_vec: Vec<&str>,
-    ) -> Result<HashMap<String, Vec<String>>, Error> {
-        hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
-            auth_token,
-            &self.base_url,
-            &self.root_cert,
-            hsm_name_vec,
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))
