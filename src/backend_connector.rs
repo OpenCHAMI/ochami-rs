@@ -5,7 +5,9 @@ use backend_dispatcher::{
     error::Error,
     interfaces::{
         bss::BootParametersTrait,
-        hsm::{component::ComponentTrait, group::GroupTrait},
+        hsm::{
+            component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
+        },
         pcs::PCSTrait,
     },
     types::{
@@ -170,6 +172,151 @@ impl GroupTrait for Ochami {
             &self.base_url,
             &self.root_cert,
             hsm_name_vec,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn post_member(
+        &self,
+        auth_token: &str,
+        group_label: &str,
+        xname: &str,
+    ) -> Result<Value, Error> {
+        let member = hsm::group::types::Member {
+            id: Some(xname.to_string()),
+        };
+
+        hsm::group::http_client::post_member(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            group_label,
+            member,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn add_members_to_group(
+        &self,
+        auth_token: &str,
+        group_label: &str,
+        new_members: Vec<&str>,
+    ) -> Result<Vec<String>, Error> {
+        let mut sol: Vec<String> = Vec::new();
+
+        for new_member in new_members {
+            sol = hsm::group::utils::add_member(
+                auth_token,
+                &self.base_url,
+                &self.root_cert,
+                group_label,
+                new_member,
+            )
+            .await
+            .map_err(|e| Error::Message(e.to_string()))?;
+        }
+
+        Ok(sol)
+    }
+
+    async fn delete_member_from_group(
+        &self,
+        auth_token: &str,
+        group_label: &str,
+        xname: &str,
+    ) -> Result<(), Error> {
+        hsm::group::http_client::delete_member(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            group_label,
+            xname,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn update_group_members(
+        &self,
+        auth_token: &str,
+        group_name: &str,
+        members_to_remove: &Vec<String>,
+        members_to_add: &Vec<String>,
+    ) -> Result<(), Error> {
+        hsm::group::utils::update_hsm_group_members(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            group_name,
+            members_to_remove,
+            members_to_add,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn migrate_group_members(
+        &self,
+        shasta_token: &str,
+        target_hsm_group_name: &str,
+        parent_hsm_group_name: &str,
+        new_target_hsm_members: Vec<&str>,
+    ) -> Result<(Vec<String>, Vec<String>), Error> {
+        hsm::group::utils::migrate_hsm_members(
+            shasta_token,
+            &self.base_url,
+            &self.root_cert,
+            target_hsm_group_name,
+            parent_hsm_group_name,
+            new_target_hsm_members,
+            true,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+}
+
+impl HardwareInventory for Ochami {
+    async fn get_inventory_hardware_query(
+        &self,
+        auth_token: &str,
+        xname: &str,
+        r#type: Option<&str>,
+        children: Option<bool>,
+        parents: Option<bool>,
+        partition: Option<&str>,
+        format: Option<&str>,
+    ) -> Result<Value, Error> {
+        hsm::inventory::hardware::http_client::get_query(
+            &auth_token,
+            &self.base_url,
+            &self.root_cert,
+            xname,
+            r#type,
+            children,
+            parents,
+            partition,
+            format,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+        .and_then(|hw_inventory| {
+            serde_json::to_value(hw_inventory).map_err(|e| Error::Message(e.to_string()))
+        })
+    }
+
+    async fn post_inventory_hardware(
+        &self,
+        auth_token: &str,
+        hardware: FrontEndHWInventoryByLocationList,
+    ) -> Result<Value, Error> {
+        hsm::inventory::hardware::http_client::post(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            hardware.into(),
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))
@@ -379,149 +526,6 @@ impl BackendTrait for Ochami {
         authentication::get_api_token().await.map_err(|_e| {
             Error::Message("environment variable 'ACCESS_TOKEN' not found".to_string())
         })
-    }
-
-    async fn post_member(
-        &self,
-        auth_token: &str,
-        group_label: &str,
-        xname: &str,
-    ) -> Result<Value, Error> {
-        let member = hsm::group::types::Member {
-            id: Some(xname.to_string()),
-        };
-
-        hsm::group::http_client::post_member(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            group_label,
-            member,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn add_members_to_group(
-        &self,
-        auth_token: &str,
-        group_label: &str,
-        new_members: Vec<&str>,
-    ) -> Result<Vec<String>, Error> {
-        let mut sol: Vec<String> = Vec::new();
-
-        for new_member in new_members {
-            sol = hsm::group::utils::add_member(
-                auth_token,
-                &self.base_url,
-                &self.root_cert,
-                group_label,
-                new_member,
-            )
-            .await
-            .map_err(|e| Error::Message(e.to_string()))?;
-        }
-
-        Ok(sol)
-    }
-
-    async fn delete_member_from_group(
-        &self,
-        auth_token: &str,
-        group_label: &str,
-        xname: &str,
-    ) -> Result<(), Error> {
-        hsm::group::http_client::delete_member(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            group_label,
-            xname,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn update_group_members(
-        &self,
-        auth_token: &str,
-        group_name: &str,
-        members_to_remove: &Vec<String>,
-        members_to_add: &Vec<String>,
-    ) -> Result<(), Error> {
-        hsm::group::utils::update_hsm_group_members(
-            auth_token,
-            &self.base_url,
-            &self.root_cert,
-            group_name,
-            members_to_remove,
-            members_to_add,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn migrate_group_members(
-        &self,
-        shasta_token: &str,
-        target_hsm_group_name: &str,
-        parent_hsm_group_name: &str,
-        new_target_hsm_members: Vec<&str>,
-    ) -> Result<(Vec<String>, Vec<String>), Error> {
-        hsm::group::utils::migrate_hsm_members(
-            shasta_token,
-            &self.base_url,
-            &self.root_cert,
-            target_hsm_group_name,
-            parent_hsm_group_name,
-            new_target_hsm_members,
-            true,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn get_inventory_hardware_query(
-        &self,
-        auth_token: &str,
-        xname: &str,
-        r#type: Option<&str>,
-        children: Option<bool>,
-        parents: Option<bool>,
-        partition: Option<&str>,
-        format: Option<&str>,
-    ) -> Result<Value, Error> {
-        hsm::inventory::hardware::http_client::get_query(
-            &auth_token,
-            &self.base_url,
-            &self.root_cert,
-            xname,
-            r#type,
-            children,
-            parents,
-            partition,
-            format,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-        .and_then(|hw_inventory| {
-            serde_json::to_value(hw_inventory).map_err(|e| Error::Message(e.to_string()))
-        })
-    }
-
-    async fn post_inventory_hardware(
-        &self,
-        auth_token: &str,
-        hardware: FrontEndHWInventoryByLocationList,
-    ) -> Result<Value, Error> {
-        hsm::inventory::hardware::http_client::post(
-            auth_token,
-            &self.base_url,
-            &self.root_cert,
-            hardware.into(),
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
     }
 
     /// Get list of xnames from NIDs
