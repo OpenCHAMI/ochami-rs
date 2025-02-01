@@ -3,7 +3,11 @@ use std::collections::HashMap;
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
-    interfaces::{group::GroupTrait, hardware_metadata::HardwareMetadataTrait},
+    interfaces::{
+        bss::BootParametersTrait,
+        hsm::{component::ComponentTrait, group::GroupTrait},
+        pcs::PCSTrait,
+    },
     types::{
         BootParameters, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
         Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
@@ -38,6 +42,20 @@ impl GroupTrait for Ochami {
     // therefore all groups are available to all users
     async fn get_group_available(&self, auth_token: &str) -> Result<Vec<FrontEndGroup>, Error> {
         self.get_all_groups(auth_token).await
+    }
+
+    // Returns a list of all groups name available to the user
+    // NOTE: We don't have user/Group mapping in OCHAMI (neither OpenFGA not Keycloak user roles)
+    // therefore all groups are available to all users
+    async fn get_group_name_available(&self, token: &str) -> Result<Vec<String>, Error> {
+        let hsm_group_vec_rslt = self.get_all_groups(token).await;
+
+        hsm_group_vec_rslt.and_then(|hsm_group_vec| {
+            Ok(hsm_group_vec
+                .iter()
+                .map(|hsm_group| hsm_group.label.clone())
+                .collect())
+        })
     }
 
     async fn add_group(
@@ -89,9 +107,76 @@ impl GroupTrait for Ochami {
         .await
         .map_err(|e| Error::Message(e.to_string()))
     }
+
+    async fn get_all_groups(&self, auth_token: &str) -> Result<Vec<FrontEndGroup>, Error> {
+        // Get all HSM groups
+        let hsm_group_backend_vec =
+            hsm::group::http_client::get(&self.base_url, auth_token, &self.root_cert, None, None)
+                .await
+                .map_err(|e| Error::Message(e.to_string()))?;
+
+        // Convert from HsmGroup (silla) to HsmGroup (infra)
+        let hsm_group_vec = hsm_group_backend_vec.into_iter().map(Group::into).collect();
+
+        Ok(hsm_group_vec)
+    }
+
+    async fn get_group(&self, auth_token: &str, hsm_name: &str) -> Result<FrontEndGroup, Error> {
+        // Get all HSM groups
+        let hsm_group_backend_vec = hsm::group::http_client::get(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            Some(hsm_name),
+            None,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
+
+        // Error if more than one HSM group found
+        if hsm_group_backend_vec.len() > 1 {
+            return Err(Error::Message(format!(
+                "ERROR - multiple HSM groups with name '{}' found. Exit",
+                hsm_name
+            )));
+        }
+
+        // Convert from HsmGroup (silla) to HsmGroup (infra)
+        let hsm_group_backend = hsm_group_backend_vec.first().unwrap().to_owned();
+
+        let hsm_group: FrontEndGroup = hsm_group_backend.into();
+
+        Ok(hsm_group)
+    }
+
+    async fn delete_group(&self, auth_token: &str, hsm_group_name: &str) -> Result<Value, Error> {
+        hsm::group::http_client::delete_one(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            hsm_group_name,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn get_hsm_map_and_filter_by_hsm_name_vec(
+        &self,
+        shasta_token: &str,
+        hsm_name_vec: Vec<&str>,
+    ) -> Result<HashMap<String, Vec<String>>, Error> {
+        hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
+            shasta_token,
+            &self.base_url,
+            &self.root_cert,
+            hsm_name_vec,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
 }
 
-impl HardwareMetadataTrait for Ochami {
+impl ComponentTrait for Ochami {
     async fn get_all_nodes(
         &self,
         auth_token: &str,
@@ -180,6 +265,108 @@ impl HardwareMetadataTrait for Ochami {
         .map(|c| c.into())
         .map_err(|e| Error::Message(e.to_string()))
     }
+
+    async fn post_nodes(
+        &self,
+        auth_token: &str,
+        component: FrontEndComponentArrayPostArray,
+    ) -> Result<(), Error> {
+        let component_backend: ComponentArrayPostArray = component.into();
+
+        hsm::component::http_client::post(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            component_backend,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn delete_node(&self, auth_token: &str, id: &str) -> Result<Value, Error> {
+        hsm::component::http_client::delete_one(auth_token, &self.base_url, &self.root_cert, id)
+            .await
+            .map_err(|e| Error::Message(e.to_string()))
+    }
+}
+
+impl PCSTrait for Ochami {
+    async fn power_on_sync(&self, _auth_token: &str, _nodes: &[String]) -> Result<Value, Error> {
+        Err(Error::Message(
+            "Power on command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn power_off_sync(
+        &self,
+        _auth_token: &str,
+        _nodes: &[String],
+        _force: bool,
+    ) -> Result<serde_json::Value, Error> {
+        Err(Error::Message(
+            "Power off command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn power_reset_sync(
+        &self,
+        _auth_token: &str,
+        _nodes: &[String],
+        _force: bool,
+    ) -> Result<serde_json::Value, Error> {
+        Err(Error::Message(
+            "Power reset command not implemented for this backend".to_string(),
+        ))
+    }
+}
+
+impl BootParametersTrait for Ochami {
+    async fn get_bootparameters(
+        &self,
+        auth_token: &str,
+        nodes: &[String],
+    ) -> Result<Vec<BootParameters>, Error> {
+        let boot_parameter_vec = bss::http_client::get(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            &Some(nodes.to_vec()),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
+
+        let boot_parameter_infra_vec = boot_parameter_vec
+            .into_iter()
+            .map(|boot_parameter| boot_parameter.into())
+            .collect();
+
+        Ok(boot_parameter_infra_vec)
+    }
+
+    async fn update_bootparameters(
+        &self,
+        auth_token: &str,
+        boot_parameter: &BootParameters,
+    ) -> Result<(), Error> {
+        let boot_parameters = bss::types::BootParameters {
+            hosts: boot_parameter.hosts.clone(),
+            macs: boot_parameter.macs.clone(),
+            nids: boot_parameter.nids.clone(),
+            params: boot_parameter.params.clone(),
+            kernel: boot_parameter.kernel.clone(),
+            initrd: boot_parameter.initrd.clone(),
+            cloud_init: boot_parameter.cloud_init.clone(),
+        };
+
+        bss::http_client::patch(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            &boot_parameters,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
 }
 
 impl BackendTrait for Ochami {
@@ -191,20 +378,6 @@ impl BackendTrait for Ochami {
     async fn get_api_token(&self, _site_name: &str) -> Result<String, Error> {
         authentication::get_api_token().await.map_err(|_e| {
             Error::Message("environment variable 'ACCESS_TOKEN' not found".to_string())
-        })
-    }
-
-    // Returns a list of all groups name available to the user
-    // NOTE: We don't have user/Group mapping in OCHAMI (neither OpenFGA not Keycloak user roles)
-    // therefore all groups are available to all users
-    async fn get_group_name_available(&self, token: &str) -> Result<Vec<String>, Error> {
-        let hsm_group_vec_rslt = self.get_all_groups(token).await;
-
-        hsm_group_vec_rslt.and_then(|hsm_group_vec| {
-            Ok(hsm_group_vec
-                .iter()
-                .map(|hsm_group| hsm_group.label.clone())
-                .collect())
         })
     }
 
@@ -288,58 +461,6 @@ impl BackendTrait for Ochami {
         .map_err(|e| Error::Message(e.to_string()))
     }
 
-    async fn get_all_groups(&self, auth_token: &str) -> Result<Vec<FrontEndGroup>, Error> {
-        // Get all HSM groups
-        let hsm_group_backend_vec =
-            hsm::group::http_client::get(&self.base_url, auth_token, &self.root_cert, None, None)
-                .await
-                .map_err(|e| Error::Message(e.to_string()))?;
-
-        // Convert from HsmGroup (silla) to HsmGroup (infra)
-        let hsm_group_vec = hsm_group_backend_vec.into_iter().map(Group::into).collect();
-
-        Ok(hsm_group_vec)
-    }
-
-    async fn get_group(&self, auth_token: &str, hsm_name: &str) -> Result<FrontEndGroup, Error> {
-        // Get all HSM groups
-        let hsm_group_backend_vec = hsm::group::http_client::get(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            Some(hsm_name),
-            None,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))?;
-
-        // Error if more than one HSM group found
-        if hsm_group_backend_vec.len() > 1 {
-            return Err(Error::Message(format!(
-                "ERROR - multiple HSM groups with name '{}' found. Exit",
-                hsm_name
-            )));
-        }
-
-        // Convert from HsmGroup (silla) to HsmGroup (infra)
-        let hsm_group_backend = hsm_group_backend_vec.first().unwrap().to_owned();
-
-        let hsm_group: FrontEndGroup = hsm_group_backend.into();
-
-        Ok(hsm_group)
-    }
-
-    async fn delete_group(&self, auth_token: &str, hsm_group_name: &str) -> Result<Value, Error> {
-        hsm::group::http_client::delete_one(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            hsm_group_name,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
     async fn migrate_group_members(
         &self,
         shasta_token: &str,
@@ -355,97 +476,6 @@ impl BackendTrait for Ochami {
             parent_hsm_group_name,
             new_target_hsm_members,
             true,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn power_on_sync(&self, _auth_token: &str, _nodes: &[String]) -> Result<Value, Error> {
-        Err(Error::Message(
-            "Power on command not implemented for this backend".to_string(),
-        ))
-    }
-
-    async fn power_off_sync(
-        &self,
-        _auth_token: &str,
-        _nodes: &[String],
-        _force: bool,
-    ) -> Result<serde_json::Value, Error> {
-        Err(Error::Message(
-            "Power off command not implemented for this backend".to_string(),
-        ))
-    }
-
-    async fn power_reset_sync(
-        &self,
-        _auth_token: &str,
-        _nodes: &[String],
-        _force: bool,
-    ) -> Result<serde_json::Value, Error> {
-        Err(Error::Message(
-            "Power reset command not implemented for this backend".to_string(),
-        ))
-    }
-
-    async fn get_bootparameters(
-        &self,
-        auth_token: &str,
-        nodes: &[String],
-    ) -> Result<Vec<BootParameters>, Error> {
-        let boot_parameter_vec = bss::http_client::get(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            &Some(nodes.to_vec()),
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))?;
-
-        let boot_parameter_infra_vec = boot_parameter_vec
-            .into_iter()
-            .map(|boot_parameter| boot_parameter.into())
-            .collect();
-
-        Ok(boot_parameter_infra_vec)
-
-        /* let mut boot_parameter_infra_vec = vec![];
-
-        for boot_parameter in boot_parameter_vec {
-            boot_parameter_infra_vec.push(BootParameters {
-                hosts: boot_parameter.hosts,
-                macs: boot_parameter.macs,
-                nids: boot_parameter.nids,
-                params: boot_parameter.params,
-                kernel: boot_parameter.kernel,
-                initrd: boot_parameter.initrd,
-                cloud_init: boot_parameter.cloud_init,
-            });
-        }
-
-        Ok(boot_parameter_infra_vec) */
-    }
-
-    async fn update_bootparameters(
-        &self,
-        auth_token: &str,
-        boot_parameter: &BootParameters,
-    ) -> Result<(), Error> {
-        let boot_parameters = bss::types::BootParameters {
-            hosts: boot_parameter.hosts.clone(),
-            macs: boot_parameter.macs.clone(),
-            nids: boot_parameter.nids.clone(),
-            params: boot_parameter.params.clone(),
-            kernel: boot_parameter.kernel.clone(),
-            initrd: boot_parameter.initrd.clone(),
-            cloud_init: boot_parameter.cloud_init.clone(),
-        };
-
-        bss::http_client::patch(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            &boot_parameters,
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))
@@ -489,44 +519,6 @@ impl BackendTrait for Ochami {
             &self.base_url,
             &self.root_cert,
             hardware.into(),
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn post_nodes(
-        &self,
-        auth_token: &str,
-        component: FrontEndComponentArrayPostArray,
-    ) -> Result<(), Error> {
-        let component_backend: ComponentArrayPostArray = component.into();
-
-        hsm::component::http_client::post(
-            auth_token,
-            &self.base_url,
-            &self.root_cert,
-            component_backend,
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn delete_node(&self, auth_token: &str, id: &str) -> Result<Value, Error> {
-        hsm::component::http_client::delete_one(auth_token, &self.base_url, &self.root_cert, id)
-            .await
-            .map_err(|e| Error::Message(e.to_string()))
-    }
-
-    async fn get_hsm_map_and_filter_by_hsm_name_vec(
-        &self,
-        shasta_token: &str,
-        hsm_name_vec: Vec<&str>,
-    ) -> Result<HashMap<String, Vec<String>>, Error> {
-        hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
-            shasta_token,
-            &self.base_url,
-            &self.root_cert,
-            hsm_name_vec,
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))
