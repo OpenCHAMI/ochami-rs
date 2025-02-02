@@ -585,11 +585,10 @@ impl BackendTrait for Ochami {
             let nid_hostlist_expanded_vec = match nid_hostlist_expanded_vec_rslt {
                 Ok(xname_requested_vec) => xname_requested_vec,
                 Err(e) => {
-                    println!(
+                    return Err(Error::Message(format!(
                         "Could not parse list of nodes as a hostlist. Reason:\n{}Exit",
                         e
-                    );
-                    std::process::exit(1);
+                    )));
                 }
             };
 

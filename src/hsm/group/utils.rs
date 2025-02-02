@@ -245,8 +245,6 @@ pub async fn migrate_hsm_members(
     {
         let error_msg = format!("Nodes '{}' not valid", new_target_hsm_members.join(", "));
         return Err(Error::Message(error_msg));
-        /* eprintln!("Nodes '{}' not valid", new_target_hsm_members.join(", "));
-        std::process::exit(1); */
     }
 
     // get list of target HSM group members
