@@ -11,7 +11,7 @@ use backend_dispatcher::{
         pcs::PCSTrait,
     },
     types::{
-        BootParameters, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
+        BootParameters, Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
         Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
         HardwareMetadataArray,
     },
@@ -357,6 +357,12 @@ impl ComponentTrait for Ochami {
         .await
         .map(|c| c.into())
         .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn get_node_metadata_available(&self, auth_token: &str) -> Result<Vec<Component>, Error> {
+        self.get_all_nodes(auth_token, Some("true"))
+            .await
+            .map(|c| c.components.unwrap_or_default())
     }
 
     async fn get(
