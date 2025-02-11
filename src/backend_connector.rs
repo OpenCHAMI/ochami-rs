@@ -13,7 +13,7 @@ use backend_dispatcher::{
     types::{
         BootParameters, Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
         Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
-        HardwareMetadataArray,
+        NodeMetadataArray,
     },
 };
 use hostlist_parser::parse;
@@ -328,7 +328,7 @@ impl ComponentTrait for Ochami {
         &self,
         auth_token: &str,
         nid_only: Option<&str>,
-    ) -> Result<HardwareMetadataArray, Error> {
+    ) -> Result<NodeMetadataArray, Error> {
         hsm::component::http_client::get(
             &self.base_url,
             &self.root_cert,
@@ -388,7 +388,7 @@ impl ComponentTrait for Ochami {
         flag_only: Option<&str>,
         role_only: Option<&str>,
         nid_only: Option<&str>,
-    ) -> Result<HardwareMetadataArray, Error> {
+    ) -> Result<NodeMetadataArray, Error> {
         hsm::component::http_client::get(
             &self.base_url,
             &self.root_cert,
