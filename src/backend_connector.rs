@@ -1,10 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, pin::Pin};
 
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
     interfaces::{
         bss::BootParametersTrait,
+        cfs::CfsTrait,
         hsm::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
         },
@@ -13,9 +14,10 @@ use backend_dispatcher::{
     types::{
         BootParameters, Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
         Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
-        NodeMetadataArray,
+        K8sDetails, NodeMetadataArray,
     },
 };
+use futures::AsyncBufRead;
 use hostlist_parser::parse;
 use regex::Regex;
 use serde_json::Value;
@@ -656,5 +658,90 @@ impl BackendTrait for Ochami {
 
             return Ok(xname_vec);
         };
+    }
+}
+
+impl CfsTrait for Ochami {
+    type T = Pin<Box<dyn AsyncBufRead>>;
+
+    async fn get_session_logs_stream(
+        &self,
+        cfs_session_name: &str,
+        k8s_api_url: &str,
+        k8s: &K8sDetails,
+    ) -> Result<Pin<Box<dyn AsyncBufRead>>, Error> {
+        Err::<Pin<Box<dyn AsyncBufRead>>, backend_dispatcher::error::Error>(Error::Message(
+            "Get logs stream command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn get_session_logs_stream_by_xname(
+        &self,
+        auth_token: &str,
+        xname: &str,
+        k8s_api_url: &str,
+        k8s: &K8sDetails,
+    ) -> Result<Pin<Box<dyn AsyncBufRead>>, Error> {
+        Err::<Pin<Box<dyn AsyncBufRead>>, backend_dispatcher::error::Error>(Error::Message(
+            "Get logs stream command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn get_sessions(
+        &self,
+        shasta_token: &str,
+        shasta_base_url: &str,
+        shasta_root_cert: &[u8],
+        session_name_opt: Option<&String>,
+        limit_opt: Option<u8>,
+        after_id_opt: Option<String>,
+        min_age_opt: Option<String>,
+        max_age_opt: Option<String>,
+        status_opt: Option<String>,
+        name_contains_opt: Option<String>,
+        is_succeded_opt: Option<bool>,
+        tags_opt: Option<String>,
+    ) -> Result<Vec<backend_dispatcher::types::cfs::CfsSessionGetResponse>, Error> {
+        Err(Error::Message(
+            "Get sessions command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn get_and_filter_sessions(
+        &self,
+        shasta_token: &str,
+        shasta_base_url: &str,
+        shasta_root_cert: &[u8],
+        hsm_group_name_vec_opt: Option<Vec<String>>,
+        xname_vec_opt: Option<Vec<&str>>,
+        min_age_opt: Option<&String>,
+        max_age_opt: Option<&String>,
+        status_opt: Option<&String>,
+        cfs_session_name_opt: Option<&String>,
+        limit_number_opt: Option<&u8>,
+    ) -> Result<Vec<backend_dispatcher::types::cfs::CfsSessionGetResponse>, Error> {
+        Err(Error::Message(
+            "Get and filter sessions command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn get_sessions_by_xname(
+        &self,
+        shasta_token: &str,
+        shasta_base_url: &str,
+        shasta_root_cert: &[u8],
+        xname_vec: &[&str],
+        limit_opt: Option<u8>,
+        after_id_opt: Option<String>,
+        min_age_opt: Option<String>,
+        max_age_opt: Option<String>,
+        status_opt: Option<String>,
+        name_contains_opt: Option<String>,
+        is_succeded_opt: Option<bool>,
+        tags_opt: Option<String>,
+    ) -> Result<Vec<backend_dispatcher::types::cfs::CfsSessionGetResponse>, Error> {
+        Err(Error::Message(
+            "Get sessions command not implemented for this backend".to_string(),
+        ))
     }
 }

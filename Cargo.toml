@@ -2,13 +2,13 @@
 authors = ["Manuel Sopena Ballesteros <msopena@cscs.ch>"]
 name = "ochami-rs"
 description = "Rust bindings for OCHAMI backend"
-version = "0.1.23"
+version = "0.1.24"
 edition = "2021"
 license-file = "LICENSE"
 
 [dependencies]
 # backend-dispatcher = { path = "../backend-dispatcher" } # Only for development purposes
-backend-dispatcher = "0.1.22"
+backend-dispatcher = "0.1.23"
 strum = { version = "0.25.0", default-features = false }
 strum_macros = "0.25"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
@@ -20,3 +20,4 @@ log = "0.4.17"
 thiserror = "1.0.56"
 regex = "1.6.0"
 hostlist-parser = "0.1.6"
+futures = { version = "0.3.28", default-features = false }
