@@ -666,9 +666,9 @@ impl CfsTrait for Ochami {
 
     async fn get_session_logs_stream(
         &self,
-        cfs_session_name: &str,
-        k8s_api_url: &str,
-        k8s: &K8sDetails,
+        _cfs_session_name: &str,
+        _k8s_api_url: &str,
+        _k8s: &K8sDetails,
     ) -> Result<Pin<Box<dyn AsyncBufRead>>, Error> {
         Err::<Pin<Box<dyn AsyncBufRead>>, backend_dispatcher::error::Error>(Error::Message(
             "Get logs stream command not implemented for this backend".to_string(),
@@ -677,10 +677,10 @@ impl CfsTrait for Ochami {
 
     async fn get_session_logs_stream_by_xname(
         &self,
-        auth_token: &str,
-        xname: &str,
-        k8s_api_url: &str,
-        k8s: &K8sDetails,
+        _auth_token: &str,
+        _xname: &str,
+        _k8s_api_url: &str,
+        _k8s: &K8sDetails,
     ) -> Result<Pin<Box<dyn AsyncBufRead>>, Error> {
         Err::<Pin<Box<dyn AsyncBufRead>>, backend_dispatcher::error::Error>(Error::Message(
             "Get logs stream command not implemented for this backend".to_string(),
@@ -689,18 +689,18 @@ impl CfsTrait for Ochami {
 
     async fn get_sessions(
         &self,
-        shasta_token: &str,
-        shasta_base_url: &str,
-        shasta_root_cert: &[u8],
-        session_name_opt: Option<&String>,
-        limit_opt: Option<u8>,
-        after_id_opt: Option<String>,
-        min_age_opt: Option<String>,
-        max_age_opt: Option<String>,
-        status_opt: Option<String>,
-        name_contains_opt: Option<String>,
-        is_succeded_opt: Option<bool>,
-        tags_opt: Option<String>,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _session_name_opt: Option<&String>,
+        _limit_opt: Option<u8>,
+        _after_id_opt: Option<String>,
+        _min_age_opt: Option<String>,
+        _max_age_opt: Option<String>,
+        _status_opt: Option<String>,
+        _name_contains_opt: Option<String>,
+        _is_succeded_opt: Option<bool>,
+        _tags_opt: Option<String>,
     ) -> Result<Vec<backend_dispatcher::types::cfs::CfsSessionGetResponse>, Error> {
         Err(Error::Message(
             "Get sessions command not implemented for this backend".to_string(),
@@ -709,16 +709,16 @@ impl CfsTrait for Ochami {
 
     async fn get_and_filter_sessions(
         &self,
-        shasta_token: &str,
-        shasta_base_url: &str,
-        shasta_root_cert: &[u8],
-        hsm_group_name_vec_opt: Option<Vec<String>>,
-        xname_vec_opt: Option<Vec<&str>>,
-        min_age_opt: Option<&String>,
-        max_age_opt: Option<&String>,
-        status_opt: Option<&String>,
-        cfs_session_name_opt: Option<&String>,
-        limit_number_opt: Option<&u8>,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _hsm_group_name_vec_opt: Option<Vec<String>>,
+        _xname_vec_opt: Option<Vec<&str>>,
+        _min_age_opt: Option<&String>,
+        _max_age_opt: Option<&String>,
+        _status_opt: Option<&String>,
+        _cfs_session_name_opt: Option<&String>,
+        _limit_number_opt: Option<&u8>,
     ) -> Result<Vec<backend_dispatcher::types::cfs::CfsSessionGetResponse>, Error> {
         Err(Error::Message(
             "Get and filter sessions command not implemented for this backend".to_string(),
@@ -727,18 +727,18 @@ impl CfsTrait for Ochami {
 
     async fn get_sessions_by_xname(
         &self,
-        shasta_token: &str,
-        shasta_base_url: &str,
-        shasta_root_cert: &[u8],
-        xname_vec: &[&str],
-        limit_opt: Option<u8>,
-        after_id_opt: Option<String>,
-        min_age_opt: Option<String>,
-        max_age_opt: Option<String>,
-        status_opt: Option<String>,
-        name_contains_opt: Option<String>,
-        is_succeded_opt: Option<bool>,
-        tags_opt: Option<String>,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _xname_vec: &[&str],
+        _limit_opt: Option<u8>,
+        _after_id_opt: Option<String>,
+        _min_age_opt: Option<String>,
+        _max_age_opt: Option<String>,
+        _status_opt: Option<String>,
+        _name_contains_opt: Option<String>,
+        _is_succeded_opt: Option<bool>,
+        _tags_opt: Option<String>,
     ) -> Result<Vec<backend_dispatcher::types::cfs::CfsSessionGetResponse>, Error> {
         Err(Error::Message(
             "Get sessions command not implemented for this backend".to_string(),
