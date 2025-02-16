@@ -12,9 +12,15 @@ use backend_dispatcher::{
         pcs::PCSTrait,
     },
     types::{
-        BootParameters, Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
-        Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
-        K8sDetails, NodeMetadataArray,
+        cfs::{
+            cfs_configuration_request::CfsConfigurationRequest, CfsConfigurationResponse,
+            CfsSessionGetResponse, Layer, LayerDetails,
+        },
+        ims::Image,
+        BootParameters, BosSessionTemplate, Component,
+        ComponentArrayPostArray as FrontEndComponentArrayPostArray, Group as FrontEndGroup,
+        HWInventoryByLocationList as FrontEndHWInventoryByLocationList, K8sDetails,
+        NodeMetadataArray,
     },
 };
 use futures::AsyncBufRead;
@@ -742,6 +748,106 @@ impl CfsTrait for Ochami {
     ) -> Result<Vec<backend_dispatcher::types::cfs::CfsSessionGetResponse>, Error> {
         Err(Error::Message(
             "Get sessions command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn get_configuration(
+        &self,
+        _auth_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _cfs_configuration_name: Option<&String>,
+    ) -> Result<Vec<CfsConfigurationResponse>, Error> {
+        Err(Error::Message(
+            "Get configuration command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn get_and_filter_configuration(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _configuration_name: Option<&str>,
+        _configuration_name_pattern: Option<&str>,
+        _hsm_group_name_vec: &[String],
+        _limit_number_opt: Option<&u8>,
+    ) -> Result<Vec<CfsConfigurationResponse>, Error> {
+        Err(Error::Message(
+            "Get and filter configuration command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn get_configuration_layer_details(
+        &self,
+        _shasta_root_cert: &[u8],
+        _gitea_base_url: &str,
+        _gitea_token: &str,
+        _layer: Layer,
+    ) -> Result<LayerDetails, Error> {
+        Err(Error::Message(
+            "Get configuration layer details command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn create_configuration_from_repos(
+        &self,
+        _gitea_token: &str,
+        _gitea_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _repo_name_vec: Vec<String>,
+        _local_git_commit_vec: Vec<String>,
+        _playbook_file_name_opt: Option<&String>,
+    ) -> Result<CfsConfigurationRequest, Error> {
+        Err(Error::Message(
+            "Create from repos command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn put_configuration(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _configuration: &CfsConfigurationRequest,
+        _configuration_name: &str,
+    ) -> Result<CfsConfigurationResponse, Error> {
+        Err(Error::Message(
+            "Put configuration layer details command not implemented for this backend".to_string(),
+        ))
+    }
+
+    async fn update_runtime_configuration(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _xnames: Vec<String>,
+        _desired_configuration: &str,
+        _enabled: bool,
+    ) -> Result<(), Error> {
+        Err(Error::Message(
+            "Update runtime configuration command not implemented for this backend".to_string(),
+        ))
+    }
+
+    // Get all CFS sessions, IMS images and BOS sessiontemplates related to a CFS configuration
+    async fn get_derivatives(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _configuration_name: &str,
+    ) -> Result<
+        (
+            Option<Vec<CfsSessionGetResponse>>,
+            Option<Vec<BosSessionTemplate>>,
+            Option<Vec<Image>>,
+        ),
+        Error,
+    > {
+        Err(Error::Message(
+            "Get configuration derivatives command not implemented for this backend".to_string(),
         ))
     }
 }
