@@ -1,10 +1,11 @@
-use std::{collections::HashMap, pin::Pin};
+use std::{collections::HashMap, path::PathBuf, pin::Pin};
 
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
     interfaces::{
         apply_hw_cluster_pin::ApplyHwClusterPin,
+        apply_session::ApplySessionTrait,
         bss::BootParametersTrait,
         cfs::CfsTrait,
         hsm::{
@@ -17,9 +18,10 @@ use backend_dispatcher::{
     types::{
         cfs::{
             cfs_configuration_request::CfsConfigurationRequest, CfsConfigurationResponse,
-            CfsSessionGetResponse, Layer, LayerDetails,
+            CfsSessionGetResponse, CfsSessionPostRequest, Layer, LayerDetails,
         },
         ims::Image,
+        kafka::Kafka,
         BootParameters, BosSessionTemplate, Component,
         ComponentArrayPostArray as FrontEndComponentArrayPostArray, Group as FrontEndGroup,
         HWInventoryByLocationList as FrontEndHWInventoryByLocationList, K8sDetails,
@@ -696,6 +698,18 @@ impl CfsTrait for Ochami {
         ))
     }
 
+    async fn post_session(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _session: &CfsSessionPostRequest,
+    ) -> Result<CfsSessionGetResponse, Error> {
+        Err(Error::Message(
+            "Post session command not implemented for this backend".to_string(),
+        ))
+    }
+
     async fn get_sessions(
         &self,
         _shasta_token: &str,
@@ -917,6 +931,32 @@ impl ImsTrait for Ochami {
     ) -> Result<Vec<Image>, Error> {
         Err(Error::Message(
             "Get images command not implemented for this backend".to_string(),
+        ))
+    }
+}
+
+impl ApplySessionTrait for Ochami {
+    async fn apply_session(
+        &self,
+        _gitea_token: &str,
+        _gitea_base_url: &str,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _k8s_api_url: &str,
+        _cfs_conf_sess_name: Option<&String>,
+        _playbook_yaml_file_name_opt: Option<&String>,
+        _hsm_group: Option<&String>,
+        _repos_paths: Vec<PathBuf>,
+        _ansible_limit: Option<String>,
+        _ansible_verbosity: Option<String>,
+        _ansible_passthrough: Option<String>,
+        _watch_logs: bool,
+        /* _kafka_audit: &Kafka,
+        _k8s: &K8sDetails, */
+    ) -> Result<(String, String), Error> {
+        Err(Error::Message(
+            "Apply session command not implemented for this backend".to_string(),
         ))
     }
 }
