@@ -10,6 +10,7 @@ use backend_dispatcher::{
         hsm::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
         },
+        ims::ImsTrait,
         pcs::PCSTrait,
         sat::SatTrait,
     },
@@ -727,6 +728,7 @@ impl CfsTrait for Ochami {
         _status_opt: Option<&String>,
         _cfs_session_name_opt: Option<&String>,
         _limit_number_opt: Option<&u8>,
+        _is_succeded_opt: Option<bool>,
     ) -> Result<Vec<backend_dispatcher::types::cfs::CfsSessionGetResponse>, Error> {
         Err(Error::Message(
             "Get and filter sessions command not implemented for this backend".to_string(),
@@ -901,6 +903,20 @@ impl ApplyHwClusterPin for Ochami {
     ) -> Result<(), Error> {
         Err(Error::Message(
             "Apply HW Cluster Pin command not implemented for this backend".to_string(),
+        ))
+    }
+}
+
+impl ImsTrait for Ochami {
+    async fn get_images(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _image_id_opt: Option<&str>,
+    ) -> Result<Vec<Image>, Error> {
+        Err(Error::Message(
+            "Get images command not implemented for this backend".to_string(),
         ))
     }
 }
