@@ -4,12 +4,14 @@ use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
     interfaces::{
+        apply_hw_cluster_pin::ApplyHwClusterPin,
         bss::BootParametersTrait,
         cfs::CfsTrait,
         hsm::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
         },
         pcs::PCSTrait,
+        sat::SatTrait,
     },
     types::{
         cfs::{
@@ -848,6 +850,57 @@ impl CfsTrait for Ochami {
     > {
         Err(Error::Message(
             "Get configuration derivatives command not implemented for this backend".to_string(),
+        ))
+    }
+}
+
+impl SatTrait for Ochami {
+    async fn apply_sat_file(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _vault_base_url: &str,
+        _vault_secret_path: &str,
+        _vault_role_id: &str,
+        _k8s_api_url: &str,
+        _shasta_k8s_secrets: serde_json::Value,
+        _sat_file_content: String,
+        _sat_template_file_yaml: serde_yaml::Value,
+        _hsm_group_param_opt: Option<&String>,
+        _hsm_group_available_vec: &Vec<String>,
+        _ansible_verbosity_opt: Option<u8>,
+        _ansible_passthrough_opt: Option<&String>,
+        _gitea_base_url: &str,
+        _gitea_token: &str,
+        _do_not_reboot: bool,
+        _watch_logs: bool,
+        _image_only: bool,
+        _session_template_only: bool,
+        _debug_on_failure: bool,
+        _dry_run: bool,
+    ) -> Result<(), Error> {
+        Err(Error::Message(
+            "Process SAT file command not implemented for this backend".to_string(),
+        ))
+    }
+}
+
+impl ApplyHwClusterPin for Ochami {
+    async fn apply_hw_cluster_pin(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _target_hsm_group_name: &str,
+        _parent_hsm_group_name: &str,
+        _pattern: &str,
+        _nodryrun: bool,
+        _create_target_hsm_group: bool,
+        _delete_empty_parent_hsm_group: bool,
+    ) -> Result<(), Error> {
+        Err(Error::Message(
+            "Apply HW Cluster Pin command not implemented for this backend".to_string(),
         ))
     }
 }
