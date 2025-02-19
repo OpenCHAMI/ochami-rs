@@ -33,8 +33,11 @@ use hostlist_parser::parse;
 use regex::Regex;
 use serde_json::Value;
 
-use crate::hsm::{self, component::types::ComponentArrayPostArray, group::types::Group};
 use crate::{authentication, bss};
+use crate::{
+    hsm::{self, component::types::ComponentArrayPostArray, group::types::Group},
+    pcs,
+};
 
 #[derive(Clone)]
 pub struct Ochami {
@@ -457,32 +460,60 @@ impl ComponentTrait for Ochami {
 }
 
 impl PCSTrait for Ochami {
-    async fn power_on_sync(&self, _auth_token: &str, _nodes: &[String]) -> Result<Value, Error> {
-        Err(Error::Message(
-            "Power on command not implemented for this backend".to_string(),
-        ))
+    async fn power_on_sync(&self, auth_token: &str, nodes: &[String]) -> Result<Value, Error> {
+        let operation = "on";
+
+        pcs::transitions::http_client::post_block(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            operation,
+            &nodes.to_vec(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
     }
 
     async fn power_off_sync(
         &self,
-        _auth_token: &str,
-        _nodes: &[String],
-        _force: bool,
+        auth_token: &str,
+        nodes: &[String],
+        force: bool,
     ) -> Result<serde_json::Value, Error> {
-        Err(Error::Message(
-            "Power off command not implemented for this backend".to_string(),
-        ))
+        let operation = if force { "force-off" } else { "soft-off" };
+
+        pcs::transitions::http_client::post_block(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            operation,
+            &nodes.to_vec(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
     }
 
     async fn power_reset_sync(
         &self,
-        _auth_token: &str,
-        _nodes: &[String],
-        _force: bool,
+        auth_token: &str,
+        nodes: &[String],
+        force: bool,
     ) -> Result<serde_json::Value, Error> {
-        Err(Error::Message(
-            "Power reset command not implemented for this backend".to_string(),
-        ))
+        let operation = if force {
+            "hard-restart"
+        } else {
+            "soft-restart"
+        };
+
+        pcs::transitions::http_client::post_block(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            operation,
+            &nodes.to_vec(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
     }
 }
 
