@@ -12,6 +12,8 @@ use backend_dispatcher::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
         },
         ims::ImsTrait,
+        migrate_backup::MigrateBackupTrait,
+        migrate_restore::MigrateRestoreTrait,
         pcs::PCSTrait,
         sat::SatTrait,
     },
@@ -988,6 +990,39 @@ impl ApplySessionTrait for Ochami {
     ) -> Result<(String, String), Error> {
         Err(Error::Message(
             "Apply session command not implemented for this backend".to_string(),
+        ))
+    }
+}
+
+impl MigrateRestoreTrait for Ochami {
+    async fn migrate_restore(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _bos_file: Option<&String>,
+        _cfs_file: Option<&String>,
+        _hsm_file: Option<&String>,
+        _ims_file: Option<&String>,
+        _image_dir: Option<&String>,
+    ) -> Result<(), Error> {
+        Err(Error::Message(
+            "Migrate/restore command not implemented for this backend".to_string(),
+        ))
+    }
+}
+
+impl MigrateBackupTrait for Ochami {
+    async fn migrate_backup(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _bos: Option<&String>,
+        _destination: Option<&String>,
+    ) -> Result<(), Error> {
+        Err(Error::Message(
+            "Migrate/backup command not implemented for this backend".to_string(),
         ))
     }
 }
