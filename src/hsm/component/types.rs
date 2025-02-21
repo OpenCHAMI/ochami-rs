@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ComponentArray {
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Components"))]
+    #[serde(rename = "Components")]
     pub components: Option<Vec<Component>>,
 }
 
@@ -59,49 +59,49 @@ impl Into<NodeMetadataArray> for ComponentArray {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Component {
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "ID"))]
+    #[serde(rename = "ID")]
     pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Type"))]
+    #[serde(rename = "Type")]
     pub r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "State"))]
+    #[serde(rename = "State")]
     pub state: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Flag"))]
+    #[serde(rename = "Flag")]
     pub flag: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Enabled"))]
+    #[serde(rename = "Enabled")]
     pub enabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "SoftwareStatus"))]
+    #[serde(rename = "SoftwareStatus")]
     pub software_status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Role"))]
+    #[serde(rename = "Role")]
     pub role: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "SubRole"))]
+    #[serde(rename = "SubRole")]
     pub sub_role: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "NID"))]
+    #[serde(rename = "NID")]
     pub nid: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Subtype"))]
+    #[serde(rename = "Subtype")]
     pub subtype: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "NetType"))]
+    #[serde(rename = "NetType")]
     pub net_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Arch"))]
+    #[serde(rename = "Arch")]
     pub arch: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Class"))]
+    #[serde(rename = "Class")]
     pub class: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "ReservationDisabled"))]
+    #[serde(rename = "ReservationDisabled")]
     pub reservation_disabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "Locked"))]
+    #[serde(rename = "Locked")]
     pub locked: Option<bool>,
 }
 

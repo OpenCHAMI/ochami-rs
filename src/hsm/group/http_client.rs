@@ -16,8 +16,8 @@ pub async fn get(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    label: Option<&str>,
-    tag: Option<&str>,
+    label_vec_opt: Option<&[&str]>,
+    tag_vec_opt: Option<&[&str]>,
 ) -> Result<Vec<Group>, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
@@ -36,9 +36,22 @@ pub async fn get(
 
     let api_url: String = format!("{}/{}", base_url, "hsm/v2/groups");
 
+    let mut query = Vec::new();
+
+    if let Some(label_vec) = label_vec_opt {
+        for label in label_vec {
+            query.push(("group", label));
+        }
+    }
+    if let Some(tag_vec) = tag_vec_opt {
+        for tag in tag_vec {
+            query.push(("tag", tag));
+        }
+    }
+
     let response = client
         .get(api_url)
-        .query(&[("label", label), ("tag", tag)])
+        .query(query.as_slice())
         .bearer_auth(auth_token)
         .send()
         .await?;
@@ -54,8 +67,8 @@ pub async fn get(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -218,7 +231,7 @@ pub async fn post(
     auth_token: &str,
     root_cert: &[u8],
     group: Group,
-) -> Result<Group, Error> {
+) -> Result<String, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -262,9 +275,9 @@ pub async fn post(
     }
 
     response
-        .json()
+        .text()
         .await
-        .map_err(|error| Error::NetError(error))
+        .map_err(|error| Error::Message(error.to_string()))
 }
 
 pub async fn post_member(

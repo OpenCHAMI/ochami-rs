@@ -131,7 +131,7 @@ pub async fn get(
         query_params.append(&mut nid_vec_query);
     }
 
-    let api_url: String = format!("{}/{}", base_url, "smd/hsm/v2/State/Components");
+    let api_url: String = format!("{}/{}", base_url, "hsm/v2/State/Components");
 
     let response = client
         .get(api_url)

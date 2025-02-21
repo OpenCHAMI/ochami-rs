@@ -21,45 +21,31 @@ pub async fn add_member(
     new_member: &str,
 ) -> Result<Vec<String>, Error> {
     // Get HSM group from CSM
-    let group_vec = crate::hsm::group::http_client::get(
-        base_url,
+    let group =
+        crate::hsm::group::http_client::get_one(base_url, auth_token, root_cert, group_label)
+            .await?;
+
+    // Update HSM group with new memebers
+    // Create Member struct
+    let new_member = new_member.to_string();
+    let member = crate::hsm::group::types::Member {
+        id: Some(new_member.clone()),
+    };
+
+    // Update HSM group in CSM
+    let _ = crate::hsm::group::http_client::post_member(
         auth_token,
+        base_url,
         root_cert,
-        Some(&group_label.to_string()),
-        None,
+        group_label,
+        member,
     )
     .await?;
 
-    // Check if HSM group found
-    if let Some(group) = group_vec.first().cloned().as_mut() {
-        // Update HSM group with new memebers
-        // Create Member struct
-        let new_member = new_member.to_string();
-        let member = crate::hsm::group::types::Member {
-            id: Some(new_member.clone()),
-        };
+    // Generate list of updated group members
+    group.get_members().push(new_member);
 
-        // Update HSM group in CSM
-        let _ = crate::hsm::group::http_client::post_member(
-            auth_token,
-            base_url,
-            root_cert,
-            group_label,
-            member,
-        )
-        .await?;
-
-        // Generate list of updated group members
-        group.get_members().push(new_member);
-
-        Ok(group.get_members())
-    } else {
-        // HSM group not found, throw an error
-        Err(Error::Message(format!(
-            "No HSM group '{}' found",
-            group_label
-        )))
-    }
+    Ok(group.get_members())
 
     /* // get list of target HSM group members
     let mut target_hsm_group_member_vec: Vec<String> =
@@ -102,7 +88,7 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
 ) -> Result<Vec<String>, Error> {
     log::info!("Get xnames for HSM groups: {:?}", hsm_name_vec);
 
-    let start = Instant::now();
+    /* let start = Instant::now();
 
     let mut hsm_group_member_vec: Vec<String> = Vec::new();
 
@@ -122,16 +108,15 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
         tasks.spawn(async move {
             let _permit = permit; // Wait semaphore to allow new tasks https://github.com/tokio-rs/tokio/discussions/2648#discussioncomment-34885
 
-            let hsm_vec: Result<Vec<Group>, Error> = http_client::get(
+            let group: Result<Group, Error> = http_client::get_one(
                 &base_url_string,
                 &auth_token_string,
                 &root_cert_vec,
-                Some(&hsm_name),
-                None,
+                &hsm_name,
             )
             .await;
 
-            hsm_vec
+            group
         });
     }
 
@@ -158,7 +143,24 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
     }
 
     let duration = start.elapsed();
-    log::info!("Time elapsed to get HSM members is: {:?}", duration);
+    log::info!("Time elapsed to get HSM members is: {:?}", duration); */
+
+    let hsm_group_name_vec: Vec<&str> = hsm_name_vec.iter().map(|x| &**x).collect();
+
+    let group_vec = http_client::get(
+        base_url,
+        auth_token,
+        root_cert,
+        Some(&hsm_group_name_vec),
+        None,
+    )
+    .await
+    .map_err(|e| Error::Message(e.to_string()))?;
+
+    let hsm_group_member_vec: Vec<String> = group_vec
+        .into_iter()
+        .flat_map(|group| group.get_members())
+        .collect();
 
     Ok(hsm_group_member_vec)
 }

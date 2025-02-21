@@ -87,12 +87,12 @@ impl GroupTrait for Ochami {
             &self.base_url,
             auth_token,
             &self.root_cert,
-            hsm_group.into(),
+            hsm_group.clone().into(),
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))?;
 
-        let hsm_group: FrontEndGroup = hsm_group_backend.into();
+        log::info!("Group created: {}", hsm_group_backend);
 
         Ok(hsm_group)
     }
@@ -143,30 +143,40 @@ impl GroupTrait for Ochami {
 
     async fn get_group(&self, auth_token: &str, hsm_name: &str) -> Result<FrontEndGroup, Error> {
         // Get all HSM groups
+        let hsm_group_backend =
+            hsm::group::http_client::get_one(&self.base_url, auth_token, &self.root_cert, hsm_name)
+                .await
+                .map_err(|e| Error::Message(e.to_string()))?;
+
+        let hsm_group: FrontEndGroup = hsm_group_backend.into();
+
+        Ok(hsm_group)
+    }
+
+    async fn get_groups(
+        &self,
+        auth_token: &str,
+        hsm_name_vec: Option<&[&str]>,
+    ) -> Result<Vec<FrontEndGroup>, Error> {
+        // Get all HSM groups
         let hsm_group_backend_vec = hsm::group::http_client::get(
             &self.base_url,
             auth_token,
             &self.root_cert,
-            Some(hsm_name),
+            hsm_name_vec,
             None,
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))?;
 
-        // Error if more than one HSM group found
-        if hsm_group_backend_vec.len() > 1 {
-            return Err(Error::Message(format!(
-                "ERROR - multiple HSM groups with name '{}' found. Exit",
-                hsm_name
-            )));
+        // Convert from HsmGroup (silla) to HsmGroup (infra)
+        let mut hsm_group_vec = Vec::new();
+        for hsm_group_backend in hsm_group_backend_vec {
+            let hsm_group: FrontEndGroup = hsm_group_backend.into();
+            hsm_group_vec.push(hsm_group);
         }
 
-        // Convert from HsmGroup (silla) to HsmGroup (infra)
-        let hsm_group_backend = hsm_group_backend_vec.first().unwrap().to_owned();
-
-        let hsm_group: FrontEndGroup = hsm_group_backend.into();
-
-        Ok(hsm_group)
+        Ok(hsm_group_vec)
     }
 
     async fn delete_group(&self, auth_token: &str, hsm_group_name: &str) -> Result<Value, Error> {
