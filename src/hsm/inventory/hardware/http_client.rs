@@ -15,7 +15,7 @@ pub async fn get_query(
     parents: Option<bool>,
     partition: Option<&str>,
     format: Option<&str>,
-) -> Result<HWInventory, Error> {
+) -> Result<Value, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
