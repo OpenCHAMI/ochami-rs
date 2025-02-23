@@ -307,6 +307,25 @@ impl GroupTrait for Ochami {
 }
 
 impl HardwareInventory for Ochami {
+    async fn get_inventory_hardware(&self, auth_token: &str, xname: &str) -> Result<Value, Error> {
+        hsm::inventory::hardware::http_client::get(
+            &auth_token,
+            &self.base_url,
+            &self.root_cert,
+            Some(xname),
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+        .and_then(|hw_inventory| {
+            serde_json::to_value(hw_inventory).map_err(|e| Error::Message(e.to_string()))
+        })
+    }
+
     async fn get_inventory_hardware_query(
         &self,
         auth_token: &str,
@@ -330,9 +349,6 @@ impl HardwareInventory for Ochami {
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))
-        .and_then(|hw_inventory| {
-            serde_json::to_value(hw_inventory).map_err(|e| Error::Message(e.to_string()))
-        })
     }
 
     async fn post_inventory_hardware(
