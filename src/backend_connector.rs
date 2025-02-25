@@ -10,6 +10,7 @@ use backend_dispatcher::{
         cfs::CfsTrait,
         hsm::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
+            redfish_endpoint::RedfishEndpointTrait,
         },
         ims::ImsTrait,
         migrate_backup::MigrateBackupTrait,
@@ -22,6 +23,7 @@ use backend_dispatcher::{
             cfs_configuration_request::CfsConfigurationRequest, CfsConfigurationResponse,
             CfsSessionGetResponse, CfsSessionPostRequest, Layer, LayerDetails,
         },
+        hsm::inventory::{RedfishEndpoint, RedfishEndpointArray},
         ims::Image,
         kafka::Kafka,
         BootParameters, BosSessionTemplate, Component,
@@ -611,6 +613,86 @@ impl BootParametersTrait for Ochami {
             auth_token,
             &self.root_cert,
             &boot_parameter.clone().into(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+}
+
+impl RedfishEndpointTrait for Ochami {
+    async fn get_redfish_endpoints(
+        &self,
+        auth_token: &str,
+        id: Option<&str>,
+        fqdn: Option<&str>,
+        r#type: Option<&str>,
+        uuid: Option<&str>,
+        macaddr: Option<&str>,
+        ip_address: Option<&str>,
+        last_status: Option<&str>,
+    ) -> Result<RedfishEndpointArray, Error> {
+        hsm::inventory::redfish_endpoint::http_client::get(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            id,
+            fqdn,
+            r#type,
+            uuid,
+            macaddr,
+            ip_address,
+            last_status,
+        )
+        .await
+        .map(|re| re.into())
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn add_redfish_endpoint(
+        &self,
+        auth_token: &str,
+        redfish_endpoint: &RedfishEndpoint,
+    ) -> Result<(), Error> {
+        hsm::inventory::redfish_endpoint::http_client::post(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            redfish_endpoint.clone().into(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
+
+        Ok(())
+    }
+
+    async fn update_redfish_endpoint(
+        &self,
+        auth_token: &str,
+        redfish_endpoint: &RedfishEndpoint,
+    ) -> Result<(), Error> {
+        hsm::inventory::redfish_endpoint::http_client::put(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            redfish_endpoint.id.as_str(),
+            redfish_endpoint.clone().into(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
+
+        Ok(())
+    }
+
+    async fn delete_redfish_endpoint(
+        &self,
+        auth_token: &str,
+        redfis_endpoint: &RedfishEndpoint,
+    ) -> Result<Value, Error> {
+        hsm::inventory::redfish_endpoint::http_client::delete_one(
+            auth_token,
+            &self.base_url,
+            &self.root_cert,
+            redfis_endpoint.id.as_str(),
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))

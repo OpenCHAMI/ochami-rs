@@ -72,7 +72,7 @@ pub async fn get(
     macaddr: Option<&str>,
     ip_address: Option<&str>,
     last_status: Option<&str>,
-) -> Result<Vec<RedfishEndpointArray>, Error> {
+) -> Result<RedfishEndpointArray, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
@@ -228,8 +228,8 @@ pub async fn post(
 }
 
 pub async fn put(
-    base_url: &str,
     auth_token: &str,
+    base_url: &str,
     root_cert: &[u8],
     xname: &str,
     redfish_endpoint: RedfishEndpoint,
