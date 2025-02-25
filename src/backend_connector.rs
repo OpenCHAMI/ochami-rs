@@ -683,16 +683,12 @@ impl RedfishEndpointTrait for Ochami {
         Ok(())
     }
 
-    async fn delete_redfish_endpoint(
-        &self,
-        auth_token: &str,
-        redfis_endpoint: &RedfishEndpoint,
-    ) -> Result<Value, Error> {
+    async fn delete_redfish_endpoint(&self, auth_token: &str, id: &str) -> Result<Value, Error> {
         hsm::inventory::redfish_endpoint::http_client::delete_one(
             auth_token,
             &self.base_url,
             &self.root_cert,
-            redfis_endpoint.id.as_str(),
+            id,
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))

@@ -27,7 +27,7 @@ pub async fn get_query(
 
     let api_url: String = format!(
         "{}/{}/{}",
-        base_url, "/smd/hsm/v2/Inventory/RedfishEndpoint/Query", xname
+        base_url, "hsm/v2/Inventory/RedfishEndpoint/Query", xname
     );
 
     let response = client
@@ -48,8 +48,8 @@ pub async fn get_query(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -88,7 +88,7 @@ pub async fn get(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}", base_url, "/smd/hsm/v2/Inventory/RedfishEndpoints");
+    let api_url: String = format!("{}/{}", base_url, "hsm/v2/Inventory/RedfishEndpoints");
 
     let response = client
         .get(api_url)
@@ -108,8 +108,8 @@ pub async fn get(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -144,7 +144,7 @@ pub async fn get_one(
 
     let api_url: String = format!(
         "{}/{}/{}",
-        base_url, "/smd/hsm/v2/Inventory/RedfishEndpoints", xname
+        base_url, "hsm/v2/Inventory/RedfishEndpoints", xname
     );
 
     let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -160,8 +160,8 @@ pub async fn get_one(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -194,7 +194,7 @@ pub async fn post(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}", base_url, "/smd/hsm/v2/Inventory/RedfishEndpoints");
+    let api_url: String = format!("{}/{}", base_url, "hsm/v2/Inventory/RedfishEndpoints");
 
     let response = client
         .post(api_url)
@@ -214,8 +214,8 @@ pub async fn post(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -250,7 +250,10 @@ pub async fn put(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}/{}", base_url, "smd/hsm/v2/State/Components", xname);
+    let api_url: String = format!(
+        "{}/{}/{}",
+        base_url, "hsm/v2/Inventory/RedfishEndpoints", xname
+    );
 
     let response = client
         .put(api_url)
@@ -270,8 +273,8 @@ pub async fn put(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -300,7 +303,7 @@ pub async fn delete_all(
         client_builder.build()?
     };
 
-    let api_url: String = base_url.to_owned() + "/smd/hsm/v2/Inventory/RedfishEndpoints";
+    let api_url: String = base_url.to_owned() + "hsm/v2/Inventory/RedfishEndpoints";
 
     let response = client
         .delete(api_url)
@@ -319,8 +322,8 @@ pub async fn delete_all(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -333,8 +336,8 @@ pub async fn delete_all(
 }
 
 pub async fn delete_one(
-    base_url: &str,
     auth_token: &str,
+    base_url: &str,
     root_cert: &[u8],
     xname: &str,
 ) -> Result<Value, Error> {
@@ -355,7 +358,7 @@ pub async fn delete_one(
 
     let api_url: String = format!(
         "{}/{}/{}",
-        base_url, "smd/hsm/v2/Inventory/RedfishEndpoints", xname
+        base_url, "hsm/v2/Inventory/RedfishEndpoints", xname
     );
 
     let response = client
@@ -375,8 +378,8 @@ pub async fn delete_one(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }

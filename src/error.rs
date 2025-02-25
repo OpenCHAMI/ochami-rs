@@ -18,7 +18,7 @@ pub enum Error {
         payload: String, // NOTE: CSM/OCHAMI Apis either returns plain text or a json therefore, we
                          // will just return a String
     },
-    #[error("ERROR - CSM: {0}")]
+    #[error("ERROR - OCHAMI: {0}")]
     CsmError(Value),
     #[error("ERROR - field '{0}' missing")]
     MissingField(String),
