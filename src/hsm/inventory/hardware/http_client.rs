@@ -204,19 +204,12 @@ pub async fn post(
 
     let api_url: String = format!("{}/{}", base_url, "hsm/v2/Inventory/Hardware");
 
-    println!(
-        "DEBUG - request payload:\n{}",
-        serde_json::to_string_pretty(&hardware).unwrap()
-    );
-
     let response = client
         .post(api_url)
         .bearer_auth(auth_token)
         .json(&hardware)
         .send()
         .await?;
-
-    println!("DEBUG - response:\n{:#?}", response);
 
     if let Err(e) = response.error_for_status_ref() {
         match response.status() {
@@ -240,8 +233,6 @@ pub async fn post(
         .json()
         .await
         .map_err(|error| Error::NetError(error));
-
-    println!("DEBUG - response payload:\n{:#?}", response_payload);
 
     response_payload
 }
