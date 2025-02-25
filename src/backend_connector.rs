@@ -549,16 +549,18 @@ impl BootParametersTrait for Ochami {
     async fn get_bootparameters(
         &self,
         auth_token: &str,
-        nodes: &[String],
+        hosts: &[String],
     ) -> Result<Vec<BootParameters>, Error> {
-        let boot_parameter_vec = bss::http_client::get(
-            &self.base_url,
-            auth_token,
-            &self.root_cert,
-            &Some(nodes.to_vec()),
-        )
-        .await
-        .map_err(|e| Error::Message(e.to_string()))?;
+        let hosts = if hosts.is_empty() {
+            None
+        } else {
+            Some(hosts.to_vec())
+        };
+
+        let boot_parameter_vec =
+            bss::http_client::get(&self.base_url, auth_token, &self.root_cert, &hosts)
+                .await
+                .map_err(|e| Error::Message(e.to_string()))?;
 
         let boot_parameter_infra_vec = boot_parameter_vec
             .into_iter()
@@ -568,26 +570,47 @@ impl BootParametersTrait for Ochami {
         Ok(boot_parameter_infra_vec)
     }
 
+    async fn add_bootparameters(
+        &self,
+        auth_token: &str,
+        boot_parameters: &BootParameters,
+    ) -> Result<(), Error> {
+        bss::http_client::post(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            boot_parameters.clone().into(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+        .map(|boot_parameter| boot_parameter.into())
+    }
+
     async fn update_bootparameters(
         &self,
         auth_token: &str,
         boot_parameter: &BootParameters,
     ) -> Result<(), Error> {
-        let boot_parameters = bss::types::BootParameters {
-            hosts: boot_parameter.hosts.clone(),
-            macs: boot_parameter.macs.clone(),
-            nids: boot_parameter.nids.clone(),
-            params: boot_parameter.params.clone(),
-            kernel: boot_parameter.kernel.clone(),
-            initrd: boot_parameter.initrd.clone(),
-            cloud_init: boot_parameter.cloud_init.clone(),
-        };
-
         bss::http_client::patch(
             &self.base_url,
             auth_token,
             &self.root_cert,
-            &boot_parameters,
+            &boot_parameter.clone().into(),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
+    }
+
+    async fn delete_bootparameters(
+        &self,
+        auth_token: &str,
+        boot_parameter: &BootParameters,
+    ) -> Result<String, Error> {
+        bss::http_client::delete(
+            &self.base_url,
+            auth_token,
+            &self.root_cert,
+            &boot_parameter.clone().into(),
         )
         .await
         .map_err(|e| Error::Message(e.to_string()))

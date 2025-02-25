@@ -28,16 +28,6 @@ pub struct BootParameters {
     pub cloud_init: Option<Value>,
 }
 
-/* let boot_parameters = BootParameters::new(
-    xnames,
-    macs_opt,
-    nids_opt,
-    params,
-    kernel,
-    initrd,
-    cloud_init_opt,
-); */
-
 impl From<FrontEndBootParameters> for BootParameters {
     fn from(value: FrontEndBootParameters) -> Self {
         BootParameters {

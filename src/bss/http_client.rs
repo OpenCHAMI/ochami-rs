@@ -5,6 +5,72 @@ use core::result::Result;
 
 use super::types::BootParameters;
 
+/// Get node boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/get/
+/// NOTE: MANTA MIGRATION! the 'url_api' value changes compared to CSM
+/// NOTE: if db is empty, then OCHAMI API will return 'Null' therefore, if we want to handle this
+/// situation, then, we need to return serde_json::Value
+pub async fn get(
+    base_url: &str,
+    auth_token: &str,
+    root_cert: &[u8],
+    xnames_opt: &Option<Vec<String>>,
+) -> Result<Vec<BootParameters>, Error> {
+    let client;
+
+    let client_builder =
+        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+
+    // Build client
+    if std::env::var("SOCKS5").is_ok() {
+        // socks5 proxy
+        log::debug!("SOCKS5 enabled");
+        let socks5proxy = reqwest::Proxy::all(std::env::var("SOCKS5").unwrap())?;
+
+        // rest client to authenticate
+        client = client_builder.proxy(socks5proxy).build()?;
+    } else {
+        client = client_builder.build()?;
+    }
+
+    let url_api = format!("{}/apis/bss/boot/v1/bootparameters", base_url.to_string());
+
+    let params: Option<Vec<_>> = if let Some(xname_vec) = xnames_opt {
+        Some(xname_vec.iter().map(|xname| ("name", xname)).collect())
+    } else {
+        None
+    };
+
+    let response = client
+        .get(url_api)
+        .query(&params)
+        .bearer_auth(auth_token)
+        .send()
+        .await?;
+
+    if let Err(e) = response.error_for_status_ref() {
+        match response.status() {
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let error_payload = response.text().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: error_payload,
+                };
+                return Err(error);
+            }
+            _ => {
+                let error_payload = response.json::<Value>().await?;
+                let error = Error::RequestError {
+                    response: e,
+                    payload: serde_json::to_string_pretty(&error_payload)?,
+                };
+                return Err(error);
+            }
+        }
+    }
+
+    response.json().await.map_err(|e| Error::NetError(e))
+}
+
 pub async fn post(
     base_url: &str,
     auth_token: &str,
@@ -168,44 +234,32 @@ pub async fn patch(
     Ok(())
 }
 
-/// Get node boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/get/
-/// NOTE: MANTA MIGRATION! the 'url_api' value changes compared to CSM
-/// NOTE: if db is empty, then OCHAMI API will return 'Null' therefore, if we want to handle this
-/// situation, then, we need to return serde_json::Value
-pub async fn get(
+pub async fn delete(
     base_url: &str,
     auth_token: &str,
     root_cert: &[u8],
-    xnames_opt: &Option<Vec<String>>,
-) -> Result<Vec<BootParameters>, Error> {
-    let client;
-
+    boot_parameters: &BootParameters,
+) -> Result<String, Error> {
     let client_builder =
         reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
 
     // Build client
-    if std::env::var("SOCKS5").is_ok() {
+    let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
         // socks5 proxy
         log::debug!("SOCKS5 enabled");
-        let socks5proxy = reqwest::Proxy::all(std::env::var("SOCKS5").unwrap())?;
+        let socks5proxy = reqwest::Proxy::all(socks5_env)?;
 
         // rest client to authenticate
-        client = client_builder.proxy(socks5proxy).build()?;
+        client_builder.proxy(socks5proxy).build()?
     } else {
-        client = client_builder.build()?;
-    }
-
-    let url_api = format!("{}/apis/bss/boot/v1/bootparameters", base_url.to_string());
-
-    let params: Option<Vec<_>> = if let Some(xname_vec) = xnames_opt {
-        Some(xname_vec.iter().map(|xname| ("name", xname)).collect())
-    } else {
-        None
+        client_builder.build()?
     };
 
+    let api_url = format!("{}/boot/v1/bootparameters", base_url);
+
     let response = client
-        .get(url_api)
-        .query(&params)
+        .delete(api_url)
+        .json(&boot_parameters)
         .bearer_auth(auth_token)
         .send()
         .await?;
@@ -221,7 +275,7 @@ pub async fn get(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
+                let error_payload = response.text().await?;
                 let error = Error::RequestError {
                     response: e,
                     payload: serde_json::to_string_pretty(&error_payload)?,
@@ -231,5 +285,8 @@ pub async fn get(
         }
     }
 
-    response.json().await.map_err(|e| Error::NetError(e))
+    response
+        .text()
+        .await
+        .map_err(|e| Error::Message(e.to_string()))
 }
