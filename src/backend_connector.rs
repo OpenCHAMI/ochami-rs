@@ -837,6 +837,8 @@ impl CfsTrait for Ochami {
 
     async fn get_session_logs_stream(
         &self,
+        _shasta_token: &str,
+        _site_name: &str,
         _cfs_session_name: &str,
         _k8s_api_url: &str,
         _k8s: &K8sDetails,
@@ -849,6 +851,7 @@ impl CfsTrait for Ochami {
     async fn get_session_logs_stream_by_xname(
         &self,
         _auth_token: &str,
+        _site_name: &str,
         _xname: &str,
         _k8s_api_url: &str,
         _k8s: &K8sDetails,
@@ -1038,7 +1041,6 @@ impl SatTrait for Ochami {
         _shasta_root_cert: &[u8],
         _vault_base_url: &str,
         _vault_secret_path: &str,
-        _vault_role_id: &str,
         _k8s_api_url: &str,
         _shasta_k8s_secrets: serde_json::Value,
         _sat_file_content: String,
