@@ -119,8 +119,8 @@ pub async fn get(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -168,8 +168,8 @@ pub async fn get_one(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -222,8 +222,8 @@ pub async fn post(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -276,8 +276,8 @@ pub async fn delete_all(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
@@ -329,8 +329,8 @@ pub async fn delete_one(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
