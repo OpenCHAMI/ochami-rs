@@ -965,6 +965,7 @@ impl CfsTrait for Ochami {
         _gitea_base_url: &str,
         _gitea_token: &str,
         _layer: Layer,
+        _site_name: &str,
     ) -> Result<LayerDetails, Error> {
         Err(Error::Message(
             "Get configuration layer details command not implemented for this backend".to_string(),
