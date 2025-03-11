@@ -1,38 +1,23 @@
-use std::{collections::HashMap, path::PathBuf, pin::Pin};
+use std::collections::HashMap;
 
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
     interfaces::{
-        apply_hw_cluster_pin::ApplyHwClusterPin,
-        apply_session::ApplySessionTrait,
         bss::BootParametersTrait,
-        cfs::CfsTrait,
         hsm::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
             redfish_endpoint::RedfishEndpointTrait,
         },
-        ims::ImsTrait,
-        migrate_backup::MigrateBackupTrait,
-        migrate_restore::MigrateRestoreTrait,
         pcs::PCSTrait,
-        sat::SatTrait,
     },
     types::{
-        cfs::{
-            cfs_configuration_request::CfsConfigurationRequest, CfsConfigurationResponse,
-            CfsSessionGetResponse, CfsSessionPostRequest, Layer, LayerDetails,
-        },
         hsm::inventory::{RedfishEndpoint, RedfishEndpointArray},
-        ims::Image,
-        kafka::Kafka,
-        BootParameters, BosSessionTemplate, Component,
-        ComponentArrayPostArray as FrontEndComponentArrayPostArray, Group as FrontEndGroup,
-        HWInventoryByLocationList as FrontEndHWInventoryByLocationList, K8sDetails,
+        BootParameters, Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
+        Group as FrontEndGroup, HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
         NodeMetadataArray,
     },
 };
-use futures::AsyncBufRead;
 use hostlist_parser::parse;
 use regex::Regex;
 use serde_json::Value;
@@ -832,7 +817,7 @@ impl BackendTrait for Ochami {
     }
 }
 
-impl CfsTrait for Ochami {
+/* impl CfsTrait for Ochami {
     type T = Pin<Box<dyn AsyncBufRead>>;
 
     async fn get_session_logs_stream(
@@ -1032,9 +1017,9 @@ impl CfsTrait for Ochami {
             "Get configuration derivatives command not implemented for this backend".to_string(),
         ))
     }
-}
+} */
 
-impl SatTrait for Ochami {
+/* impl SatTrait for Ochami {
     async fn apply_sat_file(
         &self,
         _shasta_token: &str,
@@ -1044,7 +1029,7 @@ impl SatTrait for Ochami {
         _vault_secret_path: &str,
         _k8s_api_url: &str,
         _shasta_k8s_secrets: serde_json::Value,
-        _sat_file_content: String,
+        // _sat_file_content: String,
         _sat_template_file_yaml: serde_yaml::Value,
         _hsm_group_param_opt: Option<&String>,
         _hsm_group_available_vec: &Vec<String>,
@@ -1063,9 +1048,9 @@ impl SatTrait for Ochami {
             "Process SAT file command not implemented for this backend".to_string(),
         ))
     }
-}
+} */
 
-impl ApplyHwClusterPin for Ochami {
+/* impl ApplyHwClusterPin for Ochami {
     async fn apply_hw_cluster_pin(
         &self,
         _shasta_token: &str,
@@ -1082,9 +1067,9 @@ impl ApplyHwClusterPin for Ochami {
             "Apply HW Cluster Pin command not implemented for this backend".to_string(),
         ))
     }
-}
+} */
 
-impl ImsTrait for Ochami {
+/* impl ImsTrait for Ochami {
     async fn get_images(
         &self,
         _shasta_token: &str,
@@ -1096,9 +1081,9 @@ impl ImsTrait for Ochami {
             "Get images command not implemented for this backend".to_string(),
         ))
     }
-}
+} */
 
-impl ApplySessionTrait for Ochami {
+/* impl ApplySessionTrait for Ochami {
     async fn apply_session(
         &self,
         _gitea_token: &str,
@@ -1122,9 +1107,9 @@ impl ApplySessionTrait for Ochami {
             "Apply session command not implemented for this backend".to_string(),
         ))
     }
-}
+} */
 
-impl MigrateRestoreTrait for Ochami {
+/* impl MigrateRestoreTrait for Ochami {
     async fn migrate_restore(
         &self,
         _shasta_token: &str,
@@ -1140,19 +1125,19 @@ impl MigrateRestoreTrait for Ochami {
             "Migrate/restore command not implemented for this backend".to_string(),
         ))
     }
-}
+} */
 
-impl MigrateBackupTrait for Ochami {
-    async fn migrate_backup(
-        &self,
-        _shasta_token: &str,
-        _shasta_base_url: &str,
-        _shasta_root_cert: &[u8],
-        _bos: Option<&String>,
-        _destination: Option<&String>,
-    ) -> Result<(), Error> {
-        Err(Error::Message(
-            "Migrate/backup command not implemented for this backend".to_string(),
-        ))
-    }
-}
+// impl MigrateBackupTrait for Ochami {
+//     async fn migrate_backup(
+//         &self,
+//         _shasta_token: &str,
+//         _shasta_base_url: &str,
+//         _shasta_root_cert: &[u8],
+//         _bos: Option<&String>,
+//         _destination: Option<&String>,
+//     ) -> Result<(), Error> {
+//         Err(Error::Message(
+//             "Migrate/backup command not implemented for this backend".to_string(),
+//         ))
+//     }
+// }
