@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use crate::{
     error::Error,
-    hsm::inventory::types::{HWInventory, HWInventoryByLocation, HWInventoryByLocationList},
+    hsm::inventory::types::{HWInventoryByLocation, HWInventoryByLocationList},
 };
 
 pub async fn get_query(
