@@ -1,15 +1,22 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, pin::Pin};
 
 use backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
     interfaces::{
+        apply_hw_cluster_pin::ApplyHwClusterPin,
+        apply_session::ApplySessionTrait,
         bss::BootParametersTrait,
+        cfs::CfsTrait,
         hsm::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
             redfish_endpoint::RedfishEndpointTrait,
         },
+        ims::ImsTrait,
+        migrate_backup::MigrateBackupTrait,
+        migrate_restore::MigrateRestoreTrait,
         pcs::PCSTrait,
+        sat::SatTrait,
     },
     types::{
         hsm::inventory::{RedfishEndpoint, RedfishEndpointArray},
@@ -18,6 +25,7 @@ use backend_dispatcher::{
         NodeMetadataArray,
     },
 };
+use futures::AsyncBufRead;
 use hostlist_parser::parse;
 use regex::Regex;
 use serde_json::Value;
@@ -817,10 +825,10 @@ impl BackendTrait for Ochami {
     }
 }
 
-/* impl CfsTrait for Ochami {
+impl CfsTrait for Ochami {
     type T = Pin<Box<dyn AsyncBufRead>>;
 
-    async fn get_session_logs_stream(
+    /* async fn get_session_logs_stream(
         &self,
         _shasta_token: &str,
         _site_name: &str,
@@ -1016,11 +1024,11 @@ impl BackendTrait for Ochami {
         Err(Error::Message(
             "Get configuration derivatives command not implemented for this backend".to_string(),
         ))
-    }
-} */
+    } */
+}
 
-/* impl SatTrait for Ochami {
-    async fn apply_sat_file(
+impl SatTrait for Ochami {
+    /* async fn apply_sat_file(
         &self,
         _shasta_token: &str,
         _shasta_base_url: &str,
@@ -1047,11 +1055,11 @@ impl BackendTrait for Ochami {
         Err(Error::Message(
             "Process SAT file command not implemented for this backend".to_string(),
         ))
-    }
-} */
+    } */
+}
 
-/* impl ApplyHwClusterPin for Ochami {
-    async fn apply_hw_cluster_pin(
+impl ApplyHwClusterPin for Ochami {
+    /* async fn apply_hw_cluster_pin(
         &self,
         _shasta_token: &str,
         _shasta_base_url: &str,
@@ -1066,11 +1074,11 @@ impl BackendTrait for Ochami {
         Err(Error::Message(
             "Apply HW Cluster Pin command not implemented for this backend".to_string(),
         ))
-    }
-} */
+    } */
+}
 
-/* impl ImsTrait for Ochami {
-    async fn get_images(
+impl ImsTrait for Ochami {
+    /* async fn get_images(
         &self,
         _shasta_token: &str,
         _shasta_base_url: &str,
@@ -1080,11 +1088,11 @@ impl BackendTrait for Ochami {
         Err(Error::Message(
             "Get images command not implemented for this backend".to_string(),
         ))
-    }
-} */
+    } */
+}
 
-/* impl ApplySessionTrait for Ochami {
-    async fn apply_session(
+impl ApplySessionTrait for Ochami {
+    /* async fn apply_session(
         &self,
         _gitea_token: &str,
         _gitea_base_url: &str,
@@ -1106,11 +1114,11 @@ impl BackendTrait for Ochami {
         Err(Error::Message(
             "Apply session command not implemented for this backend".to_string(),
         ))
-    }
-} */
+    } */
+}
 
-/* impl MigrateRestoreTrait for Ochami {
-    async fn migrate_restore(
+impl MigrateRestoreTrait for Ochami {
+    /* async fn migrate_restore(
         &self,
         _shasta_token: &str,
         _shasta_base_url: &str,
@@ -1124,20 +1132,20 @@ impl BackendTrait for Ochami {
         Err(Error::Message(
             "Migrate/restore command not implemented for this backend".to_string(),
         ))
-    }
-} */
+    } */
+}
 
-// impl MigrateBackupTrait for Ochami {
-//     async fn migrate_backup(
-//         &self,
-//         _shasta_token: &str,
-//         _shasta_base_url: &str,
-//         _shasta_root_cert: &[u8],
-//         _bos: Option<&String>,
-//         _destination: Option<&String>,
-//     ) -> Result<(), Error> {
-//         Err(Error::Message(
-//             "Migrate/backup command not implemented for this backend".to_string(),
-//         ))
-//     }
-// }
+impl MigrateBackupTrait for Ochami {
+    /* async fn migrate_backup(
+        &self,
+        _shasta_token: &str,
+        _shasta_base_url: &str,
+        _shasta_root_cert: &[u8],
+        _bos: Option<&String>,
+        _destination: Option<&String>,
+    ) -> Result<(), Error> {
+        Err(Error::Message(
+            "Migrate/backup command not implemented for this backend".to_string(),
+        ))
+    } */
+}
