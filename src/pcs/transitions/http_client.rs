@@ -168,9 +168,9 @@ pub async fn post(
     if response.status().is_success() {
         Ok(response.json::<Value>().await.unwrap())
     } else {
-        let payload = response.json().await.map_err(|e| Error::NetError(e))?;
+        let payload = response.text().await.map_err(|e| Error::NetError(e))?;
 
-        Err(Error::CsmError(payload))
+        Err(Error::Message(payload))
     }
 }
 
