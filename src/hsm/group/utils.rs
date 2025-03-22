@@ -176,12 +176,32 @@ pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
         .await
         .map_err(|e| Error::Message(e.to_string()))?;
 
-    Ok(filter_and_convert_to_map(hsm_name_vec, hsm_group_vec))
+    Ok(filter_by_hsm_group_and_convert_to_map(
+        hsm_name_vec,
+        hsm_group_vec,
+    ))
+}
+
+// Returns a HashMap with keys being the hsm names/labels the user has access a curated list of xnames
+// for each hsm name as values
+pub async fn get_hsm_group_map_and_filter_by_hsm_group_member_vec(
+    shasta_token: &str,
+    shasta_base_url: &str,
+    shasta_root_cert: &[u8],
+    hsm_name_vec: &[&str],
+) -> Result<HashMap<String, Vec<String>>, Error> {
+    let hsm_group_vec =
+        http_client::get_all(shasta_token, shasta_base_url, shasta_root_cert).await?;
+
+    Ok(filter_by_hsm_group_members_and_convert_to_map(
+        hsm_name_vec,
+        hsm_group_vec,
+    ))
 }
 
 /// Given a list of HsmGroup struct and a list of Hsm group names, it will filter out those
 /// not in the Hsm group names and convert from HsmGroup struct to HashMap
-pub fn filter_and_convert_to_map(
+pub fn filter_by_hsm_group_and_convert_to_map(
     hsm_name_vec: Vec<&str>,
     hsm_group_vec: Vec<Group>,
 ) -> HashMap<String, Vec<String>> {
@@ -195,6 +215,29 @@ pub fn filter_and_convert_to_map(
                     .and_then(|members| Some(members.ids.unwrap_or_default()))
                     .unwrap(),
             );
+        }
+    }
+
+    hsm_group_map
+}
+
+/// Given a list of HsmGroup struct and a list of Hsm group members, it will filter out those
+/// not in the Hsm group names and convert from HsmGroup struct to HashMap
+pub fn filter_by_hsm_group_members_and_convert_to_map(
+    hsm_group_member_vec: &[&str],
+    hsm_group_vec: Vec<Group>,
+) -> HashMap<String, Vec<String>> {
+    let mut hsm_group_map: HashMap<String, Vec<String>> = HashMap::new();
+
+    for hsm_group in hsm_group_vec {
+        if hsm_group
+            .get_members()
+            .iter()
+            .any(|member| hsm_group_member_vec.contains(&member.as_str()))
+        {
+            hsm_group_map
+                .entry(hsm_group.label)
+                .or_insert(hsm_group.members.and_then(|members| members.ids).unwrap());
         }
     }
 
