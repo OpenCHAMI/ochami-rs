@@ -33,6 +33,8 @@ pub async fn get(
 
     let api_url = format!("{}/power-control/v1/transitions", shasta_base_url);
 
+    log::debug!("PCS transition URL: {}", api_url);
+
     let response = client
         .get(api_url)
         .bearer_auth(shasta_token)
@@ -50,11 +52,11 @@ pub async fn get(
             .map_err(|error| Error::SerdeError(error))
     } else {
         let payload = response
-            .json::<Value>()
+            .text()
             .await
             .map_err(|error| Error::NetError(error))?;
 
-        Err(Error::CsmError(payload))
+        Err(Error::Message(payload))
     }
 }
 
@@ -101,11 +103,11 @@ pub async fn get_by_id(
         payload
     } else {
         let payload = response
-            .json::<Value>()
+            .text()
             .await
             .map_err(|error| Error::NetError(error))?;
 
-        Err(Error::CsmError(payload))
+        Err(Error::Message(payload))
     }
 }
 
