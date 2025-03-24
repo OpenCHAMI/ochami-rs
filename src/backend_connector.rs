@@ -841,7 +841,7 @@ impl BackendTrait for Ochami {
 }
 
 impl CfsTrait for Ochami {
-    type T = Pin<Box<dyn AsyncBufRead>>;
+    type T = Pin<Box<dyn AsyncBufRead + Send>>;
 
     /* async fn get_session_logs_stream(
         &self,
