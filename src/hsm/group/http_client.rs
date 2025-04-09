@@ -322,8 +322,8 @@ pub async fn post_member(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error_payload = response.text().await?;
+                let error = Error::Message(error_payload);
                 return Err(error);
             }
         }
