@@ -226,8 +226,8 @@ impl GroupTrait for Ochami {
         };
 
         hsm::group::http_client::post_member(
-            &self.base_url,
             auth_token,
+            &self.base_url,
             &self.root_cert,
             group_label,
             member,
