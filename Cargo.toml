@@ -2,9 +2,12 @@
 authors = ["Manuel Sopena Ballesteros <msopena@cscs.ch>"]
 name = "ochami-rs"
 description = "Rust bindings for OCHAMI backend"
-version = "0.1.44"
+version = "0.1.45"
 edition = "2021"
 license-file = "LICENSE"
+documentation = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
+homepage = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
+repository = "https://github.com/OpenCHAMI/ochami-rs"
 
 [dependencies]
 # backend-dispatcher = { path = "../backend-dispatcher" } # Only for development purposes
