@@ -81,7 +81,7 @@ pub struct RedfishEndpoint {
     #[serde(rename = "IPAddress")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ip_address: Option<String>,
-    #[serde(rename = "RediscoveryOnUpdate")]
+    #[serde(rename = "RediscoverOnUpdate")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rediscover_on_update: Option<bool>,
     #[serde(rename = "TemplateID")]
