@@ -250,7 +250,10 @@ pub async fn put(
         client_builder.build()?
     };
 
-    let api_url: String = format!("{}/{}/{}", base_url, "smd/hsm/v2/State/Components", xname);
+    let api_url: String = format!(
+        "{}/{}/{}",
+        base_url, "hsm/v2/Inventory/RedfishEndpoints", xname
+    );
 
     let response = client
         .put(api_url)
@@ -300,7 +303,7 @@ pub async fn delete_all(
         client_builder.build()?
     };
 
-    let api_url: String = base_url.to_owned() + "/smd/hsm/v2/Inventory/RedfishEndpoints";
+    let api_url: String = base_url.to_owned() + "hsm/v2/Inventory/RedfishEndpoints";
 
     let response = client
         .delete(api_url)
@@ -355,7 +358,7 @@ pub async fn delete_one(
 
     let api_url: String = format!(
         "{}/{}/{}",
-        base_url, "smd/hsm/v2/Inventory/RedfishEndpoints", xname
+        base_url, "hsm/v2/Inventory/RedfishEndpoints", xname
     );
 
     let response = client
