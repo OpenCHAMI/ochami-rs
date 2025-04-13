@@ -8,6 +8,7 @@ use backend_dispatcher::{
         apply_session::ApplySessionTrait,
         bss::BootParametersTrait,
         cfs::CfsTrait,
+        get_bos_session_templates::GetTemplatesTrait,
         get_images_and_details::GetImagesAndDetailsTrait,
         hsm::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
@@ -1167,3 +1168,5 @@ impl MigrateBackupTrait for Ochami {
 }
 
 impl GetImagesAndDetailsTrait for Ochami {}
+
+impl GetTemplatesTrait for Ochami {}
