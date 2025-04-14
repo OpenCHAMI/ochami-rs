@@ -6,6 +6,7 @@ use backend_dispatcher::{
     interfaces::{
         apply_hw_cluster_pin::ApplyHwClusterPin,
         apply_session::ApplySessionTrait,
+        bos::ClusterSessionTrait,
         bss::BootParametersTrait,
         cfs::CfsTrait,
         get_bos_session_templates::GetTemplatesTrait,
@@ -1170,3 +1171,5 @@ impl MigrateBackupTrait for Ochami {
 impl GetImagesAndDetailsTrait for Ochami {}
 
 impl GetTemplatesTrait for Ochami {}
+
+impl ClusterSessionTrait for Ochami {}
