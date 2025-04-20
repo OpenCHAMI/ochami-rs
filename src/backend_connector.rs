@@ -10,6 +10,7 @@ use backend_dispatcher::{
         bos::{ClusterSessionTrait, ClusterTemplateTrait},
         bss::BootParametersTrait,
         cfs::CfsTrait,
+        commands::CommandsTrait,
         get_bos_session_templates::GetTemplatesTrait,
         get_images_and_details::GetImagesAndDetailsTrait,
         hsm::{
@@ -866,3 +867,5 @@ impl GetTemplatesTrait for Ochami {}
 impl ClusterSessionTrait for Ochami {}
 
 impl ClusterTemplateTrait for Ochami {}
+
+impl CommandsTrait for Ochami {}
