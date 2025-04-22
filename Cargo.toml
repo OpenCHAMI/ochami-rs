@@ -11,7 +11,7 @@ repository = "https://github.com/OpenCHAMI/ochami-rs"
 
 [dependencies]
 # backend-dispatcher = { path = "../backend-dispatcher" } # Only for development purposes
-backend-dispatcher = "0.1.57"
+backend-dispatcher = "0.1.60"
 strum = { version = "0.25.0", default-features = false }
 strum_macros = "0.25"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
