@@ -11,6 +11,7 @@ use backend_dispatcher::{
         bss::BootParametersTrait,
         cfs::CfsTrait,
         commands::CommandsTrait,
+        console::ConsoleTrait,
         get_images_and_details::GetImagesAndDetailsTrait,
         hsm::{
             component::ComponentTrait, group::GroupTrait, hardware_inventory::HardwareInventory,
@@ -32,6 +33,7 @@ use futures::AsyncBufRead;
 use hostlist_parser::parse;
 use regex::Regex;
 use serde_json::Value;
+use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{authentication, bss};
 use crate::{
@@ -866,3 +868,8 @@ impl ClusterSessionTrait for Ochami {}
 impl ClusterTemplateTrait for Ochami {}
 
 impl CommandsTrait for Ochami {}
+
+impl ConsoleTrait for Ochami {
+    type T = Box<dyn AsyncWrite + Unpin>;
+    type U = Box<dyn AsyncRead + Unpin>;
+}
