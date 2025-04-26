@@ -29,7 +29,7 @@ use backend_dispatcher::{
         NodeMetadataArray,
     },
 };
-use futures::AsyncBufRead;
+use futures_io::AsyncBufRead;
 use hostlist_parser::parse;
 use regex::Regex;
 use serde_json::Value;
