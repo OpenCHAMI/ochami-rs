@@ -336,8 +336,8 @@ pub async fn delete_all(
 }
 
 pub async fn delete_one(
-    base_url: &str,
     auth_token: &str,
+    base_url: &str,
     root_cert: &[u8],
     xname: &str,
 ) -> Result<Value, Error> {
