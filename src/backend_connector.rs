@@ -1,6 +1,8 @@
 use std::{collections::HashMap, pin::Pin};
 
-use backend_dispatcher::{
+use futures_io::AsyncBufRead;
+use hostlist_parser::parse;
+use manta_backend_dispatcher::{
     contracts::BackendTrait,
     error::Error,
     interfaces::{
@@ -29,8 +31,6 @@ use backend_dispatcher::{
         NodeMetadataArray,
     },
 };
-use futures_io::AsyncBufRead;
-use hostlist_parser::parse;
 use regex::Regex;
 use serde_json::Value;
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -698,8 +698,8 @@ impl RedfishEndpointTrait for Ochami {
 
     async fn delete_redfish_endpoint(&self, auth_token: &str, id: &str) -> Result<Value, Error> {
         hsm::inventory::redfish_endpoint::http_client::delete_one(
-            auth_token,
             &self.base_url,
+            auth_token,
             &self.root_cert,
             id,
         )
