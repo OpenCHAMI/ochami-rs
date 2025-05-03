@@ -92,7 +92,15 @@ pub async fn get(
 
     let response = client
         .get(api_url)
-        .query(&[id, fqdn, r#type, uuid, macaddr, ip_address, last_status])
+        .query(&[
+            ("id", id),
+            ("fqdn", fqdn),
+            ("type", r#type),
+            ("uuid", uuid),
+            ("madaddr", macaddr),
+            ("ip_address", ip_address),
+            ("last_status", last_status),
+        ])
         .bearer_auth(auth_token)
         .send()
         .await?;
