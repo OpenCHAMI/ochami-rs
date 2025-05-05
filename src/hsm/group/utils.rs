@@ -191,7 +191,7 @@ pub async fn get_hsm_group_map_and_filter_by_hsm_group_member_vec(
     hsm_name_vec: &[&str],
 ) -> Result<HashMap<String, Vec<String>>, Error> {
     let hsm_group_vec =
-        http_client::get_all(shasta_token, shasta_base_url, shasta_root_cert).await?;
+        http_client::get_all(shasta_base_url, shasta_token, shasta_root_cert).await?;
 
     Ok(filter_by_hsm_group_members_and_convert_to_map(
         hsm_name_vec,
