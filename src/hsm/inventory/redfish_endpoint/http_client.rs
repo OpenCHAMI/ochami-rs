@@ -11,7 +11,7 @@ pub async fn get_query(
     xname: &str,
 ) -> Result<RedfishEndpointArray, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -74,7 +74,7 @@ pub async fn get(
     last_status: Option<&str>,
 ) -> Result<RedfishEndpointArray, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -136,7 +136,7 @@ pub async fn get_one(
     xname: &str,
 ) -> Result<RedfishEndpoint, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -188,7 +188,7 @@ pub async fn post(
     redfish_endpoint: RedfishEndpoint,
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -244,7 +244,7 @@ pub async fn put(
 ) -> Result<RedfishEndpoint, Error> {
     // Validation
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -297,7 +297,7 @@ pub async fn delete_all(
     root_cert: &[u8],
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -350,7 +350,7 @@ pub async fn delete_one(
     xname: &str,
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
