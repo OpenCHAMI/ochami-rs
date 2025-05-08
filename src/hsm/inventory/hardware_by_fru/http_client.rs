@@ -13,7 +13,7 @@ pub async fn get(
     serialnumber: Option<&str>,
 ) -> Result<Vec<HWInventoryByFRU>, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -67,7 +67,7 @@ pub async fn get_one(
     fruid: &str,
 ) -> Result<HWInventoryByFRU, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -118,7 +118,7 @@ pub async fn delete_all(
     root_cert: &[u8],
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -171,7 +171,7 @@ pub async fn delete_one(
     fruid: &str,
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {

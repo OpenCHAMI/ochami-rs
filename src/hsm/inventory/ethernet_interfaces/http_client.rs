@@ -11,7 +11,7 @@ pub async fn post(
     eht_interface: ComponentEthernetInterface,
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -65,7 +65,7 @@ pub async fn post_ip_addresses(
     eht_interface: ComponentEthernetInterface,
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -132,7 +132,7 @@ pub async fn get(
     newer_than: &str,
 ) -> Result<Vec<ComponentEthernetInterface>, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -194,7 +194,7 @@ pub async fn get_one(
     eth_interface_id: &str,
 ) -> Result<ComponentEthernetInterface, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -246,7 +246,7 @@ pub async fn get_ip_addresses(
     eth_interface_id: &str,
 ) -> Result<Vec<IpAddressMapping>, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -312,7 +312,7 @@ pub async fn patch(
     };
 
     let client_builder = reqwest::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
+        .add_root_certificate(reqwest::tls::Certificate::from_pem(shasta_root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -366,7 +366,7 @@ pub async fn delete_all(
     root_cert: &[u8],
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -419,7 +419,7 @@ pub async fn delete_one(
     eth_interface_id: &str,
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -477,7 +477,7 @@ pub async fn delete_ip_address(
     ip_address: &str,
 ) -> Result<Value, Error> {
     let client_builder =
-        reqwest::Client::builder().add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+        reqwest::Client::builder().add_root_certificate(reqwest::tls::Certificate::from_pem(root_cert)?);
 
     // Build client
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {

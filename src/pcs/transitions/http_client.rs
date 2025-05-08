@@ -17,7 +17,7 @@ pub async fn get(
     let client;
 
     let client_builder = reqwest::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
+        .add_root_certificate(reqwest::tls::Certificate::from_pem(shasta_root_cert)?);
 
     // Build client
     if std::env::var("SOCKS5").is_ok() {
@@ -69,7 +69,7 @@ pub async fn get_by_id(
     let client;
 
     let client_builder = reqwest::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
+        .add_root_certificate(reqwest::tls::Certificate::from_pem(shasta_root_cert)?);
 
     // Build client
     if std::env::var("SOCKS5").is_ok() {
@@ -143,7 +143,7 @@ pub async fn post(
 
     // Build http client
     let client_builder = reqwest::Client::builder()
-        .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
+        .add_root_certificate(reqwest::tls::Certificate::from_pem(shasta_root_cert)?);
 
     let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
         // socks5 proxy
