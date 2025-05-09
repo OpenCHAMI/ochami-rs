@@ -32,7 +32,7 @@ pub async fn get(
         client = client_builder.build()?;
     }
 
-    let url_api = format!("{}/apis/bss/boot/v1/bootparameters", base_url.to_string());
+    let url_api = format!("{}/boot/v1/bootparameters", base_url.to_string());
 
     let params: Option<Vec<_>> = if let Some(xname_vec) = xnames_opt {
         Some(xname_vec.iter().map(|xname| ("name", xname)).collect())
@@ -58,7 +58,7 @@ pub async fn get(
                 return Err(error);
             }
             _ => {
-                let error_payload = response.json::<Value>().await?;
+                let error_payload = response.text().await?;
                 let error = Error::RequestError {
                     response: e,
                     payload: serde_json::to_string_pretty(&error_payload)?,
