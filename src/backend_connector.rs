@@ -561,6 +561,20 @@ impl PCSTrait for Ochami {
 }
 
 impl BootParametersTrait for Ochami {
+    async fn get_all_bootparameters(&self, auth_token: &str) -> Result<Vec<BootParameters>, Error> {
+        let boot_parameter_vec =
+            bss::http_client::get(&self.base_url, auth_token, &self.root_cert, &None)
+                .await
+                .map_err(|e| Error::Message(e.to_string()))?;
+
+        let boot_parameter_infra_vec = boot_parameter_vec
+            .into_iter()
+            .map(|boot_parameter| boot_parameter.into())
+            .collect();
+
+        Ok(boot_parameter_infra_vec)
+    }
+
     async fn get_bootparameters(
         &self,
         auth_token: &str,
