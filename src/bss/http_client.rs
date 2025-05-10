@@ -5,6 +5,14 @@ use core::result::Result;
 
 use super::types::BootParameters;
 
+pub async fn get_all(
+    base_url: &str,
+    auth_token: &str,
+    root_cert: &[u8],
+) -> Result<Vec<BootParameters>, Error> {
+    get(base_url, auth_token, root_cert, &None).await
+}
+
 /// Get node boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/get/
 /// NOTE: MANTA MIGRATION! the 'url_api' value changes compared to CSM
 /// NOTE: if db is empty, then OCHAMI API will return 'Null' therefore, if we want to handle this
@@ -68,7 +76,12 @@ pub async fn get(
         }
     }
 
-    response.json().await.map_err(|e| Error::NetError(e))
+    match response.json().await {
+        Ok(Value::Null) => Ok(Vec::new()), // NOTE: In case OCHAMI decides to return 'Null' instead
+        // of empty array
+        Ok(v) => serde_json::from_value(v).map_err(|e| Error::Message(e.to_string())),
+        Err(e) => Err(Error::NetError(e)),
+    }
 }
 
 pub async fn post(
