@@ -61,7 +61,7 @@ pub async fn get_query(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }

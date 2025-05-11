@@ -78,7 +78,7 @@ pub async fn get(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -133,7 +133,7 @@ pub async fn get_xname(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
