@@ -62,7 +62,7 @@ pub async fn get(
             .await
             .map_err(|error| Error::NetError(error))?;
 
-        Err(Error::CsmError(payload))
+        Err(Error::OchamiError(payload))
     }
 }
 
@@ -108,6 +108,6 @@ pub async fn post(
             .await
             .map_err(|e| Error::NetError(e))?;
 
-        Err(Error::CsmError(payload))
+        Err(Error::OchamiError(payload))
     }
 }

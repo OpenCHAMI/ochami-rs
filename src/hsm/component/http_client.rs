@@ -201,7 +201,7 @@ pub async fn get_one(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -255,7 +255,7 @@ pub async fn post(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -306,7 +306,7 @@ pub async fn post_query(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -360,7 +360,7 @@ pub async fn post_bynid_query(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -415,7 +415,7 @@ pub async fn put(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -468,7 +468,7 @@ pub async fn delete_one(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -516,7 +516,7 @@ pub async fn delete(base_url: &str, auth_token: &str, root_cert: &[u8]) -> Resul
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }

@@ -290,6 +290,6 @@ pub async fn wait_to_complete(
     if transition_status == "completed" {
         Ok(transition)
     } else {
-        Err(Error::CsmError(transition))
+        Err(Error::OchamiError(transition))
     }
 }

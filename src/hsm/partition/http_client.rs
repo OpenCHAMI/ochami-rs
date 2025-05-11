@@ -47,7 +47,7 @@ pub async fn get(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -96,7 +96,7 @@ pub async fn get_one(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -144,7 +144,7 @@ pub async fn get_names(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -193,7 +193,7 @@ pub async fn get_members(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -247,7 +247,7 @@ pub async fn post(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -302,7 +302,7 @@ pub async fn post_members(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -355,7 +355,7 @@ pub async fn delete_one(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
@@ -412,7 +412,7 @@ pub async fn delete_member(
             }
             _ => {
                 let error_payload = response.json::<Value>().await?;
-                let error = Error::CsmError(error_payload);
+                let error = Error::OchamiError(error_payload);
                 return Err(error);
             }
         }
