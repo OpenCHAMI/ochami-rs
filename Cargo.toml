@@ -10,19 +10,31 @@ homepage = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
 repository = "https://github.com/OpenCHAMI/ochami-rs"
 
 [dependencies]
-# manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
-manta-backend-dispatcher = "0.1.71"
-strum = { version = "0.25.0", default-features = false }
-strum_macros = "0.25"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-uuid = { version = "1.6.1", default-features = false }
-reqwest = { version = "0.11", default-features = false }
-serde = { version = "1.0.145", default-features = false }
-serde_json = "1.0"
-log = "0.4.17"
-thiserror = "1.0.56"
-regex = "1.6.0"
-hostlist-parser = "0.1.6"
+manta-backend-dispatcher = { workspace = true }
+
+#futures-io = "0.3.31"
+futures-io = { workspace = true }
 # futures = { version = "0.3.28", default-features = false }
-futures-io = "0.3.31"
-serde_yaml = "0.9.17"
+#hostlist-parser = "0.1.6"
+hostlist-parser = { workspace = true }
+#log = "0.4.17"
+log = { workspace = true }
+#regex = "1.6.0"
+regex = { workspace = true }
+#reqwest = { version = "0.11", default-features = false }
+reqwest = { workspace = true, default-features = false }
+#serde_json = "1.0"
+serde_json = { workspace = true }
+#serde = { version = "1.0.145", default-features = false }
+serde = { workspace = true, default-features = false }
+serde_yaml = { workspace = true } # TODO: deprecated, need to replace, potential candidate: yaml-rust2
+#strum_macros = "0.25"
+strum_macros = { workspace = true }
+#strum = { version = "0.25.0", default-features = false }
+strum = { workspace = true, default-features = false }
+#thiserror = "1.0.56"
+thiserror = { workspace = true }
+#tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+#uuid = { version = "1.6.1", default-features = false }
+uuid = { workspace = true, default-features = false }
