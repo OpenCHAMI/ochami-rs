@@ -61,6 +61,16 @@ pub async fn get_query(
     .map_err(|error| Error::NetError(error))
 }
 
+pub async fn get_all(
+  auth_token: &str,
+  base_url: &str,
+  root_cert: &[u8],
+) -> Result<RedfishEndpointArray, Error> {
+  get(
+    auth_token, base_url, root_cert, None, None, None, None, None, None, None,
+  )
+  .await
+}
 pub async fn get(
   auth_token: &str,
   base_url: &str,

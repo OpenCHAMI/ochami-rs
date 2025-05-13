@@ -708,6 +708,20 @@ impl BootParametersTrait for Ochami {
 }
 
 impl RedfishEndpointTrait for Ochami {
+  async fn get_all_redfish_endpoints(
+    &self,
+    auth_token: &str,
+  ) -> Result<RedfishEndpointArray, Error> {
+    hsm::inventory::redfish_endpoint::http_client::get_all(
+      auth_token,
+      &self.base_url,
+      &self.root_cert,
+    )
+    .await
+    .map(|re| re.into())
+    .map_err(|e| Error::Message(e.to_string()))
+  }
+
   async fn get_redfish_endpoints(
     &self,
     auth_token: &str,
