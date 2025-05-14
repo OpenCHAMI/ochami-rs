@@ -32,7 +32,8 @@ pub async fn get(
   nid_only: Option<&str>,
 ) -> Result<ComponentArray, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -107,7 +108,8 @@ pub async fn get_one(
   id: &str,
 ) -> Result<Component, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -157,7 +159,8 @@ pub async fn get_by_nid(
   nid: &str,
 ) -> Result<Component, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -228,7 +231,8 @@ pub async fn get_query(
   nidonly: Option<&str>,
 ) -> Result<ComponentArray, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -305,7 +309,8 @@ pub async fn post(
   component: Component,
 ) -> Result<Component, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -359,7 +364,8 @@ pub async fn post_query(
   component_query: ComponentPostQuery,
 ) -> Result<ComponentArray, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -414,7 +420,8 @@ pub async fn post_by_nid_query(
   component_by_nid_query: ComponentPostByNidQuery,
 ) -> Result<Component, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -476,7 +483,8 @@ pub async fn put(
   }
 
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -531,7 +539,8 @@ pub async fn delete_all(
   root_cert: &[u8],
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -584,7 +593,8 @@ pub async fn delete_one(
   id: &str,
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {

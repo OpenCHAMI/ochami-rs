@@ -753,7 +753,7 @@ impl RedfishEndpointTrait for Ochami {
   async fn add_redfish_endpoint(
     &self,
     auth_token: &str,
-    redfish_endpoint: &RedfishEndpoint,
+    redfish_endpoint: &RedfishEndpointArray,
   ) -> Result<(), Error> {
     hsm::inventory::redfish_endpoint::http_client::post(
       auth_token,
