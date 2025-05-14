@@ -11,7 +11,8 @@ pub async fn get_query(
   xname: &str,
 ) -> Result<RedfishEndpointArray, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -84,7 +85,8 @@ pub async fn get(
   last_status: Option<&str>,
 ) -> Result<RedfishEndpointArray, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -147,7 +149,8 @@ pub async fn get_one(
   xname: &str,
 ) -> Result<RedfishEndpoint, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -196,10 +199,11 @@ pub async fn post(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  redfish_endpoint: RedfishEndpoint,
+  redfish_endpoint: RedfishEndpointArray,
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -216,12 +220,14 @@ pub async fn post(
   let api_url: String =
     format!("{}/{}", base_url, "hsm/v2/Inventory/RedfishEndpoints");
 
-  let response = client
+  let response_rslt = client
     .post(api_url)
     .bearer_auth(auth_token)
     .json(&redfish_endpoint)
     .send()
-    .await?;
+    .await;
+
+  let response = response_rslt?;
 
   if let Err(e) = response.error_for_status_ref() {
     match response.status() {
@@ -256,7 +262,8 @@ pub async fn put(
 ) -> Result<RedfishEndpoint, Error> {
   // Validation
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -309,7 +316,8 @@ pub async fn delete_all(
   root_cert: &[u8],
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
@@ -363,7 +371,8 @@ pub async fn delete_one(
   xname: &str,
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
 
   // Build client
   let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
