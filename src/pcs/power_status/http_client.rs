@@ -18,8 +18,8 @@ pub async fn get(
 ) -> Result<PowerStatusAll, Error> {
 
     let client_builder = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true) // Disables SSL verification (use with caution)
-        .use_rustls_tls();
+        .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
+        //.danger_accept_invalid_certs(true) // Disables SSL verification (use with caution)
 
     // Build client
     let client = if std::env::var("SOCKS5").is_ok() {
