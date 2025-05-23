@@ -1,4 +1,9 @@
 use std::{collections::HashMap, pin::Pin};
+use crate::pcs::power_status::types::PowerStatus;
+use manta_backend_dispatcher::types::pcs::power_status::types::{
+    PowerStatus as FrontEndPowerStatus,
+    PowerStatusAll as FrontEndPowerStatusAll
+};
 
 use futures_io::AsyncBufRead;
 use hostlist_parser::parse;
@@ -610,6 +615,41 @@ impl PCSTrait for Ochami {
       &nodes.to_vec(),
     )
     .await
+    .map_err(|e| Error::Message(e.to_string()))
+  }
+
+  async fn power_status(
+    &self,
+    auth_token: &str,
+    nodes: &[String],
+  //xname_vec_opt: Option<&[&str]>,
+    power_state_filter: Option<&str>,
+    management_state_filter: Option<&str>,
+  ) -> Result<FrontEndPowerStatusAll, Error> {
+    let operation = "status";
+
+    // Convert &[String] to Vec<&str> and wrap in Some
+    let nodes_str: Vec<&str> = nodes.iter().map(|s| s.as_str()).collect();
+    let nodes_opt = Some(nodes_str.as_slice());
+
+    pcs::power_status::http_client::get(
+      &self.base_url,
+      auth_token,
+      &self.root_cert,
+      nodes_opt,
+      //xname_vec_opt: Option<&[&str]>,
+      power_state_filter,
+      //power_state_filter_opt: Option<&str>,
+      management_state_filter,
+      //management_state_filter_opt: Option<&str>,
+      //,
+    )
+    .await
+    .map(|status|  {
+         println!("return value from async fn power_status : {:?}", status);
+         status.into()
+    })
+
     .map_err(|e| Error::Message(e.to_string()))
   }
 }
