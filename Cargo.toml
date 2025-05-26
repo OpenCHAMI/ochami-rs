@@ -10,8 +10,10 @@ homepage = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
 repository = "https://github.com/OpenCHAMI/ochami-rs"
 
 [dependencies]
+<<<<<<< HEAD
 # manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
-manta-backend-dispatcher = "0.1.78"
+# manta-backend-dispatcher = { git = "https://github.com/eth-cscs/manta-backend-dispatcher", branch="feature/power-status" } # Only for development purposes
+manta-backend-dispatcher = "0.1.79"
 strum = { version = "0.27.1", default-features = false }
 strum_macros = "0.27.1"
 reqwest = { version = "0.12.15", default-features = false, features = ["blocking", "json", "rustls-tls", "socks"] }
@@ -26,3 +28,4 @@ hostlist-parser = "0.1.6"
 # futures = { version = "0.3.28", default-features = false }
 futures-io = "0.3.31"
 serde_yaml = "0.9.17"
+tracing = "0.1.41"
