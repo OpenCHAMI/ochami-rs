@@ -1,7 +1,4 @@
-use crate::pcs::power_status::types::PowerStatus;
-use manta_backend_dispatcher::types::pcs::power_status::types::{
-  PowerStatus as FrontEndPowerStatus, PowerStatusAll as FrontEndPowerStatusAll,
-};
+use manta_backend_dispatcher::types::pcs::power_status::types::PowerStatusAll as FrontEndPowerStatusAll;
 use std::{collections::HashMap, pin::Pin};
 
 use futures_io::AsyncBufRead;
