@@ -27,9 +27,9 @@ use manta_backend_dispatcher::{
     pcs::PCSTrait,
   },
   types::{
+    bss::BootParameters,
     hsm::inventory::{RedfishEndpoint, RedfishEndpointArray},
-    BootParameters, Component,
-    ComponentArrayPostArray as FrontEndComponentArrayPostArray,
+    Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
     Group as FrontEndGroup,
     HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
     NodeMetadataArray,
