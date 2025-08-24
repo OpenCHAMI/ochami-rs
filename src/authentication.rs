@@ -1,5 +1,13 @@
 use std::env::VarError;
 
-pub async fn get_api_token() -> Result<String, VarError> {
+pub fn get_api_token() -> Result<String, VarError> {
   std::env::var("ACCESS_TOKEN")
+}
+
+pub fn validate_api_token(token: &str) -> Result<(), VarError> {
+  if token.is_empty() {
+    Ok(())
+  } else {
+    Err(VarError::NotPresent)
+  }
 }
