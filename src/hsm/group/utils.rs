@@ -87,7 +87,7 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  hsm_name_vec: Vec<String>,
+  hsm_name_vec: &[&str],
 ) -> Result<Vec<String>, Error> {
   log::info!("Get xnames for HSM groups: {:?}", hsm_name_vec);
 
@@ -309,7 +309,7 @@ pub async fn migrate_hsm_members(
       shasta_token,
       shasta_base_url,
       shasta_root_cert,
-      vec![target_hsm_group_name.to_string()],
+      &[target_hsm_group_name],
     )
     .await?;
 
@@ -326,7 +326,7 @@ pub async fn migrate_hsm_members(
       shasta_token,
       shasta_base_url,
       shasta_root_cert,
-      vec![parent_hsm_group_name.to_string()],
+      &[parent_hsm_group_name],
     )
     .await?;
 

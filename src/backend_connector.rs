@@ -115,7 +115,7 @@ impl GroupTrait for Ochami {
   async fn get_member_vec_from_group_name_vec(
     &self,
     auth_token: &str,
-    hsm_group_name_vec: Vec<String>,
+    hsm_group_name_vec: &[&str],
   ) -> Result<Vec<String>, Error> {
     hsm::group::utils::get_member_vec_from_hsm_name_vec_2(
       auth_token,
