@@ -19,7 +19,7 @@ pub async fn validate_xnames_format_and_membership_agaisnt_single_hsm(
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
   xnames: &[&str],
-  hsm_group_name_opt: Option<&String>,
+  hsm_group_name_opt: Option<&str>,
 ) -> bool {
   let hsm_group_members: Vec<String> =
     if let Some(hsm_group_name) = hsm_group_name_opt {
@@ -27,7 +27,7 @@ pub async fn validate_xnames_format_and_membership_agaisnt_single_hsm(
         shasta_token,
         shasta_base_url,
         shasta_root_cert,
-        vec![hsm_group_name.to_string()],
+        &[hsm_group_name],
       )
       .await
       .unwrap()
