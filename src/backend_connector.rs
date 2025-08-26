@@ -130,7 +130,7 @@ impl GroupTrait for Ochami {
   async fn get_group_map_and_filter_by_group_vec(
     &self,
     auth_token: &str,
-    hsm_name_vec: Vec<&str>,
+    hsm_name_vec: &[&str],
   ) -> Result<HashMap<String, Vec<String>>, Error> {
     hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
       auth_token,
@@ -243,7 +243,7 @@ impl GroupTrait for Ochami {
   async fn get_hsm_map_and_filter_by_hsm_name_vec(
     &self,
     shasta_token: &str,
-    hsm_name_vec: Vec<&str>,
+    hsm_name_vec: &[&str],
   ) -> Result<HashMap<String, Vec<String>>, Error> {
     hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
       shasta_token,
@@ -280,7 +280,7 @@ impl GroupTrait for Ochami {
     &self,
     auth_token: &str,
     group_label: &str,
-    new_members: Vec<&str>,
+    new_members: &[&str],
   ) -> Result<Vec<String>, Error> {
     let mut sol: Vec<String> = Vec::new();
 
@@ -320,8 +320,8 @@ impl GroupTrait for Ochami {
     &self,
     auth_token: &str,
     group_name: &str,
-    members_to_remove: &Vec<String>,
-    members_to_add: &Vec<String>,
+    members_to_remove: &[&str],
+    members_to_add: &[&str],
   ) -> Result<(), Error> {
     hsm::group::utils::update_hsm_group_members(
       auth_token,
@@ -340,7 +340,7 @@ impl GroupTrait for Ochami {
     shasta_token: &str,
     target_hsm_group_name: &str,
     parent_hsm_group_name: &str,
-    new_target_hsm_members: Vec<&str>,
+    new_target_hsm_members: &[&str],
   ) -> Result<(Vec<String>, Vec<String>), Error> {
     hsm::group::utils::migrate_hsm_members(
       shasta_token,

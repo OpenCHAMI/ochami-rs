@@ -175,7 +175,7 @@ pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  hsm_name_vec: Vec<&str>,
+  hsm_name_vec: &[&str],
 ) -> Result<HashMap<String, Vec<String>>, Error> {
   let hsm_group_vec = http_client::get_all(base_url, auth_token, root_cert)
     .await
@@ -183,7 +183,7 @@ pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
 
   Ok(filter_by_hsm_group_and_convert_to_map(
     hsm_name_vec,
-    hsm_group_vec,
+    &hsm_group_vec,
   ))
 }
 
@@ -208,16 +208,17 @@ pub async fn get_hsm_group_map_and_filter_by_hsm_group_member_vec(
 /// Given a list of HsmGroup struct and a list of Hsm group names, it will filter out those
 /// not in the Hsm group names and convert from HsmGroup struct to HashMap
 pub fn filter_by_hsm_group_and_convert_to_map(
-  hsm_name_vec: Vec<&str>,
-  hsm_group_vec: Vec<Group>,
+  hsm_name_vec: &[&str],
+  hsm_group_vec: &[Group],
 ) -> HashMap<String, Vec<String>> {
   let mut hsm_group_map: HashMap<String, Vec<String>> = HashMap::new();
 
   for hsm_group in hsm_group_vec {
     if hsm_name_vec.contains(&hsm_group.label.as_str()) {
-      hsm_group_map.entry(hsm_group.label).or_insert(
+      hsm_group_map.entry(hsm_group.label.clone()).or_insert(
         hsm_group
           .members
+          .clone()
           .and_then(|members| Some(members.ids.unwrap_or_default()))
           .unwrap(),
       );
@@ -256,8 +257,8 @@ pub async fn update_hsm_group_members(
   base_url: &str,
   root_cert: &[u8],
   group_label: &str,
-  group_members_to_delete: &Vec<String>,
-  group_members_to_add: &Vec<String>,
+  group_members_to_delete: &[&str],
+  group_members_to_add: &[&str],
 ) -> Result<(), Error> {
   let group = hsm::group::http_client::get_one(
     base_url,
@@ -269,7 +270,8 @@ pub async fn update_hsm_group_members(
 
   let mut group_members = group.members.unwrap().ids.unwrap();
 
-  group_members.retain(|xname| group_members_to_delete.contains(xname));
+  group_members
+    .retain(|xname| group_members_to_delete.contains(&xname.as_str()));
 
   for xname in group_members_to_add {
     group_members.push(xname.to_string());
@@ -285,7 +287,7 @@ pub async fn migrate_hsm_members(
   shasta_root_cert: &[u8],
   target_hsm_group_name: &str,
   parent_hsm_group_name: &str,
-  new_target_hsm_members: Vec<&str>,
+  new_target_hsm_members: &[&str],
   nodryrun: bool,
 ) -> Result<(Vec<String>, Vec<String>), Error> {
   // Check nodes are valid xnames and they belong to parent HSM group
@@ -293,7 +295,7 @@ pub async fn migrate_hsm_members(
     shasta_token,
     shasta_base_url,
     shasta_root_cert,
-    new_target_hsm_members.as_slice(),
+    new_target_hsm_members,
     Some(&parent_hsm_group_name.to_string()),
   )
   .await
