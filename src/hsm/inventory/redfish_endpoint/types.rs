@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DiscoveryInfo {
-  #[serde(rename = "LastAttempt")]
+  #[serde(rename = "LastDiscoveryAttempt")]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub last_attempt: Option<String>,
-  #[serde(rename = "LastStatus")]
+  #[serde(rename = "LastDiscoveryStatus")]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub last_status: Option<String>,
   #[serde(rename = "RedfishVersion")]
