@@ -2,12 +2,10 @@ use serde_json::Value;
 
 use crate::error::Error;
 
-// shouldn't this be from the typles from 
+// shouldn't this be from the typles from
 //use manta_backend_dispatcher::types::hsm::inventory::{ ComponentEthernetInterface };
-use super::types::{ 
-    IpAddressMapping,
-    ComponentEthernetInterface,
-    ComponentEthernetInterfaceArray,
+use super::types::{
+  ComponentEthernetInterface, ComponentEthernetInterfaceArray, IpAddressMapping,
 };
 
 pub async fn post(
@@ -134,14 +132,14 @@ pub async fn get(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  mac_address: &str,
-  ip_address: &str,
-  network: &str,
-  component_id: &str, // Node's xname
-  r#type: &str,
-  older_than: &str,
-  newer_than: &str,
-) -> Result<ComponentEthernetInterfaceArray, Error> {
+  mac_address: Option<&str>,
+  ip_address: Option<&str>,
+  network: Option<&str>,
+  component_id: Option<&str>, // Node's xname
+  r#type: Option<&str>,
+  older_than: Option<&str>,
+  newer_than: Option<&str>,
+) -> Result<Vec<ComponentEthernetInterface>, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
@@ -159,7 +157,7 @@ pub async fn get(
   };
 
   let api_url: String =
-    base_url.to_owned() + "/smd/hsm/v2/Inventory/EthernetInterfaces";
+    base_url.to_owned() + "/hsm/v2/Inventory/EthernetInterfaces";
 
   let response = client
     .get(api_url)
@@ -187,8 +185,8 @@ pub async fn get(
         return Err(error);
       }
       _ => {
-        let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
+        let error_payload = response.text().await?;
+        let error = Error::Message(error_payload);
         return Err(error);
       }
     }
@@ -351,12 +349,12 @@ pub async fn patch(
     base_url, eth_interface_id
   );
 
-//  let response = client
-//    .delete(api_url)
-//    .bearer_auth(auth_token)
-//    .send()
-//    .await?;
-//
+  //  let response = client
+  //    .delete(api_url)
+  //    .bearer_auth(auth_token)
+  //    .send()
+  //    .await?;
+  //
 
   let response = client
     .patch(api_url)
