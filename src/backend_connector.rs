@@ -22,6 +22,7 @@ use manta_backend_dispatcher::{
       component::ComponentTrait, group::GroupTrait,
       hardware_inventory::HardwareInventory,
       redfish_endpoint::RedfishEndpointTrait,
+      component_ethernet_interface::ComponentEthernetInterfaceTrait,
     },
     ims::ImsTrait,
     migrate_backup::MigrateBackupTrait,
@@ -30,7 +31,13 @@ use manta_backend_dispatcher::{
   },
   types::{
     bss::BootParameters,
-    hsm::inventory::{RedfishEndpoint, RedfishEndpointArray},
+    hsm::inventory::{
+        RedfishEndpoint,
+        RedfishEndpointArray,
+        IpAddressMapping,
+        ComponentEthernetInterface,
+        ComponentEthernetInterfaceArray,
+    },
     Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
     Group as FrontEndGroup,
     HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
@@ -959,6 +966,204 @@ impl RedfishEndpointTrait for Ochami {
     .map_err(|e| Error::Message(e.to_string()))
   }
 }
+// --------- start
+impl ComponentEthernetInterfaceTrait for Ochami {
+
+  async fn get_all_component_ethernet_interfaces(
+    &self,
+    auth_token: &str,
+    mac_address: &str,
+    ip_address: &str,
+    network: &str,
+    component_id: &str,
+    r#type: &str,
+    older_than: &str,
+    newer_than: &str,
+  ) -> Result<ComponentEthernetInterfaceArray, Error> {
+    hsm::inventory::ethernet_interfaces::http_client::get(
+      auth_token,
+      &self.base_url,
+      &self.root_cert,
+      mac_address,
+      ip_address,
+      network,
+      component_id,
+      r#type,
+      older_than,
+      newer_than,
+    )
+    .await
+    .map(|re| re.into())
+    .map_err(|e| Error::Message(e.to_string()))
+  }
+
+  async fn get_component_ethernet_interface(
+      &self,
+      auth_token: &str,
+      eth_interface_id: &str,
+  ) -> Result<ComponentEthernetInterface, Error> {
+    hsm::inventory::ethernet_interfaces::http_client::get_one(
+        auth_token,
+        &self.base_url,
+        &self.root_cert,
+        eth_interface_id,
+      )
+      .await
+      .map(|re| re.into())
+      .map_err(|e| Error::Message(e.to_string()))
+  }
+
+  async fn get_ip_addresses(
+      &self,
+      auth_token: &str,
+      eth_interface_id: &str,
+  ) -> Result<Vec<IpAddressMapping>, Error> {
+      hsm::inventory::ethernet_interfaces::http_client::get_ip_addresses(
+      auth_token,
+      &self.base_url,
+      &self.root_cert,
+      eth_interface_id,
+      )
+      .await
+      .map(|re| re.into_iter().map(|item| item.into()).collect())
+      .map_err(|e| Error::Message(e.to_string()))
+  }
+
+  async fn update_component_ethernet_interface(
+    &self,
+    auth_token: &str,
+    //base_url: &str,
+    //root_cert: &[u8],
+    //shasta_token: &str,
+    //shasta_base_url: &str,
+    //shasta_root_cert: &[u8],
+    eth_interface_id: &str,
+    description: Option<&str>,
+    ip_address_mapping: (&str, &str), 
+
+  ) -> Result<Value, Error> {
+    hsm::inventory::ethernet_interfaces::http_client::patch(
+      auth_token,
+      &self.base_url,
+      &self.root_cert,
+      //shasta_token,
+      //shasta_base_url,
+      //shasta_root_cert,
+      eth_interface_id,
+      description,
+      ip_address_mapping,
+    )
+    .await
+    .map_err(|e| Error::Message(e.to_string()))
+  }
+
+  async fn delete_all_component_ethernet_interfaces(
+      &self,
+      auth_token: &str,
+      ) -> Result<Value, Error> {
+      hsm::inventory::ethernet_interfaces::http_client::delete_all(
+          auth_token,
+          &self.base_url,
+          &self.root_cert,
+          )
+          .await
+          .map_err(|e| Error::Message(e.to_string()))
+  }
+
+  async fn delete_component_ethernet_interface(
+    &self,
+    auth_token: &str,
+    //base_url: &str,
+    //root_cert: &[u8],
+    eth_interface_id: &str,
+  ) -> Result<Value, Error> {
+    hsm::inventory::ethernet_interfaces::http_client::delete_one(
+      auth_token,
+      &self.base_url,
+      &self.root_cert,
+      eth_interface_id,
+    )
+    .await
+    .map_err(|e| Error::Message(e.to_string()))
+  }
+
+  async fn delete_ip_address(
+    &self,
+    auth_token: &str,
+    //base_url: &str,
+    //root_cert: &[u8],
+    _group_label: &str,
+    eth_interface_id: &str,
+    ip_address: &str,
+  ) -> Result<Value, Error> {
+    hsm::inventory::ethernet_interfaces::http_client::delete_ip_address(
+      auth_token,
+      &self.base_url,
+      &self.root_cert,
+      _group_label,
+      eth_interface_id,
+      ip_address,
+    )
+    .await
+    .map_err(|e| Error::Message(e.to_string()))
+  }
+
+}
+
+
+
+
+//  async fn add_component_ethernet_interface(
+//    &self,
+//    auth_token: &str,
+//    component_ethernet_interface: &ComponentEthernetInterfaceArray,
+//  ) -> Result<(), Error> {
+//    hsm::inventory::ethernet_interfaces::http_client::post(
+//      auth_token,
+//      &self.base_url,
+//      &self.root_cert,
+//      component_ethernet_interface.clone().into(),
+//    )
+//    .await
+//    .map_err(|e| Error::Message(e.to_string()))?;
+//
+//    Ok(())
+//  }
+//
+//  async fn update_component_ethernet_interface(
+//    &self,
+//    auth_token: &str,
+//    component_ethernet_interface: &ComponentEthernetInterface,
+//  ) -> Result<(), Error> {
+//    hsm::inventory::ethernet_interfaces::http_client::put(
+//      auth_token,
+//      &self.base_url,
+//      &self.root_cert,
+//      component_ethernet_interface.id.as_str(),
+//      component_ethernet_interface.clone().into(),
+//    )
+//    .await
+//    .map_err(|e| Error::Message(e.to_string()))?;
+//
+//    Ok(())
+//  }
+//
+//  async fn delete_component_ethernet_interface(
+//    &self,
+//    auth_token: &str,
+//    id: &str,
+//  ) -> Result<Value, Error> {
+//    hsm::inventory::ethernet_interfaces::http_client::delete_one(
+//      &self.base_url,
+//      auth_token,
+//      &self.root_cert,
+//      id,
+//    )
+//    .await
+//    .map_err(|e| Error::Message(e.to_string()))
+//  }
+//}
+// --------- end
 
 impl AuthenticationTrait for Ochami {
   async fn get_api_token(
