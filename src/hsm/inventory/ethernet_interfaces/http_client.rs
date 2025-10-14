@@ -2,7 +2,13 @@ use serde_json::Value;
 
 use crate::error::Error;
 
-use super::types::{ComponentEthernetInterface, IpAddressMapping};
+// shouldn't this be from the typles from 
+//use manta_backend_dispatcher::types::hsm::inventory::{ ComponentEthernetInterface };
+use super::types::{ 
+    IpAddressMapping,
+    ComponentEthernetInterface,
+    ComponentEthernetInterfaceArray,
+};
 
 pub async fn post(
   auth_token: &str,
@@ -122,6 +128,8 @@ pub async fn post_ip_addresses(
 
 // Get list of network interfaces
 // ref --> https://csm12-apidocs.svc.cscs.ch/iaas/hardware-state-manager/operation/doCompEthInterfacesGetV2/
+// TODO: this should be "get_multiple()"
+// TODO: define a new function "get_all()"
 pub async fn get(
   auth_token: &str,
   base_url: &str,
@@ -131,9 +139,9 @@ pub async fn get(
   network: &str,
   component_id: &str, // Node's xname
   r#type: &str,
-  olther_than: &str,
+  older_than: &str,
   newer_than: &str,
-) -> Result<Vec<ComponentEthernetInterface>, Error> {
+) -> Result<ComponentEthernetInterfaceArray, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
@@ -161,7 +169,7 @@ pub async fn get(
       ("Network", network),
       ("ComponentID", component_id),
       ("Type", r#type),
-      ("OlderThan", olther_than),
+      ("OlderThan", older_than),
       ("NewerThan", newer_than),
     ])
     .bearer_auth(auth_token)
@@ -299,27 +307,31 @@ pub async fn get_ip_addresses(
 }
 
 pub async fn patch(
-  shasta_token: &str,
-  shasta_base_url: &str,
-  shasta_root_cert: &[u8],
+  auth_token: &str,
+  base_url: &str,
+  root_cert: &[u8],
   eth_interface_id: &str,
   description: Option<&str>,
   ip_address_mapping: (&str, &str), // [(<ip address>, <network>), ...], examle
                                     // [("192.168.1.10", "HMN"), ...]
-) -> Result<(), Error> {
+) -> Result<Value, Error> {
   let ip_address = ip_address_mapping.0;
   let network = ip_address_mapping.1;
   let cei = ComponentEthernetInterface {
+    id: None,
     description: description.map(|value| value.to_string()),
-    ip_addresses: vec![IpAddressMapping {
+    mac_address: None,
+    ip_addresses: Some(vec![IpAddressMapping {
       ip_address: ip_address.to_string(),
       network: Some(network.to_string()),
-    }],
+    }]),
+    last_update: None,
     component_id: Some(eth_interface_id.to_string()),
+    parent_hms_type: None,
   };
 
   let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
   // Build client
@@ -336,13 +348,20 @@ pub async fn patch(
 
   let api_url: String = format!(
     "{}/smd/hsm/v2/Inventory/EthernetInterfaces/{}",
-    shasta_base_url, eth_interface_id
+    base_url, eth_interface_id
   );
+
+//  let response = client
+//    .delete(api_url)
+//    .bearer_auth(auth_token)
+//    .send()
+//    .await?;
+//
 
   let response = client
     .patch(api_url)
     .query(&[("ethInterfaceID", ip_address), ("ipAddress", ip_address)])
-    .bearer_auth(shasta_token)
+    .bearer_auth(auth_token)
     .json(&cei)
     .send()
     .await?;
@@ -365,12 +384,15 @@ pub async fn patch(
     }
   }
 
-  Ok(())
+  response
+    .json()
+    .await
+    .map_err(|error| Error::NetError(error))
 }
 
 pub async fn delete_all(
-  base_url: &str,
   auth_token: &str,
+  base_url: &str,
   root_cert: &[u8],
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
@@ -423,8 +445,8 @@ pub async fn delete_all(
 }
 
 pub async fn delete_one(
-  base_url: &str,
   auth_token: &str,
+  base_url: &str,
   root_cert: &[u8],
   eth_interface_id: &str,
 ) -> Result<Value, Error> {
@@ -480,8 +502,8 @@ pub async fn delete_one(
 }
 
 pub async fn delete_ip_address(
-  base_url: &str,
   auth_token: &str,
+  base_url: &str,
   root_cert: &[u8],
   _group_label: &str,
   eth_interface_id: &str,
