@@ -963,7 +963,7 @@ impl RedfishEndpointTrait for Ochami {
     .map_err(|e| Error::Message(e.to_string()))
   }
 }
-// --------- start
+
 impl ComponentEthernetInterfaceTrait for Ochami {
   async fn get_all_component_ethernet_interfaces(
     &self,
@@ -1002,19 +1002,18 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     .map_err(|e| Error::Message(e.to_string()))
   }
 
-  async fn get_ip_addresses(
+  async fn add_component_ethernet_interface(
     &self,
     auth_token: &str,
-    eth_interface_id: &str,
-  ) -> Result<Vec<IpAddressMapping>, Error> {
-    hsm::inventory::ethernet_interfaces::http_client::get_ip_addresses(
+    ethernet_interface: &ComponentEthernetInterface,
+  ) -> Result<(), Error> {
+    hsm::inventory::ethernet_interfaces::http_client::post(
       auth_token,
       &self.base_url,
       &self.root_cert,
-      eth_interface_id,
+      ethernet_interface.clone().into(),
     )
     .await
-    .map(|re| re.into_iter().map(|item| item.into()).collect())
     .map_err(|e| Error::Message(e.to_string()))
   }
 
@@ -1075,6 +1074,22 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     .map_err(|e| Error::Message(e.to_string()))
   }
 
+  /* async fn get_ip_addresses(
+    &self,
+    auth_token: &str,
+    eth_interface_id: &str,
+  ) -> Result<Vec<IpAddressMapping>, Error> {
+    hsm::inventory::ethernet_interfaces::http_client::get_ip_addresses(
+      auth_token,
+      &self.base_url,
+      &self.root_cert,
+      eth_interface_id,
+    )
+    .await
+    .map(|re| re.into_iter().map(|item| item.into()).collect())
+    .map_err(|e| Error::Message(e.to_string()))
+  }
+
   async fn delete_ip_address(
     &self,
     auth_token: &str,
@@ -1094,7 +1109,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     )
     .await
     .map_err(|e| Error::Message(e.to_string()))
-  }
+  } */
 }
 
 //  async fn add_component_ethernet_interface(
