@@ -4,16 +4,14 @@ use crate::error::Error;
 
 // shouldn't this be from the typles from
 //use manta_backend_dispatcher::types::hsm::inventory::{ ComponentEthernetInterface };
-use super::types::{
-  ComponentEthernetInterface, ComponentEthernetInterfaceArray, IpAddressMapping,
-};
+use super::types::{ComponentEthernetInterface, IpAddressMapping};
 
 pub async fn post(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
   eht_interface: ComponentEthernetInterface,
-) -> Result<Value, Error> {
+) -> Result<(), Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
@@ -30,8 +28,10 @@ pub async fn post(
     client_builder.build()?
   };
 
+  // let api_url: String =
+  //   format!("{}/{}", base_url, "/hsm/v2/Inventory/EthernetInterfaces");
   let api_url: String =
-    format!("{}/{}", base_url, "hsm/v2/Inventory/EthernetInterfaces");
+    format!("{}/hsm/v2/Inventory/EthernetInterfaces", base_url);
 
   let response = client
     .post(api_url)
@@ -52,6 +52,7 @@ pub async fn post(
       }
       _ => {
         let error_payload = response.text().await?;
+        dbg!(&error_payload);
         let error = Error::Message(error_payload);
         return Err(error);
       }
@@ -221,7 +222,7 @@ pub async fn get_one(
   };
 
   let api_url: String = format!(
-    "{}/smd/hsm/v2/Inventory/EthernetInterfaces/{}",
+    "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
   );
 
@@ -238,61 +239,8 @@ pub async fn get_one(
         return Err(error);
       }
       _ => {
-        let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
-      }
-    }
-  }
-
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
-}
-
-pub async fn get_ip_addresses(
-  auth_token: &str,
-  base_url: &str,
-  root_cert: &[u8],
-  eth_interface_id: &str,
-) -> Result<Vec<IpAddressMapping>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
-  };
-
-  let api_url: String = format!(
-    "{}/smd/hsm/v2/Inventory/EthernetInterfaces/{}/IPAddresses",
-    base_url, eth_interface_id
-  );
-
-  let response = client.get(api_url).bearer_auth(auth_token).send().await?;
-
-  if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
-      reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
-          response: e,
-          payload: error_payload,
-        };
-        return Err(error);
-      }
-      _ => {
-        let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
+        let error = Error::Message(error_payload);
         return Err(error);
       }
     }
@@ -345,7 +293,7 @@ pub async fn patch(
   };
 
   let api_url: String = format!(
-    "{}/smd/hsm/v2/Inventory/EthernetInterfaces/{}",
+    "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
   );
 
@@ -410,7 +358,7 @@ pub async fn delete_all(
   };
 
   let api_url: String =
-    format!("{}/smd/hsm/v2/Inventory/EthernetInterfaces", base_url);
+    format!("{}/hsm/v2/Inventory/EthernetInterfaces", base_url);
 
   let response = client
     .delete(api_url)
@@ -465,7 +413,7 @@ pub async fn delete_one(
   };
 
   let api_url: String = format!(
-    "{}/smd/hsm/v2/Inventory/EthernetInterfaces/{}",
+    "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
   );
 
@@ -474,6 +422,59 @@ pub async fn delete_one(
     .bearer_auth(auth_token)
     .send()
     .await?;
+
+  if let Err(e) = response.error_for_status_ref() {
+    match response.status() {
+      reqwest::StatusCode::UNAUTHORIZED => {
+        let error_payload = response.text().await?;
+        let error = Error::RequestError {
+          response: e,
+          payload: error_payload,
+        };
+        return Err(error);
+      }
+      _ => {
+        let error_payload = response.json::<Value>().await?;
+        let error = Error::OchamiError(error_payload);
+        return Err(error);
+      }
+    }
+  }
+
+  response
+    .json()
+    .await
+    .map_err(|error| Error::NetError(error))
+}
+
+pub async fn get_ip_addresses(
+  auth_token: &str,
+  base_url: &str,
+  root_cert: &[u8],
+  eth_interface_id: &str,
+) -> Result<Vec<IpAddressMapping>, Error> {
+  let client_builder = reqwest::Client::builder()
+    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
+    .use_rustls_tls();
+
+  // Build client
+  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
+    // socks5 proxy
+    log::debug!("SOCKS5 enabled");
+    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
+
+    // rest client to authenticate
+    client_builder.proxy(socks5proxy).build()?
+  } else {
+    client_builder.build()?
+  };
+
+  let api_url: String = format!(
+    "{}/hsm/v2/Inventory/EthernetInterfaces/{}/IPAddresses",
+    base_url, eth_interface_id
+  );
+
+  let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
     match response.status() {
@@ -524,7 +525,7 @@ pub async fn delete_ip_address(
   };
 
   let api_url: String = format!(
-    "{}/smd/hsm/v2/Inventory/EthernetInterfaces/{}/IpAddress/{}",
+    "{}/hsm/v2/Inventory/EthernetInterfaces/{}/IpAddress/{}",
     base_url, eth_interface_id, ip_address
   );
 

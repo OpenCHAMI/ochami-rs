@@ -10,9 +10,10 @@ homepage = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
 repository = "https://github.com/OpenCHAMI/ochami-rs"
 
 [dependencies]
-# manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
+manta-backend-dispatcher = "0.15.0"
+
+manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
 # manta-backend-dispatcher = { git = "https://github.com/eth-cscs/manta-backend-dispatcher", branch="feature/power-status" } # Only for development purposes
-manta-backend-dispatcher = "0.14.0"
 
 strum = { version = "0.27.1", default-features = false }
 strum_macros = "0.27.1"
