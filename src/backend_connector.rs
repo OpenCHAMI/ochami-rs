@@ -1,5 +1,8 @@
 use manta_backend_dispatcher::{
-  interfaces::authentication::AuthenticationTrait,
+  interfaces::{
+    authentication::AuthenticationTrait,
+    delete_configurations_and_data_related::DeleteConfigurationsAndDataRelatedTrait,
+  },
   types::pcs::power_status::types::PowerStatusAll as FrontEndPowerStatusAll,
 };
 use std::{collections::HashMap, pin::Pin};
@@ -15,7 +18,6 @@ use manta_backend_dispatcher::{
     bos::{ClusterSessionTrait, ClusterTemplateTrait},
     bss::BootParametersTrait,
     cfs::CfsTrait,
-    commands::CommandsTrait,
     console::ConsoleTrait,
     get_images_and_details::GetImagesAndDetailsTrait,
     hsm::{
@@ -32,8 +34,7 @@ use manta_backend_dispatcher::{
   types::{
     bss::BootParameters,
     hsm::inventory::{
-      ComponentEthernetInterface, ComponentEthernetInterfaceArray,
-      IpAddressMapping, RedfishEndpoint, RedfishEndpointArray,
+      ComponentEthernetInterface, RedfishEndpoint, RedfishEndpointArray,
     },
     Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
     Group as FrontEndGroup,
@@ -1206,7 +1207,7 @@ impl ClusterSessionTrait for Ochami {}
 
 impl ClusterTemplateTrait for Ochami {}
 
-impl CommandsTrait for Ochami {}
+impl DeleteConfigurationsAndDataRelatedTrait for Ochami {}
 
 impl ConsoleTrait for Ochami {
   type T = Box<dyn AsyncWrite + Unpin>;
