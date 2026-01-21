@@ -206,7 +206,7 @@ impl GroupTrait for Ochami {
   async fn get_groups(
     &self,
     auth_token: &str,
-    hsm_name_vec: Option<&[&str]>,
+    hsm_name_vec: Option<&[String]>,
   ) -> Result<Vec<FrontEndGroup>, Error> {
     // Get all HSM groups
     let hsm_group_backend_vec = hsm::group::http_client::get(
