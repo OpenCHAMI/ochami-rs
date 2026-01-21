@@ -27,7 +27,7 @@ pub async fn validate_xnames_format_and_membership_agaisnt_single_hsm(
         shasta_token,
         shasta_base_url,
         shasta_root_cert,
-        &[hsm_group_name],
+        &[hsm_group_name.to_string()],
       )
       .await
       .unwrap()
