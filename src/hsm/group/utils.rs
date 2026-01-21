@@ -59,8 +59,7 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
 ) -> Result<Vec<String>, Error> {
   log::info!("Get xnames for HSM groups: {:?}", hsm_name_vec);
 
-  let hsm_group_name_vec: Vec<&str> =
-    hsm_name_vec.iter().map(|x| &**x).collect();
+  let hsm_group_name_vec: Vec<String> = hsm_name_vec.to_vec();
 
   let group_vec = http_client::get(
     base_url,
