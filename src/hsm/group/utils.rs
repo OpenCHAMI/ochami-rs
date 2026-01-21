@@ -49,104 +49,15 @@ pub async fn add_member(
   group.get_members().push(new_member);
 
   Ok(group.get_members())
-
-  /* // get list of target HSM group members
-  let mut target_hsm_group_member_vec: Vec<String> =
-      hsm::group::http_client::get_members(base_url, auth_token, root_cert, group_label)
-          .await
-          .map(|member| member.ids.unwrap())?;
-
-  // merge HSM group list with the list of xnames provided by the user
-  target_hsm_group_member_vec.extend(members.iter().map(|xname| xname.to_string()));
-
-  target_hsm_group_member_vec.sort();
-  target_hsm_group_member_vec.dedup();
-
-  // *********************************************************************************************************
-  // UPDATE HSM GROUP MEMBERS IN CSM
-  if dryrun {
-      println!(
-          "Add following nodes to HSM group {}:\n{:?}",
-          group_label, members
-      );
-
-      println!("dry-run enabled, changes not persisted.");
-  } else {
-      for xname in members {
-          let member = Member {
-              ids: Some(vec![xname.to_string()]),
-          };
-          let _ = post_members(auth_token, base_url, root_cert, group_label, member).await;
-      }
-  }
-
-  Ok(target_hsm_group_member_vec) */
 }
 
 pub async fn get_member_vec_from_hsm_name_vec_2(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  hsm_name_vec: &[&str],
+  hsm_name_vec: &[String],
 ) -> Result<Vec<String>, Error> {
   log::info!("Get xnames for HSM groups: {:?}", hsm_name_vec);
-
-  /* let start = Instant::now();
-
-  let mut hsm_group_member_vec: Vec<String> = Vec::new();
-
-  let pipe_size = 10;
-
-  let mut tasks = tokio::task::JoinSet::new();
-
-  let sem = Arc::new(Semaphore::new(pipe_size)); // CSM 1.3.1 higher number of concurrent tasks won't
-                                                 //
-  for hsm_name in hsm_name_vec {
-      let auth_token_string = auth_token.to_string();
-      let base_url_string = base_url.to_string();
-      let root_cert_vec = root_cert.to_vec();
-
-      let permit = Arc::clone(&sem).acquire_owned().await;
-
-      tasks.spawn(async move {
-          let _permit = permit; // Wait semaphore to allow new tasks https://github.com/tokio-rs/tokio/discussions/2648#discussioncomment-34885
-
-          let group: Result<Group, Error> = http_client::get_one(
-              &base_url_string,
-              &auth_token_string,
-              &root_cert_vec,
-              &hsm_name,
-          )
-          .await;
-
-          group
-      });
-  }
-
-  while let Some(message) = tasks.join_next().await {
-      match message {
-          Ok(Ok(hsm_group_vec)) => {
-              let mut hsm_grop_members = hsm_group_vec
-                  .first()
-                  .unwrap()
-                  .members
-                  .as_ref()
-                  .unwrap()
-                  .ids
-                  .clone()
-                  .unwrap();
-
-              hsm_group_member_vec.append(&mut hsm_grop_members);
-          }
-          Ok(Err(error)) => log::warn!("{error}"),
-          Err(error) => {
-              return Err(Error::Message(error.to_string()));
-          }
-      }
-  }
-
-  let duration = start.elapsed();
-  log::info!("Time elapsed to get HSM members is: {:?}", duration); */
 
   let hsm_group_name_vec: Vec<&str> =
     hsm_name_vec.iter().map(|x| &**x).collect();
@@ -311,7 +222,7 @@ pub async fn migrate_hsm_members(
       shasta_token,
       shasta_base_url,
       shasta_root_cert,
-      &[target_hsm_group_name],
+      &[target_hsm_group_name.to_string()],
     )
     .await?;
 
@@ -328,7 +239,7 @@ pub async fn migrate_hsm_members(
       shasta_token,
       shasta_base_url,
       shasta_root_cert,
-      &[parent_hsm_group_name],
+      &[parent_hsm_group_name.to_string()],
     )
     .await?;
 
