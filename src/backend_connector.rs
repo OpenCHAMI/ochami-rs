@@ -3,7 +3,10 @@ use manta_backend_dispatcher::{
     authentication::AuthenticationTrait,
     delete_configurations_and_data_related::DeleteConfigurationsAndDataRelatedTrait,
   },
-  types::pcs::power_status::types::PowerStatusAll as FrontEndPowerStatusAll,
+  types::pcs::{
+    power_status::types::PowerStatusAll as FrontEndPowerStatusAll,
+    transitions::types::TransitionResponse,
+  },
 };
 use std::{collections::HashMap, pin::Pin};
 
@@ -692,7 +695,7 @@ impl PCSTrait for Ochami {
     &self,
     auth_token: &str,
     nodes: &[String],
-  ) -> Result<Value, Error> {
+  ) -> Result<TransitionResponse, Error> {
     let operation = "on";
 
     pcs::transitions::http_client::post_block(
@@ -703,6 +706,7 @@ impl PCSTrait for Ochami {
       &nodes.to_vec(),
     )
     .await
+    .map(|resp| resp.into())
     .map_err(|e| Error::Message(e.to_string()))
   }
 
@@ -711,7 +715,7 @@ impl PCSTrait for Ochami {
     auth_token: &str,
     nodes: &[String],
     force: bool,
-  ) -> Result<serde_json::Value, Error> {
+  ) -> Result<TransitionResponse, Error> {
     let operation = if force { "force-off" } else { "soft-off" };
 
     pcs::transitions::http_client::post_block(
@@ -722,6 +726,7 @@ impl PCSTrait for Ochami {
       &nodes.to_vec(),
     )
     .await
+    .map(|resp| resp.into())
     .map_err(|e| Error::Message(e.to_string()))
   }
 
@@ -730,7 +735,7 @@ impl PCSTrait for Ochami {
     auth_token: &str,
     nodes: &[String],
     force: bool,
-  ) -> Result<serde_json::Value, Error> {
+  ) -> Result<TransitionResponse, Error> {
     let operation = if force {
       "hard-restart"
     } else {
@@ -745,6 +750,7 @@ impl PCSTrait for Ochami {
       &nodes.to_vec(),
     )
     .await
+    .map(|resp| resp.into())
     .map_err(|e| Error::Message(e.to_string()))
   }
 

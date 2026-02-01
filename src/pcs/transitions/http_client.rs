@@ -4,7 +4,9 @@ use serde_json::Value;
 
 use crate::{
   error::Error,
-  pcs::transitions::types::{Location, Operation},
+  pcs::transitions::types::{
+    Location, Operation, TransitionResponse, TransitionResponseList,
+  },
 };
 
 use super::types::Transition;
@@ -13,7 +15,7 @@ pub async fn get(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-) -> Result<Vec<Value>, Error> {
+) -> Result<Vec<TransitionResponse>, Error> {
   let client;
 
   let client_builder = reqwest::Client::builder()
@@ -44,13 +46,11 @@ pub async fn get(
     .map_err(|error| Error::NetError(error))?;
 
   if response.status().is_success() {
-    let resp_payload = response
-      .json::<Value>()
+    response
+      .json::<TransitionResponseList>()
       .await
-      .map_err(|error| Error::NetError(error))?;
-
-    serde_json::from_value::<Vec<Value>>(resp_payload["transitions"].clone())
-      .map_err(|error| Error::SerdeError(error))
+      .map_err(|error| Error::NetError(error))
+      .map(|transition_list| transition_list.transitions)
   } else {
     let payload = response
       .text()
@@ -66,7 +66,7 @@ pub async fn get_by_id(
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
   id: &str,
-) -> Result<Value, Error> {
+) -> Result<TransitionResponse, Error> {
   let client;
 
   let client_builder = reqwest::Client::builder()
@@ -120,7 +120,7 @@ pub async fn post(
   shasta_root_cert: &[u8],
   operation: &str,
   xname_vec: &Vec<String>,
-) -> Result<Value, Error> {
+) -> Result<TransitionResponse, Error> {
   log::info!("Create PCS transition '{}' on {:?}", operation, xname_vec);
 
   //Create request payload
@@ -172,7 +172,7 @@ pub async fn post(
     .map_err(|error| Error::NetError(error))?;
 
   if response.status().is_success() {
-    Ok(response.json::<Value>().await.unwrap())
+    Ok(response.json::<TransitionResponse>().await.unwrap())
   } else {
     let payload = response.text().await.map_err(|e| Error::NetError(e))?;
 
@@ -188,7 +188,7 @@ pub async fn post_block(
   shasta_root_cert: &[u8],
   operation: &str,
   xname_vec: &Vec<String>,
-) -> Result<Value, Error> {
+) -> Result<TransitionResponse, Error> {
   let node_reset = post(
     shasta_base_url,
     shasta_token,
@@ -198,15 +198,13 @@ pub async fn post_block(
   )
   .await?;
 
-  let transition_id = node_reset["transitionID"].as_str().unwrap();
+  log::info!("PCS transition ID: {}", node_reset.transition_id);
 
-  log::info!("PCS transition ID: {}", transition_id);
-
-  let power_management_status: Value = wait_to_complete(
+  let power_management_status: TransitionResponse = wait_to_complete(
     shasta_base_url,
     shasta_token,
     shasta_root_cert,
-    transition_id,
+    &node_reset.transition_id,
   )
   .await?;
 
@@ -218,10 +216,8 @@ pub async fn wait_to_complete(
   shasta_token: &str,
   shasta_root_cert: &[u8],
   transition_id: &str,
-) -> Result<Value, Error> {
-  let mut transition_status = "";
-
-  let mut transition: serde_json::Value = get_by_id(
+) -> Result<TransitionResponse, Error> {
+  let mut transition: TransitionResponse = get_by_id(
     shasta_token,
     shasta_base_url,
     shasta_root_cert,
@@ -232,7 +228,7 @@ pub async fn wait_to_complete(
   let mut i = 1;
   let max_attempt = 300;
 
-  while i <= max_attempt && transition_status != "completed" {
+  while i <= max_attempt && transition.transition_status != "completed" {
     // Check PCS transition status
     transition = get_by_id(
       shasta_token,
@@ -242,58 +238,14 @@ pub async fn wait_to_complete(
     )
     .await?;
 
-    transition_status = transition["transitionStatus"].as_str().unwrap();
-
-    let operation = transition["operation"].as_str().unwrap();
-
-    let failed = transition
-      .pointer("/taskCounts/failed")
-      .unwrap()
-      .as_number()
-      .unwrap();
-
-    let in_progress = transition
-      .pointer("/taskCounts/in-progress")
-      .unwrap()
-      .as_number()
-      .unwrap();
-
-    /* let new = transition
-    .pointer("/taskCounts/new")
-    .unwrap()
-    .as_number()
-    .unwrap(); */
-
-    let succeeded = transition
-      .pointer("/taskCounts/succeeded")
-      .unwrap()
-      .as_number()
-      .unwrap();
-
-    let total = transition
-      .pointer("/taskCounts/total")
-      .unwrap()
-      .as_number()
-      .unwrap();
-
-    /* let un_supported = transition
-    .pointer("/taskCounts/un-supported")
-    .unwrap()
-    .as_number()
-    .unwrap(); */
-
     eprintln!(
-                    "Power '{}' summary - status: {}, failed: {}, in-progress: {}, succeeded: {}, total: {}. Attempt {} of {}",
-                    operation, transition_status, failed, in_progress, succeeded, total, i, max_attempt
-                );
+       "Power '{}' summary - status: {}, failed: {}, in-progress: {}, succeeded: {}, total: {}. Attempt {} of {}",
+       transition.operation, transition.transition_status, transition.task_counts.failed, transition.task_counts.in_progress, transition.task_counts.succeeded, transition.task_counts.total, i, max_attempt
+    );
 
     tokio::time::sleep(time::Duration::from_secs(3)).await;
     i += 1;
   }
 
-  if transition_status == "completed" {
-    Ok(transition)
-  } else {
-    Err(Error::OchamiError(transition))
-  }
+  Ok(transition)
 }
