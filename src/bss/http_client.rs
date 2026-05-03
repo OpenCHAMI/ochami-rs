@@ -43,16 +43,23 @@ pub async fn get(
 
   let url_api = format!("{}/boot/v1/bootparameters", base_url.to_string());
 
-  let params: Option<Vec<_>> = if let Some(xname_vec) = xnames_opt {
+  /* let params: Option<Vec<_>> = if let Some(xname_vec) = xnames_opt {
     Some(xname_vec.iter().map(|xname| ("name", xname)).collect())
+  } else {
+    None
+  }; */
+
+  let payload = if let Some(xname_vec) = xnames_opt {
+    Some(BootParameters { hosts: xname_vec.clone(), macs: None, nids: None, params: String::new(), kernel: String::new(), initrd: String::new(), cloud_init: None })
   } else {
     None
   };
 
   let response = client
     .get(url_api)
-    .query(&params)
+    // .query(&params)
     .bearer_auth(auth_token)
+    .json(&payload)
     .send()
     .await?;
 
