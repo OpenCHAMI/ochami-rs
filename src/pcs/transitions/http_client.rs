@@ -15,24 +15,16 @@ pub async fn get(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
 ) -> Result<Vec<TransitionResponse>, Error> {
-  let client;
-
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  if std::env::var("SOCKS5").is_ok() {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(std::env::var("SOCKS5").unwrap())?;
-
-    // rest client to authenticate
-    client = client_builder.proxy(socks5proxy).build()?;
-  } else {
-    client = client_builder.build()?;
-  }
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
+  };
 
   let api_url = format!("{}/power-control/v1/transitions", shasta_base_url);
 
@@ -65,25 +57,17 @@ pub async fn get_by_id(
   shasta_token: &str,
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   id: &str,
 ) -> Result<TransitionResponse, Error> {
-  let client;
-
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  if std::env::var("SOCKS5").is_ok() {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(std::env::var("SOCKS5").unwrap())?;
-
-    // rest client to authenticate
-    client = client_builder.proxy(socks5proxy).build()?;
-  } else {
-    client = client_builder.build()?;
-  }
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
+  };
 
   let api_url =
     format!("{}/power-control/v1/transitions/{}", shasta_base_url, id);
@@ -118,6 +102,7 @@ pub async fn post(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   operation: &str,
   xname_vec: &Vec<String>,
 ) -> Result<TransitionResponse, Error> {
@@ -149,15 +134,9 @@ pub async fn post(
     .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
     .use_rustls_tls();
 
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url = shasta_base_url.to_owned() + "/power-control/v1/transitions";
@@ -186,6 +165,7 @@ pub async fn post_block(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   operation: &str,
   xname_vec: &Vec<String>,
 ) -> Result<TransitionResponse, Error> {
@@ -193,6 +173,7 @@ pub async fn post_block(
     shasta_base_url,
     shasta_token,
     shasta_root_cert,
+    socks5_proxy,
     operation,
     xname_vec,
   )
@@ -204,6 +185,7 @@ pub async fn post_block(
     shasta_base_url,
     shasta_token,
     shasta_root_cert,
+    socks5_proxy,
     &node_reset.transition_id,
   )
   .await?;
@@ -215,12 +197,14 @@ pub async fn wait_to_complete(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   transition_id: &str,
 ) -> Result<TransitionResponse, Error> {
   let mut transition: TransitionResponse = get_by_id(
     shasta_token,
     shasta_base_url,
     shasta_root_cert,
+    socks5_proxy,
     transition_id,
   )
   .await?;
@@ -234,6 +218,7 @@ pub async fn wait_to_complete(
       shasta_token,
       shasta_base_url,
       shasta_root_cert,
+      socks5_proxy,
       transition_id,
     )
     .await?;

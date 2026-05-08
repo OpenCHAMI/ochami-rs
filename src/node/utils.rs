@@ -18,6 +18,7 @@ pub async fn validate_xnames_format_and_membership_agaisnt_single_hsm(
   shasta_token: &str,
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   xnames: &[&str],
   hsm_group_name_opt: Option<&str>,
 ) -> bool {
@@ -27,6 +28,7 @@ pub async fn validate_xnames_format_and_membership_agaisnt_single_hsm(
         shasta_token,
         shasta_base_url,
         shasta_root_cert,
+        socks5_proxy,
         &[hsm_group_name.to_string()],
       )
       .await
