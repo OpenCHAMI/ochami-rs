@@ -16,6 +16,7 @@ pub async fn add_member(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   group_label: &str,
   new_member: &str,
 ) -> Result<Vec<String>, Error> {
@@ -24,6 +25,7 @@ pub async fn add_member(
     base_url,
     auth_token,
     root_cert,
+    socks5_proxy,
     group_label,
   )
   .await?;
@@ -40,6 +42,7 @@ pub async fn add_member(
     auth_token,
     base_url,
     root_cert,
+    socks5_proxy,
     group_label,
     member,
   )
@@ -55,6 +58,7 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   hsm_name_vec: &[String],
 ) -> Result<Vec<String>, Error> {
   log::info!("Get xnames for HSM groups: {:?}", hsm_name_vec);
@@ -65,6 +69,7 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
     base_url,
     auth_token,
     root_cert,
+    socks5_proxy,
     Some(&hsm_group_name_vec),
     None,
   )
@@ -85,9 +90,10 @@ pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   hsm_name_vec: &[&str],
 ) -> Result<HashMap<String, Vec<String>>, Error> {
-  let hsm_group_vec = http_client::get_all(base_url, auth_token, root_cert)
+  let hsm_group_vec = http_client::get_all(base_url, auth_token, root_cert, socks5_proxy)
     .await
     .map_err(|e| Error::Message(e.to_string()))?;
 
@@ -103,10 +109,11 @@ pub async fn get_hsm_group_map_and_filter_by_hsm_group_member_vec(
   shasta_token: &str,
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   hsm_name_vec: &[&str],
 ) -> Result<HashMap<String, Vec<String>>, Error> {
   let hsm_group_vec =
-    http_client::get_all(shasta_base_url, shasta_token, shasta_root_cert)
+    http_client::get_all(shasta_base_url, shasta_token, shasta_root_cert, socks5_proxy)
       .await?;
 
   Ok(filter_by_hsm_group_members_and_convert_to_map(
@@ -166,6 +173,7 @@ pub async fn update_hsm_group_members(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   group_label: &str,
   group_members_to_delete: &[&str],
   group_members_to_add: &[&str],
@@ -174,6 +182,7 @@ pub async fn update_hsm_group_members(
     base_url,
     auth_token,
     root_cert,
+    socks5_proxy,
     group_label,
   )
   .await?;
@@ -195,6 +204,7 @@ pub async fn migrate_hsm_members(
   shasta_token: &str,
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   target_hsm_group_name: &str,
   parent_hsm_group_name: &str,
   new_target_hsm_members: &[&str],
@@ -205,6 +215,7 @@ pub async fn migrate_hsm_members(
     shasta_token,
     shasta_base_url,
     shasta_root_cert,
+    socks5_proxy,
     new_target_hsm_members,
     Some(&parent_hsm_group_name.to_string()),
   )
@@ -221,6 +232,7 @@ pub async fn migrate_hsm_members(
       shasta_token,
       shasta_base_url,
       shasta_root_cert,
+      socks5_proxy,
       &[target_hsm_group_name.to_string()],
     )
     .await?;
@@ -238,6 +250,7 @@ pub async fn migrate_hsm_members(
       shasta_token,
       shasta_base_url,
       shasta_root_cert,
+      socks5_proxy,
       &[parent_hsm_group_name.to_string()],
     )
     .await?;
@@ -287,6 +300,7 @@ pub async fn migrate_hsm_members(
         shasta_token,
         shasta_base_url,
         shasta_root_cert,
+        socks5_proxy,
         target_hsm_group_name,
         member,
       )
@@ -296,6 +310,7 @@ pub async fn migrate_hsm_members(
         shasta_token,
         shasta_base_url,
         shasta_root_cert,
+        socks5_proxy,
         parent_hsm_group_name,
         xname,
       )

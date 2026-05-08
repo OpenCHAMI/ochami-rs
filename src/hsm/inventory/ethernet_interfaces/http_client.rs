@@ -10,22 +10,16 @@ pub async fn post(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   eht_interface: ComponentEthernetInterface,
 ) -> Result<(), Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   // let api_url: String =
@@ -69,22 +63,16 @@ pub async fn post_ip_addresses(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   eht_interface: ComponentEthernetInterface,
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!(
@@ -133,6 +121,7 @@ pub async fn get(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   mac_address: Option<&str>,
   ip_address: Option<&str>,
   network: Option<&str>,
@@ -145,16 +134,9 @@ pub async fn get(
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String =
@@ -203,22 +185,16 @@ pub async fn get_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<ComponentEthernetInterface, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!(
@@ -256,6 +232,7 @@ pub async fn patch(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   eth_interface_id: &str,
   description: Option<&str>,
   ip_address_mapping: (&str, &str), // [(<ip address>, <network>), ...], examle
@@ -280,16 +257,9 @@ pub async fn patch(
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!(
@@ -340,21 +310,15 @@ pub async fn delete_all(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String =
@@ -394,22 +358,16 @@ pub async fn delete_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!(
@@ -451,22 +409,16 @@ pub async fn get_ip_addresses(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<Vec<IpAddressMapping>, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!(
@@ -504,6 +456,7 @@ pub async fn delete_ip_address(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   _group_label: &str,
   eth_interface_id: &str,
   ip_address: &str,
@@ -512,16 +465,9 @@ pub async fn delete_ip_address(
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!(

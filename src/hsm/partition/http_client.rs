@@ -8,6 +8,7 @@ pub async fn get(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   name: Option<&str>,
   tag: Option<&str>,
 ) -> Result<Vec<Partition>, Error> {
@@ -15,16 +16,9 @@ pub async fn get(
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!("{}/{}", base_url, "hsm/v2/partitions");
@@ -64,22 +58,16 @@ pub async fn get_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   partition_name: &str,
 ) -> Result<Partition, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String =
@@ -115,21 +103,15 @@ pub async fn get_names(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
 ) -> Result<Vec<String>, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!("{}/{}", base_url, "hsm/v2/partitions/names");
@@ -164,22 +146,16 @@ pub async fn get_members(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   partition_name: &str,
 ) -> Result<Member, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String =
@@ -215,22 +191,16 @@ pub async fn post(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   partition: Partition,
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = base_url.to_owned() + "/hsm/v2/partitions";
@@ -270,6 +240,7 @@ pub async fn post_members(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   partition_name: &str,
   members: Member,
 ) -> Result<Value, Error> {
@@ -277,16 +248,9 @@ pub async fn post_members(
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String =
@@ -327,22 +291,16 @@ pub async fn delete_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   partition_name: &str,
 ) -> Result<Value, Error> {
   let client_builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String =
@@ -382,6 +340,7 @@ pub async fn delete_member(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   partition_name: &str,
   xname: &str,
 ) -> Result<Value, Error> {
@@ -389,16 +348,9 @@ pub async fn delete_member(
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
     .use_rustls_tls();
 
-  // Build client
-  let client = if let Ok(socks5_env) = std::env::var("SOCKS5") {
-    // socks5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(socks5_env)?;
-
-    // rest client to authenticate
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url: String = format!(

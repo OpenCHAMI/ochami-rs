@@ -58,13 +58,15 @@ use crate::{
 pub struct Ochami {
   base_url: String,
   root_cert: Vec<u8>,
+  socks5_proxy: Option<String>,
 }
 
 impl Ochami {
-  pub fn new(base_url: &str, root_cert: &[u8]) -> Self {
+  pub fn new(base_url: &str, root_cert: &[u8], socks5_proxy: Option<&str>) -> Self {
     Self {
       base_url: base_url.to_string(),
       root_cert: root_cert.to_vec(),
+      socks5_proxy: socks5_proxy.map(str::to_owned),
     }
   }
 }
@@ -108,6 +110,7 @@ impl GroupTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hsm_group.clone().into(),
     )
     .await
@@ -128,6 +131,7 @@ impl GroupTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hsm_group_name_vec,
     )
     .await
@@ -143,6 +147,7 @@ impl GroupTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hsm_name_vec,
     )
     .await
@@ -158,6 +163,7 @@ impl GroupTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hsm_name_vec,
     )
     .await
@@ -173,6 +179,7 @@ impl GroupTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       None,
       None,
     )
@@ -196,6 +203,7 @@ impl GroupTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hsm_name,
     )
     .await
@@ -216,6 +224,7 @@ impl GroupTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hsm_name_vec,
       None,
     )
@@ -241,6 +250,7 @@ impl GroupTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hsm_group_name,
     )
     .await
@@ -256,6 +266,7 @@ impl GroupTrait for Ochami {
       shasta_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hsm_name_vec,
     )
     .await
@@ -276,6 +287,7 @@ impl GroupTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       group_label,
       member,
     )
@@ -296,6 +308,7 @@ impl GroupTrait for Ochami {
         auth_token,
         &self.base_url,
         &self.root_cert,
+        self.socks5_proxy.as_deref(),
         group_label,
         new_member,
       )
@@ -316,6 +329,7 @@ impl GroupTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       group_label,
       xname,
     )
@@ -334,6 +348,7 @@ impl GroupTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       group_name,
       members_to_remove,
       members_to_add,
@@ -348,15 +363,17 @@ impl GroupTrait for Ochami {
     target_hsm_group_name: &str,
     parent_hsm_group_name: &str,
     new_target_hsm_members: &[&str],
+    dryrun: bool
   ) -> Result<(Vec<String>, Vec<String>), Error> {
     hsm::group::utils::migrate_hsm_members(
       shasta_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       target_hsm_group_name,
       parent_hsm_group_name,
       new_target_hsm_members,
-      true,
+      dryrun,
     )
     .await
     .map_err(|e| Error::Message(e.to_string()))
@@ -373,6 +390,7 @@ impl HardwareInventory for Ochami {
       &auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       Some(xname),
       None,
       None,
@@ -402,6 +420,7 @@ impl HardwareInventory for Ochami {
       &auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       xname,
       r#type,
       children,
@@ -422,6 +441,7 @@ impl HardwareInventory for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       hardware.into(),
     )
     .await
@@ -438,6 +458,7 @@ impl ComponentTrait for Ochami {
     hsm::component::http_client::get(
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       auth_token,
       None,
       Some("Node"),
@@ -502,6 +523,7 @@ impl ComponentTrait for Ochami {
     hsm::component::http_client::get(
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       auth_token,
       id,
       r#type,
@@ -540,6 +562,7 @@ impl ComponentTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       component_backend,
     )
     .await
@@ -555,6 +578,7 @@ impl ComponentTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       id,
     )
     .await
@@ -586,6 +610,7 @@ impl ComponentTrait for Ochami {
         &self.base_url,
         shasta_token,
         &self.root_cert,
+        self.socks5_proxy.as_deref(),
         Some("true"),
       )
       .await
@@ -650,6 +675,7 @@ impl ComponentTrait for Ochami {
       let hsm_components = hsm::component::http_client::get(
         &self.base_url,
         &self.root_cert,
+        self.socks5_proxy.as_deref(),
         shasta_token,
         None,
         None,
@@ -661,8 +687,8 @@ impl ComponentTrait for Ochami {
         None,
         None,
         None,
-        None,
         Some(&nid_short),
+        None,
         None,
         None,
         None,
@@ -702,6 +728,7 @@ impl PCSTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       operation,
       &nodes.to_vec(),
     )
@@ -722,6 +749,7 @@ impl PCSTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       operation,
       &nodes.to_vec(),
     )
@@ -746,6 +774,7 @@ impl PCSTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       operation,
       &nodes.to_vec(),
     )
@@ -770,6 +799,7 @@ impl PCSTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       nodes_opt,
       power_state_filter,
       management_state_filter,
@@ -789,7 +819,7 @@ impl BootParametersTrait for Ochami {
     auth_token: &str,
   ) -> Result<Vec<BootParameters>, Error> {
     let boot_parameter_vec =
-      bss::http_client::get(&self.base_url, auth_token, &self.root_cert, &None)
+      bss::http_client::get(&self.base_url, auth_token, &self.root_cert, self.socks5_proxy.as_deref(), &None)
         .await
         .map_err(|e| Error::Message(e.to_string()))?;
 
@@ -816,6 +846,7 @@ impl BootParametersTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       &hosts,
     )
     .await
@@ -838,6 +869,7 @@ impl BootParametersTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       boot_parameters.clone().into(),
     )
     .await
@@ -854,6 +886,7 @@ impl BootParametersTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       &boot_parameter.clone().into(),
     )
     .await
@@ -869,6 +902,7 @@ impl BootParametersTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       &boot_parameter.clone().into(),
     )
     .await
@@ -885,6 +919,7 @@ impl RedfishEndpointTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
     )
     .await
     .map(|re| re.into())
@@ -906,6 +941,7 @@ impl RedfishEndpointTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       id,
       fqdn,
       r#type,
@@ -928,6 +964,7 @@ impl RedfishEndpointTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       redfish_endpoint.clone().into(),
     )
     .await
@@ -945,6 +982,7 @@ impl RedfishEndpointTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       redfish_endpoint.id.as_str(),
       redfish_endpoint.clone().into(),
     )
@@ -963,6 +1001,7 @@ impl RedfishEndpointTrait for Ochami {
       &self.base_url,
       auth_token,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       id,
     )
     .await
@@ -979,6 +1018,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       None,
       None,
       None,
@@ -1001,6 +1041,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       eth_interface_id,
     )
     .await
@@ -1017,6 +1058,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       ethernet_interface.clone().into(),
     )
     .await
@@ -1039,6 +1081,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       //shasta_token,
       //shasta_base_url,
       //shasta_root_cert,
@@ -1058,6 +1101,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
     )
     .await
     .map_err(|e| Error::Message(e.to_string()))
@@ -1074,6 +1118,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       auth_token,
       &self.base_url,
       &self.root_cert,
+      self.socks5_proxy.as_deref(),
       eth_interface_id,
     )
     .await

@@ -8,6 +8,7 @@ pub async fn post(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
+  socks5_proxy: Option<&str>,
   xname_vec_opt: Option<&[&str]>,
   power_state_filter_opt: Option<&str>,
   management_state_filter_opt: Option<&str>,
@@ -16,14 +17,9 @@ pub async fn post(
     .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
   //.danger_accept_invalid_certs(true) // Disables SSL verification (use with caution)
 
-  // Build client
-  let client = if std::env::var("SOCKS5").is_ok() {
-    // SOCKS5 proxy
-    log::debug!("SOCKS5 enabled");
-    let socks5proxy = reqwest::Proxy::all(std::env::var("SOCKS5").unwrap())?;
-    client_builder.proxy(socks5proxy).build()?
-  } else {
-    client_builder.build()?
+  let client = match socks5_proxy {
+    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
+    None => client_builder.build()?,
   };
 
   let api_url = format!("{}/power-control/v1/power-status", shasta_base_url);
