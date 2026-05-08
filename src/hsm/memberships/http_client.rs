@@ -26,19 +26,11 @@ pub async fn get(
   partition: Option<&str>,
   group: Option<&str>,
 ) -> Result<Vec<Membership>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
+  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
   let api_url = format!("{}/smd/hsm/v2/memberships", shasta_base_url);
 
   let response = client
-    .get(api_url.clone())
+    .get(api_url)
     .query(&[
       id,
       r#type,
@@ -65,24 +57,19 @@ pub async fn get(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_xname(
@@ -93,19 +80,13 @@ pub async fn get_xname(
   xname: &str,
 ) -> Result<Membership, Error> {
   log::info!("Get membership of node '{}'", xname);
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
-    .use_rustls_tls();
 
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url = format!("{}/smd/hsm/v2/memberships/{}", shasta_base_url, xname);
+  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let api_url =
+    format!("{}/smd/hsm/v2/memberships/{}", shasta_base_url, xname);
 
   let response = client
-    .get(api_url.clone())
+    .get(api_url)
     .header("Authorization", format!("Bearer {}", shasta_token))
     .send()
     .await?;
@@ -114,22 +95,17 @@ pub async fn get_xname(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }

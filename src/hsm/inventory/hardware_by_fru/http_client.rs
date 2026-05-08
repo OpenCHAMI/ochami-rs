@@ -13,17 +13,9 @@ pub async fn get(
   partnumber: Option<&str>,
   serialnumber: Option<&str>,
 ) -> Result<Vec<HWInventoryByFRU>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
-    format!("{}/{}", base_url, "/smd/hsm/v2/Inventory/HardwareByFRU");
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
+    format!("{}/smd/hsm/v2/Inventory/HardwareByFRU", base_url);
 
   let response = client
     .get(api_url)
@@ -36,24 +28,19 @@ pub async fn get(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_one(
@@ -63,19 +50,9 @@ pub async fn get_one(
   socks5_proxy: Option<&str>,
   fruid: &str,
 ) -> Result<HWInventoryByFRU, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
-    "{}/{}/{}",
-    base_url, "/smd/hsm/v2/Inventory/Hardware", fruid
-  );
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
+    format!("{}/smd/hsm/v2/Inventory/Hardware/{}", base_url, fruid);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
@@ -83,24 +60,19 @@ pub async fn get_one(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn delete_all(
@@ -109,16 +81,8 @@ pub async fn delete_all(
   root_cert: &[u8],
   socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
     base_url.to_owned() + "/smd/hsm/v2/Inventory/HardwareByFRU";
 
   let response = client
@@ -131,24 +95,19 @@ pub async fn delete_all(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn delete_one(
@@ -158,18 +117,10 @@ pub async fn delete_one(
   socks5_proxy: Option<&str>,
   fruid: &str,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
-    "{}/{}/{}",
-    base_url, "smd/hsm/v2/Inventory/HardwareByFRU", fruid
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
+    "{}/smd/hsm/v2/Inventory/HardwareByFRU/{}",
+    base_url, fruid
   );
 
   let response = client
@@ -182,22 +133,17 @@ pub async fn delete_one(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }

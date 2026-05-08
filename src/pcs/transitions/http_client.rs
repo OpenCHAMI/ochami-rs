@@ -1,7 +1,5 @@
 use std::time;
 
-use serde_json::Value;
-
 use crate::{
   error::Error,
   pcs::transitions::types::{
@@ -17,15 +15,7 @@ pub async fn get(
   shasta_root_cert: &[u8],
   socks5_proxy: Option<&str>,
 ) -> Result<Vec<TransitionResponse>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
+  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
   let api_url = format!("{}/power-control/v1/transitions", shasta_base_url);
 
   log::debug!("PCS transition URL: {}", api_url);
@@ -35,20 +25,16 @@ pub async fn get(
     .bearer_auth(shasta_token)
     .send()
     .await
-    .map_err(|error| Error::NetError(error))?;
+    .map_err(Error::NetError)?;
 
   if response.status().is_success() {
     response
       .json::<TransitionResponseList>()
       .await
-      .map_err(|error| Error::NetError(error))
+      .map_err(Error::NetError)
       .map(|transition_list| transition_list.transitions)
   } else {
-    let payload = response
-      .text()
-      .await
-      .map_err(|error| Error::NetError(error))?;
-
+    let payload = response.text().await.map_err(Error::NetError)?;
     Err(Error::Message(payload))
   }
 }
@@ -60,15 +46,7 @@ pub async fn get_by_id(
   socks5_proxy: Option<&str>,
   id: &str,
 ) -> Result<TransitionResponse, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
+  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
   let api_url =
     format!("{}/power-control/v1/transitions/{}", shasta_base_url, id);
 
@@ -77,23 +55,14 @@ pub async fn get_by_id(
     .bearer_auth(shasta_token)
     .send()
     .await
-    .map_err(|error| Error::NetError(error))?;
+    .map_err(Error::NetError)?;
 
   if response.status().is_success() {
-    let payload = response
-      .json()
-      .await
-      .map_err(|error| Error::NetError(error));
-
+    let payload = response.json().await.map_err(Error::NetError);
     log::debug!("PCS transition details\n{:#?}", payload);
-
     payload
   } else {
-    let payload = response
-      .text()
-      .await
-      .map_err(|error| Error::NetError(error))?;
-
+    let payload = response.text().await.map_err(Error::NetError)?;
     Err(Error::Message(payload))
   }
 }
@@ -108,59 +77,39 @@ pub async fn post(
 ) -> Result<TransitionResponse, Error> {
   log::info!("Create PCS transition '{}' on {:?}", operation, xname_vec);
 
-  //Create request payload
-  //
-  // Create 'location' list with all the xnames to operate
-  let mut location_vec: Vec<Location> = Vec::new();
-
-  for xname in xname_vec {
-    let location: Location = Location {
+  let location_vec: Vec<Location> = xname_vec
+    .iter()
+    .map(|xname| Location {
       xname: xname.to_string(),
       deputy_key: None,
-    };
+    })
+    .collect();
 
-    location_vec.push(location);
-  }
-
-  // Create 'transition'
   let request_payload = Transition {
     operation: Operation::from_str(operation)?,
     task_deadline_minutes: None,
     location: location_vec,
   };
 
-  // Build http client
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
+  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
   let api_url = shasta_base_url.to_owned() + "/power-control/v1/transitions";
 
-  // Submit call to http api
   let response = client
     .post(api_url)
     .json(&request_payload)
     .bearer_auth(shasta_token)
     .send()
     .await
-    .map_err(|error| Error::NetError(error))?;
+    .map_err(Error::NetError)?;
 
   if response.status().is_success() {
     Ok(response.json::<TransitionResponse>().await.unwrap())
   } else {
-    let payload = response.text().await.map_err(|e| Error::NetError(e))?;
-
+    let payload = response.text().await.map_err(Error::NetError)?;
     Err(Error::Message(payload))
   }
 }
 
-// Creates a task on CSM for power management nodes.
-// Returns a serde_json::Value with the power task management
 pub async fn post_block(
   shasta_base_url: &str,
   shasta_token: &str,
@@ -181,16 +130,14 @@ pub async fn post_block(
 
   log::info!("PCS transition ID: {}", node_reset.transition_id);
 
-  let power_management_status: TransitionResponse = wait_to_complete(
+  wait_to_complete(
     shasta_base_url,
     shasta_token,
     shasta_root_cert,
     socks5_proxy,
     &node_reset.transition_id,
   )
-  .await?;
-
-  Ok(power_management_status)
+  .await
 }
 
 pub async fn wait_to_complete(
@@ -213,7 +160,6 @@ pub async fn wait_to_complete(
   let max_attempt = 300;
 
   while i <= max_attempt && transition.transition_status != "completed" {
-    // Check PCS transition status
     transition = get_by_id(
       shasta_token,
       shasta_base_url,

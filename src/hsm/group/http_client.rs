@@ -21,19 +21,10 @@ pub async fn get(
   label_vec_opt: Option<&[String]>,
   tag_vec_opt: Option<&[String]>,
 ) -> Result<Vec<Group>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!("{}/{}", base_url, "hsm/v2/groups");
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!("{}/hsm/v2/groups", base_url);
 
   let mut query = Vec::new();
-
   if let Some(label_vec) = label_vec_opt {
     for label in label_vec {
       query.push(("group", label));
@@ -56,24 +47,19 @@ pub async fn get(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_one(
@@ -83,17 +69,8 @@ pub async fn get_one(
   socks5_proxy: Option<&str>,
   group_label: &str,
 ) -> Result<Group, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
-    format!("{}/{}/{}", base_url, "hsm/v2/groups", group_label);
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!("{}/hsm/v2/groups/{}", base_url, group_label);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
@@ -101,24 +78,19 @@ pub async fn get_one(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_labels(
@@ -127,16 +99,8 @@ pub async fn get_labels(
   root_cert: &[u8],
   socks5_proxy: Option<&str>,
 ) -> Result<Vec<String>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!("{}/{}", base_url, "hsm/v2/groups/labels");
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!("{}/hsm/v2/groups/labels", base_url);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
@@ -144,24 +108,19 @@ pub async fn get_labels(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_members(
@@ -171,16 +130,8 @@ pub async fn get_members(
   socks5_proxy: Option<&str>,
   group_label: &str,
 ) -> Result<Members, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
     format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -189,24 +140,19 @@ pub async fn get_members(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn post(
@@ -216,16 +162,8 @@ pub async fn post(
   socks5_proxy: Option<&str>,
   group: Group,
 ) -> Result<String, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = base_url.to_owned() + "/hsm/v2/groups";
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!("{}/hsm/v2/groups", base_url);
 
   let response = client
     .post(api_url)
@@ -238,16 +176,14 @@ pub async fn post(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
@@ -255,7 +191,7 @@ pub async fn post(
   response
     .text()
     .await
-    .map_err(|error| Error::Message(error.to_string()))
+    .map_err(|e| Error::Message(e.to_string()))
 }
 
 pub async fn post_member(
@@ -266,16 +202,8 @@ pub async fn post_member(
   group_label: &str,
   member: Member,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
     format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
 
   let response = client
@@ -289,24 +217,19 @@ pub async fn post_member(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
+  response.json().await.map_err(|e| Error::Message(e.to_string()))
 }
 
 pub async fn delete_one(
@@ -316,17 +239,8 @@ pub async fn delete_one(
   socks5_proxy: Option<&str>,
   group_label: &str,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
-    format!("{}/{}/{}", base_url, "hsm/v2/groups", group_label);
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!("{}/hsm/v2/groups/{}", base_url, group_label);
 
   let response = client
     .delete(api_url)
@@ -338,24 +252,19 @@ pub async fn delete_one(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn delete_member(
@@ -366,16 +275,8 @@ pub async fn delete_member(
   group_label: &str,
   xname: &str,
 ) -> Result<(), Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
     "{}/hsm/v2/groups/{}/members/{}",
     base_url, group_label, xname
   );
@@ -390,16 +291,14 @@ pub async fn delete_member(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
