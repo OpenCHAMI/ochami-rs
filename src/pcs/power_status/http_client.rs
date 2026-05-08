@@ -13,21 +13,11 @@ pub async fn post(
   power_state_filter_opt: Option<&str>,
   management_state_filter_opt: Option<&str>,
 ) -> Result<PowerStatusAll, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(shasta_root_cert)?);
-  //.danger_accept_invalid_certs(true) // Disables SSL verification (use with caution)
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
+  let client = crate::http::build_client_no_tls(shasta_root_cert, socks5_proxy)?;
 
   let api_url = format!("{}/power-control/v1/power-status", shasta_base_url);
 
-  // Prepare the request body as JSON with xname as an array
   let body = json!({
-      // TODO: this should probably be a struct that matches the expected schema
-      // here "xname" is an array of xnames
       "xname": xname_vec_opt.map(|xname_vec| xname_vec.iter().map(|&x| x.to_string()).collect::<Vec<String>>()).unwrap_or_default(),
       "powerStateFilter": power_state_filter_opt.unwrap_or(""),
       "managementStateFilter": management_state_filter_opt.unwrap_or(""),
@@ -35,7 +25,7 @@ pub async fn post(
 
   let response = client
     .post(&api_url)
-    .json(&body) // Send the body as JSON
+    .json(&body)
     .bearer_auth(shasta_token)
     .send()
     .await
@@ -45,16 +35,10 @@ pub async fn post(
     })?;
 
   if response.status().is_success() {
-    response
-      .json()
-      .await
-      .map_err(|error| Error::NetError(error))
+    response.json().await.map_err(Error::NetError)
   } else {
     println!("response is failure");
-    let payload = response
-      .json::<Value>()
-      .await
-      .map_err(|error| Error::NetError(error))?;
+    let payload = response.json::<Value>().await.map_err(Error::NetError)?;
     Err(Error::OchamiError(payload))
   }
 }

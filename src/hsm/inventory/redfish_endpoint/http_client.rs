@@ -11,18 +11,10 @@ pub async fn get_query(
   socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<RedfishEndpointArray, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
-    "{}/{}/{}",
-    base_url, "hsm/v2/Inventory/RedfishEndpoint/Query", xname
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
+    "{}/hsm/v2/Inventory/RedfishEndpoint/Query/{}",
+    base_url, xname
   );
 
   let response = client
@@ -36,24 +28,19 @@ pub async fn get_query(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_all(
@@ -82,17 +69,9 @@ pub async fn get(
   ip_address: Option<&str>,
   last_status: Option<&str>,
 ) -> Result<RedfishEndpointArray, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
-    format!("{}/{}", base_url, "hsm/v2/Inventory/RedfishEndpoints");
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
+    format!("{}/hsm/v2/Inventory/RedfishEndpoints", base_url);
 
   let response = client
     .get(api_url)
@@ -113,24 +92,19 @@ pub async fn get(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_one(
@@ -140,18 +114,10 @@ pub async fn get_one(
   socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<RedfishEndpoint, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
-    "{}/{}/{}",
-    base_url, "hsm/v2/Inventory/RedfishEndpoints", xname
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
+    "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
+    base_url, xname
   );
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -160,24 +126,19 @@ pub async fn get_one(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn post(
@@ -187,49 +148,34 @@ pub async fn post(
   socks5_proxy: Option<&str>,
   redfish_endpoint: RedfishEndpointArray,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
+    format!("{}/hsm/v2/Inventory/RedfishEndpoints", base_url);
 
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
-    format!("{}/{}", base_url, "hsm/v2/Inventory/RedfishEndpoints");
-
-  let response_rslt = client
+  let response = client
     .post(api_url)
     .bearer_auth(auth_token)
     .json(&redfish_endpoint)
     .send()
-    .await;
-
-  let response = response_rslt?;
+    .await?;
 
   if let Err(e) = response.error_for_status_ref() {
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn put(
@@ -240,19 +186,10 @@ pub async fn put(
   xname: &str,
   redfish_endpoint: RedfishEndpoint,
 ) -> Result<RedfishEndpoint, Error> {
-  // Validation
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
-    "{}/{}/{}",
-    base_url, "hsm/v2/Inventory/RedfishEndpoints", xname
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
+    "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
+    base_url, xname
   );
 
   let response = client
@@ -266,21 +203,19 @@ pub async fn put(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response.json().await.map_err(|e| Error::NetError(e))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn delete_all(
@@ -289,17 +224,9 @@ pub async fn delete_all(
   root_cert: &[u8],
   socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
-    base_url.to_owned() + "hsm/v2/Inventory/RedfishEndpoints";
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  // NOTE: pre-existing bug — missing leading '/' before "hsm"
+  let api_url = base_url.to_owned() + "hsm/v2/Inventory/RedfishEndpoints";
 
   let response = client
     .delete(api_url)
@@ -311,24 +238,19 @@ pub async fn delete_all(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn delete_one(
@@ -338,18 +260,10 @@ pub async fn delete_one(
   socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
-    "{}/{}/{}",
-    base_url, "hsm/v2/Inventory/RedfishEndpoints", xname
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
+    "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
+    base_url, xname
   );
 
   let response = client
@@ -362,22 +276,17 @@ pub async fn delete_one(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }

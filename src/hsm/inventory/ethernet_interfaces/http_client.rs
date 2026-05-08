@@ -2,8 +2,6 @@ use serde_json::Value;
 
 use crate::error::Error;
 
-// shouldn't this be from the typles from
-//use manta_backend_dispatcher::types::hsm::inventory::{ ComponentEthernetInterface };
 use super::types::{ComponentEthernetInterface, IpAddressMapping};
 
 pub async fn post(
@@ -13,19 +11,8 @@ pub async fn post(
   socks5_proxy: Option<&str>,
   eht_interface: ComponentEthernetInterface,
 ) -> Result<(), Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  // let api_url: String =
-  //   format!("{}/{}", base_url, "/hsm/v2/Inventory/EthernetInterfaces");
-  let api_url: String =
-    format!("{}/hsm/v2/Inventory/EthernetInterfaces", base_url);
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!("{}/hsm/v2/Inventory/EthernetInterfaces", base_url);
 
   let response = client
     .post(api_url)
@@ -38,25 +25,20 @@ pub async fn post(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
         dbg!(&error_payload);
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn post_ip_addresses(
@@ -66,19 +48,10 @@ pub async fn post_ip_addresses(
   socks5_proxy: Option<&str>,
   eht_interface: ComponentEthernetInterface,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
-    "{}/{}/{}/IPAddresses",
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
+    "{}/hsm/v2/Inventory/EthernetInterfaces/{}/IPAddresses",
     base_url,
-    "hsm/v2/Inventory/EthernetInterfaces",
     eht_interface.component_id.as_ref().unwrap()
   );
 
@@ -93,30 +66,21 @@ pub async fn post_ip_addresses(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
-// Get list of network interfaces
-// ref --> https://csm12-apidocs.svc.cscs.ch/iaas/hardware-state-manager/operation/doCompEthInterfacesGetV2/
-// TODO: this should be "get_multiple()"
-// TODO: define a new function "get_all()"
 pub async fn get(
   auth_token: &str,
   base_url: &str,
@@ -125,21 +89,13 @@ pub async fn get(
   mac_address: Option<&str>,
   ip_address: Option<&str>,
   network: Option<&str>,
-  component_id: Option<&str>, // Node's xname
+  component_id: Option<&str>,
   r#type: Option<&str>,
   older_than: Option<&str>,
   newer_than: Option<&str>,
 ) -> Result<Vec<ComponentEthernetInterface>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
     base_url.to_owned() + "/hsm/v2/Inventory/EthernetInterfaces";
 
   let response = client
@@ -161,24 +117,19 @@ pub async fn get(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_one(
@@ -188,16 +139,8 @@ pub async fn get_one(
   socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<ComponentEthernetInterface, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
   );
@@ -208,24 +151,19 @@ pub async fn get_one(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::Message(error_payload);
-        return Err(error);
+        return Err(Error::Message(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn patch(
@@ -235,8 +173,7 @@ pub async fn patch(
   socks5_proxy: Option<&str>,
   eth_interface_id: &str,
   description: Option<&str>,
-  ip_address_mapping: (&str, &str), // [(<ip address>, <network>), ...], examle
-                                    // [("192.168.1.10", "HMN"), ...]
+  ip_address_mapping: (&str, &str),
 ) -> Result<Value, Error> {
   let ip_address = ip_address_mapping.0;
   let network = ip_address_mapping.1;
@@ -253,26 +190,11 @@ pub async fn patch(
     parent_hms_type: None,
   };
 
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
   );
-
-  //  let response = client
-  //    .delete(api_url)
-  //    .bearer_auth(auth_token)
-  //    .send()
-  //    .await?;
-  //
 
   let response = client
     .patch(api_url)
@@ -286,24 +208,19 @@ pub async fn patch(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn delete_all(
@@ -312,16 +229,8 @@ pub async fn delete_all(
   root_cert: &[u8],
   socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String =
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url =
     format!("{}/hsm/v2/Inventory/EthernetInterfaces", base_url);
 
   let response = client
@@ -334,24 +243,19 @@ pub async fn delete_all(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn delete_one(
@@ -361,16 +265,8 @@ pub async fn delete_one(
   socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
   );
@@ -385,24 +281,19 @@ pub async fn delete_one(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn get_ip_addresses(
@@ -412,16 +303,8 @@ pub async fn get_ip_addresses(
   socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<Vec<IpAddressMapping>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}/IPAddresses",
     base_url, eth_interface_id
   );
@@ -432,24 +315,19 @@ pub async fn get_ip_addresses(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn delete_ip_address(
@@ -461,16 +339,8 @@ pub async fn delete_ip_address(
   eth_interface_id: &str,
   ip_address: &str,
 ) -> Result<Value, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
-  let api_url: String = format!(
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}/IpAddress/{}",
     base_url, eth_interface_id, ip_address
   );
@@ -485,22 +355,17 @@ pub async fn delete_ip_address(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::OchamiError(error_payload);
-        return Err(error);
+        return Err(Error::OchamiError(error_payload));
       }
     }
   }
 
-  response
-    .json()
-    .await
-    .map_err(|error| Error::NetError(error))
+  response.json().await.map_err(Error::NetError)
 }

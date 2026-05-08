@@ -14,10 +14,6 @@ pub async fn get_all(
   get(base_url, auth_token, root_cert, socks5_proxy, &None).await
 }
 
-/// Get node boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/get/
-/// NOTE: MANTA MIGRATION! the 'url_api' value changes compared to CSM
-/// NOTE: if db is empty, then OCHAMI API will return 'Null' therefore, if we want to handle this
-/// situation, then, we need to return serde_json::Value
 pub async fn get(
   base_url: &str,
   auth_token: &str,
@@ -25,32 +21,22 @@ pub async fn get(
   socks5_proxy: Option<&str>,
   xnames_opt: &Option<Vec<String>>,
 ) -> Result<Vec<BootParameters>, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
 
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
+  let url_api = format!("{}/boot/v1/bootparameters", base_url);
 
-  let url_api = format!("{}/boot/v1/bootparameters", base_url.to_string());
-
-  /* let params: Option<Vec<_>> = if let Some(xname_vec) = xnames_opt {
-    Some(xname_vec.iter().map(|xname| ("name", xname)).collect())
-  } else {
-    None
-  }; */
-
-  let payload = if let Some(xname_vec) = xnames_opt {
-    Some(BootParameters { hosts: xname_vec.clone(), macs: None, nids: None, params: String::new(), kernel: String::new(), initrd: String::new(), cloud_init: None })
-  } else {
-    None
-  };
+  let payload = xnames_opt.as_ref().map(|xname_vec| BootParameters {
+    hosts: xname_vec.clone(),
+    macs: None,
+    nids: None,
+    params: String::new(),
+    kernel: String::new(),
+    initrd: String::new(),
+    cloud_init: None,
+  });
 
   let response = client
     .get(url_api)
-    // .query(&params)
     .bearer_auth(auth_token)
     .json(&payload)
     .send()
@@ -60,29 +46,24 @@ pub async fn get(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: serde_json::to_string_pretty(&error_payload)?,
-        };
-        return Err(error);
+        });
       }
     }
   }
 
   match response.json().await {
-    Ok(Value::Null) => Ok(Vec::new()), // NOTE: In case OCHAMI decides to return 'Null' instead
-    // of empty array
-    Ok(v) => {
-      serde_json::from_value(v).map_err(|e| Error::Message(e.to_string()))
-    }
+    Ok(Value::Null) => Ok(Vec::new()),
+    Ok(v) => serde_json::from_value(v).map_err(|e| Error::Message(e.to_string())),
     Err(e) => Err(Error::NetError(e)),
   }
 }
@@ -94,15 +75,7 @@ pub async fn post(
   socks5_proxy: Option<&str>,
   boot_parameters: BootParameters,
 ) -> Result<(), Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
   let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
   let response = client
@@ -116,19 +89,17 @@ pub async fn post(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: serde_json::to_string_pretty(&error_payload)?,
-        };
-        return Err(error);
+        });
       }
     }
   }
@@ -136,7 +107,6 @@ pub async fn post(
   Ok(())
 }
 
-/// Change nodes boot params, ref --> https://apidocs.svc.cscs.ch/iaas/bss/tag/bootparameters/paths/~1bootparameters/put/
 pub async fn put(
   base_url: &str,
   auth_token: &str,
@@ -144,15 +114,7 @@ pub async fn put(
   socks5_proxy: Option<&str>,
   boot_parameters: &BootParameters,
 ) -> Result<BootParameters, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
   let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
   let response = client
@@ -166,24 +128,22 @@ pub async fn put(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: serde_json::to_string_pretty(&error_payload)?,
-        };
-        return Err(error);
+        });
       }
     }
   }
 
-  response.json().await.map_err(|e| Error::NetError(e))
+  response.json().await.map_err(Error::NetError)
 }
 
 pub async fn patch(
@@ -193,15 +153,7 @@ pub async fn patch(
   socks5_proxy: Option<&str>,
   boot_parameters: &BootParameters,
 ) -> Result<(), Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
   let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
   let response = client
@@ -215,19 +167,17 @@ pub async fn patch(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: serde_json::to_string_pretty(&error_payload)?,
-        };
-        return Err(error);
+        });
       }
     }
   }
@@ -242,15 +192,7 @@ pub async fn delete(
   socks5_proxy: Option<&str>,
   boot_parameters: &BootParameters,
 ) -> Result<String, Error> {
-  let client_builder = reqwest::Client::builder()
-    .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
-    .use_rustls_tls();
-
-  let client = match socks5_proxy {
-    Some(proxy) => client_builder.proxy(reqwest::Proxy::all(proxy)?).build()?,
-    None => client_builder.build()?,
-  };
-
+  let client = crate::http::build_client(root_cert, socks5_proxy)?;
   let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
   let response = client
@@ -264,19 +206,17 @@ pub async fn delete(
     match response.status() {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: error_payload,
-        };
-        return Err(error);
+        });
       }
       _ => {
         let error_payload = response.text().await?;
-        let error = Error::RequestError {
+        return Err(Error::RequestError {
           response: e,
           payload: serde_json::to_string_pretty(&error_payload)?,
-        };
-        return Err(error);
+        });
       }
     }
   }
