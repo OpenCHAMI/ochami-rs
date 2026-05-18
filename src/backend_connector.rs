@@ -54,7 +54,7 @@ use crate::{
   pcs,
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Ochami {
   base_url: String,
   root_cert: Vec<u8>,
