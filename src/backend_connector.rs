@@ -3,10 +3,7 @@ use manta_backend_dispatcher::{
     authentication::AuthenticationTrait,
     delete_configurations_and_data_related::DeleteConfigurationsAndDataRelatedTrait,
   },
-  types::pcs::{
-    power_status::types::PowerStatusAll as FrontEndPowerStatusAll,
-    transitions::types::TransitionResponse,
-  },
+  types::pcs::power_status::types::PowerStatusAll as FrontEndPowerStatusAll,
 };
 use std::{collections::HashMap, pin::Pin};
 
@@ -717,72 +714,6 @@ impl ComponentTrait for Ochami {
 }
 
 impl PCSTrait for Ochami {
-  async fn power_on_sync(
-    &self,
-    auth_token: &str,
-    nodes: &[String],
-  ) -> Result<TransitionResponse, Error> {
-    let operation = "on";
-
-    pcs::transitions::http_client::post_block(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      self.socks5_proxy.as_deref(),
-      operation,
-      &nodes.to_vec(),
-    )
-    .await
-    .map(|resp| resp.into())
-    .map_err(|e| Error::Message(e.to_string()))
-  }
-
-  async fn power_off_sync(
-    &self,
-    auth_token: &str,
-    nodes: &[String],
-    force: bool,
-  ) -> Result<TransitionResponse, Error> {
-    let operation = if force { "force-off" } else { "soft-off" };
-
-    pcs::transitions::http_client::post_block(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      self.socks5_proxy.as_deref(),
-      operation,
-      &nodes.to_vec(),
-    )
-    .await
-    .map(|resp| resp.into())
-    .map_err(|e| Error::Message(e.to_string()))
-  }
-
-  async fn power_reset_sync(
-    &self,
-    auth_token: &str,
-    nodes: &[String],
-    force: bool,
-  ) -> Result<TransitionResponse, Error> {
-    let operation = if force {
-      "hard-restart"
-    } else {
-      "soft-restart"
-    };
-
-    pcs::transitions::http_client::post_block(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      self.socks5_proxy.as_deref(),
-      operation,
-      &nodes.to_vec(),
-    )
-    .await
-    .map(|resp| resp.into())
-    .map_err(|e| Error::Message(e.to_string()))
-  }
-
   async fn power_status(
     &self,
     auth_token: &str,
