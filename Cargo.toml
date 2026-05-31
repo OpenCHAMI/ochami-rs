@@ -2,7 +2,7 @@
 authors = ["Manuel Sopena Ballesteros <msopena@cscs.ch>"]
 name = "ochami-rs"
 description = "Rust bindings for OCHAMI backend"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 edition = "2021"
 license-file = "LICENSE"
 documentation = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
@@ -10,9 +10,9 @@ homepage = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
 repository = "https://github.com/OpenCHAMI/ochami-rs"
 
 [dependencies]
-manta-backend-dispatcher = "1.0.0-beta.2"
+# manta-backend-dispatcher = "1.0.0-beta.3"
 
-# manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
+manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
 # manta-backend-dispatcher = { git = "https://github.com/eth-cscs/manta-backend-dispatcher", branch="feature/power-status" } # Only for development purposes
 
 strum = { version = "0.27.1", default-features = false }
