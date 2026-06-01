@@ -1595,11 +1595,11 @@ pub struct HWInvByLocProcessor {
 impl From<FrontEndHWInvByLocProcessor> for HWInvByLocProcessor {
   fn from(value: FrontEndHWInvByLocProcessor) -> Self {
     HWInvByLocProcessor {
+      hw_inventory_by_location_type: "HWInvByLocProcessor".to_string(),
       id: value.id,
       r#type: value.r#type.map(|v| v),
       ordinal: value.ordinal.map(|v| v),
       status: value.status.map(|v| v),
-      hw_inventory_by_location_type: value.hw_inventory_by_location_type,
       populated_fru: value.populated_fru.map(HWInvByFRUProcessor::from),
       processor_location_info: RedfishProcessorLocationInfo::from(
         value.processor_location_info,
@@ -1615,7 +1615,6 @@ impl Into<FrontEndHWInvByLocProcessor> for HWInvByLocProcessor {
       r#type: self.r#type.map(|v| v),
       ordinal: self.ordinal.map(|v| v),
       status: self.status.map(|v| v),
-      hw_inventory_by_location_type: self.hw_inventory_by_location_type,
       populated_fru: self.populated_fru.map(|v| v.into()),
       processor_location_info: self.processor_location_info.into(),
     }
@@ -1649,11 +1648,11 @@ pub struct HWInvByLocNodeAccel {
 impl From<FrontEndHWInvByLocNodeAccel> for HWInvByLocNodeAccel {
   fn from(value: FrontEndHWInvByLocNodeAccel) -> Self {
     HWInvByLocNodeAccel {
+      hw_inventory_by_location_type: "HWInvByLocNodeAccel".to_string(),
       id: value.id,
       r#type: value.r#type.map(|v| v),
       ordinal: value.ordinal.map(|v| v),
       status: value.status.map(|v| v),
-      hw_inventory_by_location_type: value.hw_inventory_by_location_type,
       populated_fru: value.populated_fru.map(HWInvByFRUNodeAccel::from),
       node_accel_location_info: value
         .node_accel_location_info
@@ -1669,7 +1668,6 @@ impl Into<FrontEndHWInvByLocNodeAccel> for HWInvByLocNodeAccel {
       r#type: self.r#type.map(|v| v),
       ordinal: self.ordinal.map(|v| v),
       status: self.status.map(|v| v),
-      hw_inventory_by_location_type: self.hw_inventory_by_location_type,
       populated_fru: self.populated_fru.map(|v| v.into()),
       node_accel_location_info: self.node_accel_location_info.map(|v| v.into()),
     }
@@ -1813,11 +1811,11 @@ pub struct HWInvByLocMemory {
 impl From<FrontEndHWInvByLocMemory> for HWInvByLocMemory {
   fn from(value: FrontEndHWInvByLocMemory) -> Self {
     HWInvByLocMemory {
+      hw_inventory_by_location_type: "HWInvByLocMemory".to_string(),
       id: value.id,
       r#type: value.r#type.map(|v| v),
       ordinal: value.ordinal.map(|v| v),
       status: value.status.map(|v| v),
-      hw_inventory_by_location_type: value.hw_inventory_by_location_type,
       populated_fru: value.populated_fru.map(HWInvByFRUMemory::from),
       memory_location_info: RedfishMemoryLocationInfo::from(
         value.memory_location_info,
@@ -1833,7 +1831,6 @@ impl Into<FrontEndHWInvByLocMemory> for HWInvByLocMemory {
       r#type: self.r#type.map(|v| v),
       ordinal: self.ordinal.map(|v| v),
       status: self.status.map(|v| v),
-      hw_inventory_by_location_type: self.hw_inventory_by_location_type,
       populated_fru: self.populated_fru.map(|v| v.into()),
       memory_location_info: self.memory_location_info.into(),
     }
@@ -1933,11 +1930,11 @@ pub struct HWInvByLocHSNNIC {
 impl From<FrontEndHWInvByLocHSNNIC> for HWInvByLocHSNNIC {
   fn from(value: FrontEndHWInvByLocHSNNIC) -> Self {
     HWInvByLocHSNNIC {
+      hw_inventory_by_location_type: "HWInvByLocHSNNIC".to_string(),
       id: value.id,
       r#type: value.r#type.map(|v| v),
       ordinal: value.ordinal.map(|v| v),
       status: value.status.map(|v| v),
-      hw_inventory_by_location_type: value.hw_inventory_by_location_type,
       populated_fru: value.populated_fru.map(HWInvByFRUHSNNIC::from),
       hsn_nic_location_info: HSNNICLocationInfo::from(
         value.hsn_nic_location_info,
@@ -1953,7 +1950,6 @@ impl Into<FrontEndHWInvByLocHSNNIC> for HWInvByLocHSNNIC {
       r#type: self.r#type.map(|v| v),
       ordinal: self.ordinal.map(|v| v),
       status: self.status.map(|v| v),
-      hw_inventory_by_location_type: self.hw_inventory_by_location_type,
       populated_fru: self.populated_fru.map(|v| v.into()),
       hsn_nic_location_info: self.hsn_nic_location_info.into(),
     }
@@ -2011,11 +2007,11 @@ pub struct HWInvByLocNode {
 impl From<FrontEndHWInvByLocNode> for HWInvByLocNode {
   fn from(value: FrontEndHWInvByLocNode) -> Self {
     HWInvByLocNode {
+      hw_inventory_by_location_type: "HWInvByLocNode".to_string(),
       id: value.id,
       r#type: value.r#type.map(|v| v),
       ordinal: value.ordinal.map(|v| v),
       status: value.status.map(|v| v),
-      hw_inventory_by_location_type: value.hw_inventory_by_location_type,
       populated_fru: value.populated_fru.map(HWInvByFRUNode::from),
       node_location_info: value
         .node_location_info
@@ -2054,7 +2050,6 @@ impl Into<FrontEndHWInvByLocNode> for HWInvByLocNode {
       r#type: self.r#type.map(|v| v),
       ordinal: self.ordinal.map(|v| v),
       status: self.status.map(|v| v),
-      hw_inventory_by_location_type: self.hw_inventory_by_location_type,
       populated_fru: self.populated_fru.map(|v| v.into()),
       node_location_info: self.node_location_info.map(|v| v.into()),
       processors: self.processors.map(|processor_vec| {
@@ -2696,6 +2691,17 @@ impl From<FrontEndHWInventoryByLocation> for HWInventoryByLocation {
           hwinv_by_loc_hsnnic,
         ))
       }
+      // ochami-rs only models the five node-scoped HSM inventory subtypes
+      // today (Node + Processor/NodeAccel/Memory/HSNNIC). The dispatcher
+      // enum recently grew the other 17 swagger subtypes (cabinet,
+      // chassis, switches, BMCs, PDUs, etc.). Until ochami-rs models
+      // those — i.e. adds their leaf structs and matching variants — any
+      // attempt to convert one of those higher-level inventory entries
+      // into an ochami `HWInventoryByLocation` is a programming error.
+      // Surface it as a panic rather than silently dropping data.
+      _ => unimplemented!(
+        "ochami-rs does not yet support this HWInventoryByLocation variant"
+      ),
     }
   }
 }

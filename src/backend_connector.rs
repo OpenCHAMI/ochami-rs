@@ -36,9 +36,10 @@ use manta_backend_dispatcher::{
       ComponentEthernetInterface, RedfishEndpoint, RedfishEndpointArray,
     },
     Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
-    Group as FrontEndGroup,
+    Group as FrontEndGroup, HWInventory as FrontEndHWInventory,
     HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
-    NodeMetadataArray,
+    HsmActionResponse, NodeMetadataArray,
+    NodeSummary as FrontEndNodeSummary,
   },
 };
 use regex::Regex;
@@ -242,8 +243,8 @@ impl GroupTrait for Ochami {
     &self,
     auth_token: &str,
     hsm_group_name: &str,
-  ) -> Result<Value, Error> {
-    hsm::group::http_client::delete_one(
+  ) -> Result<HsmActionResponse, Error> {
+    let value = hsm::group::http_client::delete_one(
       &self.base_url,
       auth_token,
       &self.root_cert,
@@ -251,7 +252,8 @@ impl GroupTrait for Ochami {
       hsm_group_name,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(|e| Error::Message(e.to_string()))?;
+    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
   }
 
   async fn get_hsm_map_and_filter_by_hsm_name_vec(
@@ -275,12 +277,12 @@ impl GroupTrait for Ochami {
     auth_token: &str,
     group_label: &str,
     xname: &str,
-  ) -> Result<Value, Error> {
+  ) -> Result<HsmActionResponse, Error> {
     let member = hsm::group::types::Member {
       id: Some(xname.to_string()),
     };
 
-    hsm::group::http_client::post_member(
+    let value = hsm::group::http_client::post_member(
       auth_token,
       &self.base_url,
       &self.root_cert,
@@ -289,7 +291,8 @@ impl GroupTrait for Ochami {
       member,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(|e| Error::Message(e.to_string()))?;
+    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
   }
 
   async fn add_members_to_group(
@@ -382,7 +385,14 @@ impl HardwareInventory for Ochami {
     &self,
     auth_token: &str,
     xname: &str,
-  ) -> Result<Value, Error> {
+  ) -> Result<FrontEndNodeSummary, Error> {
+    // OCHAMI returns the inventory as a flat `HWInventoryByLocation` list
+    // (csm-rs's swagger does too, but its client extracts the single
+    // `/Nodes/0` entry inside the HTTP layer). Mirror that here: take the
+    // first inventory entry, map it through ochami's `NodeSummary` From,
+    // then into the dispatcher's `NodeSummary`. Returns `Default` if the
+    // response is empty — matches the original "always return something"
+    // shape of the pre-typed implementation.
     hsm::inventory::hardware::http_client::get(
       &auth_token,
       &self.base_url,
@@ -396,11 +406,20 @@ impl HardwareInventory for Ochami {
       None,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
-    .and_then(|hw_inventory| {
-      serde_json::to_value(hw_inventory)
-        .map_err(|e| Error::Message(e.to_string()))
+    .map(|inventory_vec| {
+      inventory_vec
+        .into_iter()
+        .find_map(|entry| match entry {
+          crate::hsm::inventory::types::HWInventoryByLocation::HWInvByLocNode(node) => {
+            Some(node)
+          }
+          _ => None,
+        })
+        .map(crate::hsm::inventory::types::NodeSummary::from)
+        .map(Into::into)
+        .unwrap_or_default()
     })
+    .map_err(|e| Error::Message(e.to_string()))
   }
 
   async fn get_inventory_hardware_query(
@@ -412,8 +431,8 @@ impl HardwareInventory for Ochami {
     parents: Option<bool>,
     partition: Option<&str>,
     format: Option<&str>,
-  ) -> Result<Value, Error> {
-    hsm::inventory::hardware::http_client::get_query(
+  ) -> Result<FrontEndHWInventory, Error> {
+    let value = hsm::inventory::hardware::http_client::get_query(
       &auth_token,
       &self.base_url,
       &self.root_cert,
@@ -426,15 +445,16 @@ impl HardwareInventory for Ochami {
       format,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(|e| Error::Message(e.to_string()))?;
+    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
   }
 
   async fn post_inventory_hardware(
     &self,
     auth_token: &str,
     hardware: FrontEndHWInventoryByLocationList,
-  ) -> Result<Value, Error> {
-    hsm::inventory::hardware::http_client::post(
+  ) -> Result<HsmActionResponse, Error> {
+    let value = hsm::inventory::hardware::http_client::post(
       auth_token,
       &self.base_url,
       &self.root_cert,
@@ -442,7 +462,8 @@ impl HardwareInventory for Ochami {
       hardware.into(),
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(|e| Error::Message(e.to_string()))?;
+    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
   }
 }
 
@@ -570,8 +591,8 @@ impl ComponentTrait for Ochami {
     &self,
     auth_token: &str,
     id: &str,
-  ) -> Result<Value, Error> {
-    hsm::component::http_client::delete_one(
+  ) -> Result<HsmActionResponse, Error> {
+    let value = hsm::component::http_client::delete_one(
       auth_token,
       &self.base_url,
       &self.root_cert,
@@ -579,7 +600,8 @@ impl ComponentTrait for Ochami {
       id,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(|e| Error::Message(e.to_string()))?;
+    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
   }
 
   /// Get list of xnames from NIDs
