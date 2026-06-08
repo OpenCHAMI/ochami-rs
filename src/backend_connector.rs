@@ -38,8 +38,7 @@ use manta_backend_dispatcher::{
     Component, ComponentArrayPostArray as FrontEndComponentArrayPostArray,
     Group as FrontEndGroup, HWInventory as FrontEndHWInventory,
     HWInventoryByLocationList as FrontEndHWInventoryByLocationList,
-    HsmActionResponse, NodeMetadataArray,
-    NodeSummary as FrontEndNodeSummary,
+    HsmActionResponse, NodeMetadataArray, NodeSummary as FrontEndNodeSummary,
   },
 };
 use regex::Regex;
@@ -60,7 +59,11 @@ pub struct Ochami {
 }
 
 impl Ochami {
-  pub fn new(base_url: &str, root_cert: &[u8], socks5_proxy: Option<&str>) -> Self {
+  pub fn new(
+    base_url: &str,
+    root_cert: &[u8],
+    socks5_proxy: Option<&str>,
+  ) -> Self {
     Self {
       base_url: base_url.to_string(),
       root_cert: root_cert.to_vec(),
@@ -75,9 +78,25 @@ impl GroupTrait for Ochami {
   // therefore all groups are available to all users
   async fn get_group_available(
     &self,
-    auth_token: &str,
+    token: &str,
   ) -> Result<Vec<FrontEndGroup>, Error> {
-    self.get_all_groups(auth_token).await
+    // Get all groups
+    let hsm_group_backend_vec = hsm::group::http_client::get(
+      &self.base_url,
+      token,
+      &self.root_cert,
+      self.socks5_proxy.as_deref(),
+      None,
+      None,
+    )
+    .await
+    .map_err(|e| Error::Message(e.to_string()))?;
+
+    // Convert from HsmGroup (backend) to Group (infra)
+    let hsm_group_vec =
+      hsm_group_backend_vec.into_iter().map(Group::into).collect();
+
+    Ok(hsm_group_vec)
   }
 
   // Returns a list of all groups name available to the user
@@ -87,16 +106,23 @@ impl GroupTrait for Ochami {
     &self,
     token: &str,
   ) -> Result<Vec<String>, Error> {
-    let hsm_group_vec_rslt = self.get_all_groups(token).await;
+    let hsm_group_vec = hsm::group::http_client::get(
+      &self.base_url,
+      token,
+      &self.root_cert,
+      self.socks5_proxy.as_deref(),
+      None,
+      None,
+    )
+    .await
+    .map_err(|e| Error::Message(e.to_string()))?;
 
-    hsm_group_vec_rslt.and_then(|hsm_group_vec| {
-      Ok(
-        hsm_group_vec
-          .iter()
-          .map(|hsm_group| hsm_group.label.clone())
-          .collect(),
-      )
-    })
+    Ok(
+      hsm_group_vec
+        .iter()
+        .map(|hsm_group| hsm_group.label.clone())
+        .collect(),
+    )
   }
 
   async fn add_group(
@@ -166,29 +192,6 @@ impl GroupTrait for Ochami {
     )
     .await
     .map_err(|e| Error::Message(e.to_string()))
-  }
-
-  async fn get_all_groups(
-    &self,
-    auth_token: &str,
-  ) -> Result<Vec<FrontEndGroup>, Error> {
-    // Get all HSM groups
-    let hsm_group_backend_vec = hsm::group::http_client::get(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      self.socks5_proxy.as_deref(),
-      None,
-      None,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
-
-    // Convert from HsmGroup (silla) to HsmGroup (infra)
-    let hsm_group_vec =
-      hsm_group_backend_vec.into_iter().map(Group::into).collect();
-
-    Ok(hsm_group_vec)
   }
 
   async fn get_group(
@@ -363,7 +366,7 @@ impl GroupTrait for Ochami {
     target_hsm_group_name: &str,
     parent_hsm_group_name: &str,
     new_target_hsm_members: &[&str],
-    dryrun: bool
+    dryrun: bool,
   ) -> Result<(Vec<String>, Vec<String>), Error> {
     hsm::group::utils::migrate_hsm_members(
       shasta_token,
@@ -771,10 +774,15 @@ impl BootParametersTrait for Ochami {
     &self,
     auth_token: &str,
   ) -> Result<Vec<BootParameters>, Error> {
-    let boot_parameter_vec =
-      bss::http_client::get(&self.base_url, auth_token, &self.root_cert, self.socks5_proxy.as_deref(), &None)
-        .await
-        .map_err(|e| Error::Message(e.to_string()))?;
+    let boot_parameter_vec = bss::http_client::get(
+      &self.base_url,
+      auth_token,
+      &self.root_cert,
+      self.socks5_proxy.as_deref(),
+      &None,
+    )
+    .await
+    .map_err(|e| Error::Message(e.to_string()))?;
 
     let boot_parameter_infra_vec = boot_parameter_vec
       .into_iter()
