@@ -259,7 +259,7 @@ impl GroupTrait for Ochami {
     serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
   }
 
-  async fn get_hsm_map_and_filter_by_hsm_name_vec(
+  async fn get_group_map_and_filter_by_group_name_vec(
     &self,
     shasta_token: &str,
     hsm_name_vec: &[&str],
