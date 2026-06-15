@@ -43,7 +43,6 @@ use manta_backend_dispatcher::{
 };
 use regex::Regex;
 use serde_json::Value;
-use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{authentication, bss};
 use crate::{
@@ -1220,7 +1219,4 @@ impl ClusterTemplateTrait for Ochami {}
 
 impl DeleteConfigurationsAndDataRelatedTrait for Ochami {}
 
-impl ConsoleTrait for Ochami {
-  type T = Box<dyn AsyncWrite + Unpin + Send>;
-  type U = Box<dyn AsyncRead + Unpin + Send>;
-}
+impl ConsoleTrait for Ochami {}
