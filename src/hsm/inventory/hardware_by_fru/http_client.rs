@@ -6,14 +6,13 @@ pub async fn get(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   fruid: Option<&str>,
   r#type: Option<&str>,
   manufacturer: Option<&str>,
   partnumber: Option<&str>,
   serialnumber: Option<&str>,
 ) -> Result<Vec<HWInventoryByFRU>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/smd/hsm/v2/Inventory/HardwareByFRU", base_url);
 
@@ -47,10 +46,9 @@ pub async fn get_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   fruid: &str,
 ) -> Result<HWInventoryByFRU, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/smd/hsm/v2/Inventory/Hardware/{}", base_url, fruid);
 
@@ -79,9 +77,8 @@ pub async fn delete_all(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     base_url.to_owned() + "/smd/hsm/v2/Inventory/HardwareByFRU";
 
@@ -114,10 +111,9 @@ pub async fn delete_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   fruid: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/smd/hsm/v2/Inventory/HardwareByFRU/{}",
     base_url, fruid

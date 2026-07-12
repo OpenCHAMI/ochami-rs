@@ -8,20 +8,18 @@ pub async fn get_all(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Vec<Group>, Error> {
-  get(base_url, auth_token, root_cert, socks5_proxy, None, None).await
+  get(base_url, auth_token, root_cert, None, None).await
 }
 
 pub async fn get(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   label_vec_opt: Option<&[String]>,
   tag_vec_opt: Option<&[String]>,
 ) -> Result<Vec<Group>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/groups", base_url);
 
   let mut query = Vec::new();
@@ -66,10 +64,9 @@ pub async fn get_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   group_label: &str,
 ) -> Result<Group, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/groups/{}", base_url, group_label);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -97,9 +94,8 @@ pub async fn get_labels(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Vec<String>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/groups/labels", base_url);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -127,10 +123,9 @@ pub async fn get_members(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   group_label: &str,
 ) -> Result<Members, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
 
@@ -159,10 +154,9 @@ pub async fn post(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   group: Group,
 ) -> Result<String, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/groups", base_url);
 
   let response = client
@@ -198,11 +192,10 @@ pub async fn post_member(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   group_label: &str,
   member: Member,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
 
@@ -236,10 +229,9 @@ pub async fn delete_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   group_label: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/groups/{}", base_url, group_label);
 
   let response = client
@@ -271,11 +263,10 @@ pub async fn delete_member(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   group_label: &str,
   xname: &str,
 ) -> Result<(), Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/groups/{}/members/{}",
     base_url, group_label, xname

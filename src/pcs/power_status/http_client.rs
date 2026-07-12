@@ -8,12 +8,11 @@ pub async fn post(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname_vec_opt: Option<&[&str]>,
   power_state_filter_opt: Option<&str>,
   management_state_filter_opt: Option<&str>,
 ) -> Result<PowerStatusAll, Error> {
-  let client = crate::http::build_client_no_tls(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client_no_tls(shasta_root_cert)?;
 
   let api_url = format!("{}/power-control/v1/power-status", shasta_base_url);
 

@@ -9,7 +9,6 @@ pub async fn get_query(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
   r#type: Option<&str>,
   children: Option<bool>,
@@ -17,7 +16,7 @@ pub async fn get_query(
   partition: Option<&str>,
   format: Option<&str>,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/Hardware/Query/{}",
     base_url, xname
@@ -59,7 +58,6 @@ pub async fn get(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   id: Option<&str>,
   r#type: Option<&str>,
   manufacturer: Option<&str>,
@@ -67,7 +65,7 @@ pub async fn get(
   serialnumber: Option<&str>,
   fruid: Option<&str>,
 ) -> Result<Vec<HWInventoryByLocation>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/Inventory/Hardware", base_url);
 
   let response = client
@@ -100,10 +98,9 @@ pub async fn get_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<HWInventoryByLocation, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/Inventory/Hardware/{}", base_url, xname);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -131,10 +128,9 @@ pub async fn post(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   hardware: HWInventoryByLocationList,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/Inventory/Hardware", base_url);
 
   let response = client
@@ -167,9 +163,8 @@ pub async fn delete_all(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   // NOTE: pre-existing bug — missing leading '/' before "hsm"
   let api_url = base_url.to_owned() + "hsm/v2/Inventory/Hardware";
 
@@ -202,10 +197,9 @@ pub async fn delete_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/Inventory/Hardware/{}", base_url, xname);
 

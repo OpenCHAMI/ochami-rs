@@ -8,7 +8,6 @@ pub async fn get(
   shasta_token: &str,
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   id: Option<&str>,
   r#type: Option<&str>,
   state: Option<&str>,
@@ -26,7 +25,7 @@ pub async fn get(
   partition: Option<&str>,
   group: Option<&str>,
 ) -> Result<Vec<Membership>, Error> {
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url = format!("{}/smd/hsm/v2/memberships", shasta_base_url);
 
   let response = client
@@ -76,12 +75,11 @@ pub async fn get_xname(
   shasta_token: &str,
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<Membership, Error> {
   log::info!("Get membership of node '{}'", xname);
 
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url =
     format!("{}/smd/hsm/v2/memberships/{}", shasta_base_url, xname);
 

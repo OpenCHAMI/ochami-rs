@@ -8,10 +8,9 @@ pub async fn get_query(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<RedfishEndpointArray, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/RedfishEndpoint/Query/{}",
     base_url, xname
@@ -47,10 +46,9 @@ pub async fn get_all(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<RedfishEndpointArray, Error> {
   get(
-    auth_token, base_url, root_cert, socks5_proxy, None, None, None, None,
+    auth_token, base_url, root_cert, None, None, None, None,
     None, None, None,
   )
   .await
@@ -60,7 +58,6 @@ pub async fn get(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   id: Option<&str>,
   fqdn: Option<&str>,
   r#type: Option<&str>,
@@ -69,7 +66,7 @@ pub async fn get(
   ip_address: Option<&str>,
   last_status: Option<&str>,
 ) -> Result<RedfishEndpointArray, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/Inventory/RedfishEndpoints", base_url);
 
@@ -111,10 +108,9 @@ pub async fn get_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<RedfishEndpoint, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
     base_url, xname
@@ -145,10 +141,9 @@ pub async fn post(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   redfish_endpoint: RedfishEndpointArray,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/Inventory/RedfishEndpoints", base_url);
 
@@ -182,11 +177,10 @@ pub async fn put(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
   redfish_endpoint: RedfishEndpoint,
 ) -> Result<RedfishEndpoint, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
     base_url, xname
@@ -222,9 +216,8 @@ pub async fn delete_all(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   // NOTE: pre-existing bug — missing leading '/' before "hsm"
   let api_url = base_url.to_owned() + "hsm/v2/Inventory/RedfishEndpoints";
 
@@ -257,10 +250,9 @@ pub async fn delete_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
     base_url, xname

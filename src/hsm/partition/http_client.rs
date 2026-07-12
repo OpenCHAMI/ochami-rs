@@ -8,11 +8,10 @@ pub async fn get(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   name: Option<&str>,
   tag: Option<&str>,
 ) -> Result<Vec<Partition>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/partitions", base_url);
 
   let response = client
@@ -45,10 +44,9 @@ pub async fn get_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   partition_name: &str,
 ) -> Result<Partition, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/partitions/{}", base_url, partition_name);
 
@@ -77,9 +75,8 @@ pub async fn get_names(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Vec<String>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/partitions/names", base_url);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -107,10 +104,9 @@ pub async fn get_members(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   partition_name: &str,
 ) -> Result<Member, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/partitions/{}/members", base_url, partition_name);
 
@@ -139,10 +135,9 @@ pub async fn post(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   partition: Partition,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = base_url.to_owned() + "/hsm/v2/partitions";
 
   let response = client
@@ -175,11 +170,10 @@ pub async fn post_members(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   partition_name: &str,
   members: Member,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/partitions/{}/members", base_url, partition_name);
 
@@ -213,10 +207,9 @@ pub async fn delete_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   partition_name: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/partitions/{}", base_url, partition_name);
 
@@ -249,11 +242,10 @@ pub async fn delete_member(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   partition_name: &str,
   xname: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/partitions/{}/members/{}",
     base_url, partition_name, xname

@@ -13,9 +13,8 @@ pub async fn get(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Vec<TransitionResponse>, Error> {
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url = format!("{}/power-control/v1/transitions", shasta_base_url);
 
   log::debug!("PCS transition URL: {}", api_url);
@@ -43,10 +42,9 @@ pub async fn get_by_id(
   shasta_token: &str,
   shasta_base_url: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   id: &str,
 ) -> Result<TransitionResponse, Error> {
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url =
     format!("{}/power-control/v1/transitions/{}", shasta_base_url, id);
 
@@ -71,7 +69,6 @@ pub async fn post(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   operation: &str,
   xname_vec: &Vec<String>,
 ) -> Result<TransitionResponse, Error> {
@@ -91,7 +88,7 @@ pub async fn post(
     location: location_vec,
   };
 
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url = shasta_base_url.to_owned() + "/power-control/v1/transitions";
 
   let response = client
@@ -114,7 +111,6 @@ pub async fn post_block(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   operation: &str,
   xname_vec: &Vec<String>,
 ) -> Result<TransitionResponse, Error> {
@@ -122,7 +118,6 @@ pub async fn post_block(
     shasta_base_url,
     shasta_token,
     shasta_root_cert,
-    socks5_proxy,
     operation,
     xname_vec,
   )
@@ -134,7 +129,6 @@ pub async fn post_block(
     shasta_base_url,
     shasta_token,
     shasta_root_cert,
-    socks5_proxy,
     &node_reset.transition_id,
   )
   .await
@@ -144,14 +138,12 @@ pub async fn wait_to_complete(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   transition_id: &str,
 ) -> Result<TransitionResponse, Error> {
   let mut transition: TransitionResponse = get_by_id(
     shasta_token,
     shasta_base_url,
     shasta_root_cert,
-    socks5_proxy,
     transition_id,
   )
   .await?;
@@ -164,7 +156,6 @@ pub async fn wait_to_complete(
       shasta_token,
       shasta_base_url,
       shasta_root_cert,
-      socks5_proxy,
       transition_id,
     )
     .await?;

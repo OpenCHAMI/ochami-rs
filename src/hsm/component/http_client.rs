@@ -11,10 +11,9 @@ pub async fn get_all(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<ComponentArray, Error> {
   get(
-    base_url, root_cert, socks5_proxy, auth_token, None, None, None, None,
+    base_url, root_cert, auth_token, None, None, None, None,
     None, None, None, None, None, None, None, None, None, None, None, None,
     None, None, None, None,
   )
@@ -25,13 +24,11 @@ pub async fn get_all_nodes(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   nid_only: Option<&str>,
 ) -> Result<ComponentArray, Error> {
   get(
     base_url,
     root_cert,
-    socks5_proxy,
     auth_token,
     None,
     Some("Node"),
@@ -62,7 +59,6 @@ pub async fn get_all_nodes(
 pub async fn get(
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   auth_token: &str,
   id: Option<&str>,
   r#type: Option<&str>,
@@ -85,7 +81,7 @@ pub async fn get(
   role_only: Option<&str>,
   nid_only: Option<&str>,
 ) -> Result<ComponentArray, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
 
   let mut nid_vec_query = nid.map(|nids| {
     nids
@@ -152,10 +148,9 @@ pub async fn get_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<Component, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/State/Components/{}", base_url, xname);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -183,10 +178,9 @@ pub async fn post(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   component: ComponentArrayPostArray,
 ) -> Result<(), Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = base_url.to_owned() + "/hsm/v2/State/Components";
 
   let response = client
@@ -219,10 +213,9 @@ pub async fn post_query(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   component: ComponentArrayPostQuery,
 ) -> Result<ComponentArray, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = base_url.to_owned() + "/hsm/v2/State/Components";
 
   let response = client
@@ -255,10 +248,9 @@ pub async fn post_bynid_query(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   component: ComponentArrayPostByNidQuery,
 ) -> Result<ComponentArray, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = base_url.to_owned() + "/hsm/v2/State/Components/ByNID/Query";
 
   let response = client
@@ -291,11 +283,10 @@ pub async fn put(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
   component: ComponentPut,
 ) -> Result<(), Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/State/Components/{}", base_url, xname);
 
   let response = client
@@ -328,10 +319,9 @@ pub async fn delete_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/State/Components/{}", base_url, xname);
 
   let response = client
@@ -363,9 +353,8 @@ pub async fn delete(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   // NOTE: pre-existing typo in the URL ("Componnets")
   let api_url = format!("{}/hsm/v2/State/Componnets", base_url);
 

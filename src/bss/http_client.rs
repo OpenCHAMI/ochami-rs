@@ -9,19 +9,17 @@ pub async fn get_all(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Vec<BootParameters>, Error> {
-  get(base_url, auth_token, root_cert, socks5_proxy, &None).await
+  get(base_url, auth_token, root_cert, &None).await
 }
 
 pub async fn get(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xnames_opt: &Option<Vec<String>>,
 ) -> Result<Vec<BootParameters>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
 
   let url_api = format!("{}/boot/v1/bootparameters", base_url);
 
@@ -72,10 +70,9 @@ pub async fn post(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   boot_parameters: BootParameters,
 ) -> Result<(), Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
   let response = client
@@ -111,10 +108,9 @@ pub async fn put(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   boot_parameters: &BootParameters,
 ) -> Result<BootParameters, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
   let response = client
@@ -150,10 +146,9 @@ pub async fn patch(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   boot_parameters: &BootParameters,
 ) -> Result<(), Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
   let response = client
@@ -189,10 +184,9 @@ pub async fn delete(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   boot_parameters: &BootParameters,
 ) -> Result<String, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/boot/v1/bootparameters", base_url);
 
   let response = client

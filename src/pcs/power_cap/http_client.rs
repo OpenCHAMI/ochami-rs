@@ -8,9 +8,8 @@ pub async fn get(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<PowerCapTaskInfo, Error> {
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url = format!("{}/power-control/v1/power-cap", shasta_base_url);
 
   let response = client
@@ -32,10 +31,9 @@ pub async fn get_task_id(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   task_id: &str,
 ) -> Result<PowerCapTaskInfo, Error> {
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url =
     format!("{}/power-control/v1/power-cap/{}", shasta_base_url, task_id);
 
@@ -58,12 +56,11 @@ pub async fn post_snapshot(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname_vec: Vec<&str>,
 ) -> Result<PowerCapTaskInfo, Error> {
   log::info!("Create PCS power snapshot for nodes:\n{:?}", xname_vec);
 
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url =
     shasta_base_url.to_owned() + "/power-control/v1/power-cap/snapshot";
 
@@ -87,12 +84,11 @@ pub async fn patch(
   shasta_base_url: &str,
   shasta_token: &str,
   shasta_root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   power_cap: Vec<PowerCapComponent>,
 ) -> Result<PowerCapTaskInfo, Error> {
   log::info!("Create PCS power cap:\n{:#?}", power_cap);
 
-  let client = crate::http::build_client(shasta_root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(shasta_root_cert)?;
   let api_url =
     shasta_base_url.to_owned() + "/power-control/v1/power-cap/snapshot";
 

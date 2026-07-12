@@ -8,9 +8,8 @@ pub async fn get(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<NodeMapArray, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = base_url.to_owned() + "/smd/hsm/v2/Defaults/NodeMaps";
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
@@ -38,10 +37,9 @@ pub async fn get_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<NodeMap, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/smd/hsm/v2/Defaults/NodeMaps/{}", base_url, xname);
 
@@ -70,10 +68,9 @@ pub async fn post(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   node_maps: NodeMapArray,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = base_url.to_owned() + "/smd/hsm/v2/Defaults/NodeMaps";
 
   let response = client
@@ -106,10 +103,9 @@ pub async fn put(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   node_map: NodeMap,
 ) -> Result<(), Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/smd/hsm/v2/Defaults/NodeMaps/{}",
     base_url, node_map.id
@@ -145,9 +141,8 @@ pub async fn delete_all(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = base_url.to_owned() + "/smd/hsm/v2/Defaults/NodeMaps";
 
   let response = client
@@ -179,10 +174,9 @@ pub async fn delete_one(
   base_url: &str,
   auth_token: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   xname: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/smd/hsm/v2/Defaults/NodeMaps/{}", base_url, xname);
 

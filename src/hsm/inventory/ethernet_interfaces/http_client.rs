@@ -8,10 +8,9 @@ pub async fn post(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   eht_interface: ComponentEthernetInterface,
 ) -> Result<(), Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!("{}/hsm/v2/Inventory/EthernetInterfaces", base_url);
 
   let response = client
@@ -45,10 +44,9 @@ pub async fn post_ip_addresses(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   eht_interface: ComponentEthernetInterface,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}/IPAddresses",
     base_url,
@@ -85,7 +83,6 @@ pub async fn get(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   mac_address: Option<&str>,
   ip_address: Option<&str>,
   network: Option<&str>,
@@ -94,7 +91,7 @@ pub async fn get(
   older_than: Option<&str>,
   newer_than: Option<&str>,
 ) -> Result<Vec<ComponentEthernetInterface>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     base_url.to_owned() + "/hsm/v2/Inventory/EthernetInterfaces";
 
@@ -136,10 +133,9 @@ pub async fn get_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<ComponentEthernetInterface, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
@@ -170,7 +166,6 @@ pub async fn patch(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   eth_interface_id: &str,
   description: Option<&str>,
   ip_address_mapping: (&str, &str),
@@ -190,7 +185,7 @@ pub async fn patch(
     parent_hms_type: None,
   };
 
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
@@ -227,9 +222,8 @@ pub async fn delete_all(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url =
     format!("{}/hsm/v2/Inventory/EthernetInterfaces", base_url);
 
@@ -262,10 +256,9 @@ pub async fn delete_one(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}",
     base_url, eth_interface_id
@@ -300,10 +293,9 @@ pub async fn get_ip_addresses(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   eth_interface_id: &str,
 ) -> Result<Vec<IpAddressMapping>, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}/IPAddresses",
     base_url, eth_interface_id
@@ -334,12 +326,11 @@ pub async fn delete_ip_address(
   auth_token: &str,
   base_url: &str,
   root_cert: &[u8],
-  socks5_proxy: Option<&str>,
   _group_label: &str,
   eth_interface_id: &str,
   ip_address: &str,
 ) -> Result<Value, Error> {
-  let client = crate::http::build_client(root_cert, socks5_proxy)?;
+  let client = crate::http::build_client(root_cert)?;
   let api_url = format!(
     "{}/hsm/v2/Inventory/EthernetInterfaces/{}/IpAddress/{}",
     base_url, eth_interface_id, ip_address
