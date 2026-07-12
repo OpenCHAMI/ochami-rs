@@ -58,7 +58,10 @@ pub struct Ochami {
 }
 
 impl Ochami {
-  pub fn new(base_url: &str, root_cert: &[u8]) -> Self {
+  pub fn new(
+    base_url: &str,
+    root_cert: &[u8],
+  ) -> Self {
     Self {
       base_url: base_url.to_string(),
       root_cert: root_cert.to_vec(),
