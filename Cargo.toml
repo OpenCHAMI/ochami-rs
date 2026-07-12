@@ -11,7 +11,7 @@ repository = "https://github.com/OpenCHAMI/ochami-rs"
 publish = true
 
 [dependencies]
-manta-backend-dispatcher = "1.0.0-beta.11"
+manta-backend-dispatcher = "1.0.0-beta.15"
 
 # manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
 # manta-backend-dispatcher = { git = "https://github.com/eth-cscs/manta-backend-dispatcher", branch="feature/power-status" } # Only for development purposes
