@@ -9,6 +9,7 @@ use crate::{error::Error, hsm::generated, Ochami};
 
 mod component;
 mod group;
+mod inventory_ethernet_interfaces;
 mod inventory_hardware;
 mod inventory_hardware_by_fru;
 mod inventory_redfish_endpoint;
