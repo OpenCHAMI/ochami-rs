@@ -9,6 +9,7 @@ use crate::{error::Error, hsm::generated, Ochami};
 
 mod component;
 mod group;
+mod memberships;
 
 // Bearer auth is baked into the underlying reqwest client's
 // `default_headers` because progenitor 0.8's direct methods build the
