@@ -47,9 +47,31 @@ use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{authentication, bss};
 use crate::{
-  hsm::{self, component::types::ComponentArrayPostArray, group::types::Group},
+  hsm::{self, component::types::ComponentArrayPostArray},
   pcs,
 };
+use crate::hsm::generated::types::{
+  CompEthInterface100 as GenCompEthInterface,
+  CompEthInterface100IpAddressMapping as GenIpAddressMapping,
+  CompEthInterface100Patch as GenCompEthInterfacePatch,
+  ComponentArrayPostArray as GenComponentArrayPostArray,
+  Group100 as GenGroup,
+  RedfishEndpoint100RedfishEndpoint as GenRedfishEndpoint,
+};
+
+/// Bridge helper for Task 12: converts between the
+/// `manta_backend_dispatcher` front-end types and the progenitor-generated
+/// HSM body/response types via a JSON round-trip. Both sides share the
+/// HSM OpenAPI schema serde renames, so this is safe. Task 13's slim
+/// re-exports collapse these into direct aliases and this helper becomes
+/// dead code (to be removed then).
+fn json_convert<A: serde::Serialize, B: serde::de::DeserializeOwned>(
+  value: A,
+) -> Result<B, Error> {
+  let v =
+    serde_json::to_value(&value).map_err(|e| Error::Message(e.to_string()))?;
+  serde_json::from_value(v).map_err(|e| Error::Message(e.to_string()))
+}
 
 #[derive(Debug, Clone)]
 pub struct Ochami {
@@ -83,19 +105,13 @@ impl GroupTrait for Ochami {
     token: &str,
   ) -> Result<Vec<FrontEndGroup>, Error> {
     // Get all groups
-    let hsm_group_backend_vec = hsm::group::http_client::get(
-      &self.base_url,
-      token,
-      &self.root_cert,
-      None,
-      None,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
+    let hsm_group_backend_vec = self
+      .hsm_group_get(token, None, None)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
 
-    // Convert from HsmGroup (backend) to Group (infra)
-    let hsm_group_vec =
-      hsm_group_backend_vec.into_iter().map(Group::into).collect();
+    // Convert from generated Group100 (backend) to Group (infra) via JSON.
+    let hsm_group_vec: Vec<FrontEndGroup> = json_convert(hsm_group_backend_vec)?;
 
     Ok(hsm_group_vec)
   }
@@ -107,20 +123,15 @@ impl GroupTrait for Ochami {
     &self,
     token: &str,
   ) -> Result<Vec<String>, Error> {
-    let hsm_group_vec = hsm::group::http_client::get(
-      &self.base_url,
-      token,
-      &self.root_cert,
-      None,
-      None,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
+    let hsm_group_vec = self
+      .hsm_group_get(token, None, None)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
 
     Ok(
       hsm_group_vec
         .iter()
-        .map(|hsm_group| hsm_group.label.clone())
+        .map(|hsm_group| hsm_group.label.to_string())
         .collect(),
     )
   }
@@ -130,16 +141,13 @@ impl GroupTrait for Ochami {
     auth_token: &str,
     hsm_group: FrontEndGroup,
   ) -> Result<FrontEndGroup, Error> {
-    let hsm_group_backend = hsm::group::http_client::post(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      hsm_group.clone().into(),
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
+    let generated: GenGroup = json_convert(hsm_group.clone())?;
+    let created_uris = self
+      .hsm_group_post(auth_token, &generated)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
 
-    log::info!("Group created: {}", hsm_group_backend);
+    log::info!("Group created: {:?}", created_uris);
 
     Ok(hsm_group)
   }
@@ -151,9 +159,8 @@ impl GroupTrait for Ochami {
     hsm_group_name_vec: &[String],
   ) -> Result<Vec<String>, Error> {
     hsm::group::utils::get_member_vec_from_hsm_name_vec_2(
+      self,
       auth_token,
-      &self.base_url,
-      &self.root_cert,
       hsm_group_name_vec,
     )
     .await
@@ -166,9 +173,8 @@ impl GroupTrait for Ochami {
     hsm_name_vec: &[&str],
   ) -> Result<HashMap<String, Vec<String>>, Error> {
     hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
+      self,
       auth_token,
-      &self.base_url,
-      &self.root_cert,
       hsm_name_vec,
     )
     .await
@@ -181,9 +187,8 @@ impl GroupTrait for Ochami {
     hsm_name_vec: &[&str],
   ) -> Result<HashMap<String, Vec<String>>, Error> {
     hsm::group::utils::get_hsm_group_map_and_filter_by_hsm_group_member_vec(
+      self,
       auth_token,
-      &self.base_url,
-      &self.root_cert,
       hsm_name_vec,
     )
     .await
@@ -195,17 +200,13 @@ impl GroupTrait for Ochami {
     auth_token: &str,
     hsm_name: &str,
   ) -> Result<FrontEndGroup, Error> {
-    // Get all HSM groups
-    let hsm_group_backend = hsm::group::http_client::get_one(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      hsm_name,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
+    // Get one HSM group
+    let hsm_group_backend = self
+      .hsm_group_get_one(auth_token, hsm_name)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
 
-    let hsm_group: FrontEndGroup = hsm_group_backend.into();
+    let hsm_group: FrontEndGroup = json_convert(hsm_group_backend)?;
 
     Ok(hsm_group)
   }
@@ -216,22 +217,15 @@ impl GroupTrait for Ochami {
     hsm_name_vec: Option<&[String]>,
   ) -> Result<Vec<FrontEndGroup>, Error> {
     // Get all HSM groups
-    let hsm_group_backend_vec = hsm::group::http_client::get(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      hsm_name_vec,
-      None,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
+    let names_owned: Option<Vec<&str>> =
+      hsm_name_vec.map(|v| v.iter().map(|s| s.as_str()).collect());
+    let hsm_group_backend_vec = self
+      .hsm_group_get(auth_token, names_owned.as_deref(), None)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
 
-    // Convert from HsmGroup (silla) to HsmGroup (infra)
-    let mut hsm_group_vec = Vec::new();
-    for hsm_group_backend in hsm_group_backend_vec {
-      let hsm_group: FrontEndGroup = hsm_group_backend.into();
-      hsm_group_vec.push(hsm_group);
-    }
+    // Convert from generated Group100 (backend) to Group (infra) via JSON.
+    let hsm_group_vec: Vec<FrontEndGroup> = json_convert(hsm_group_backend_vec)?;
 
     Ok(hsm_group_vec)
   }
@@ -241,15 +235,11 @@ impl GroupTrait for Ochami {
     auth_token: &str,
     hsm_group_name: &str,
   ) -> Result<HsmActionResponse, Error> {
-    let value = hsm::group::http_client::delete_one(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      hsm_group_name,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
-    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
+    let resp = self
+      .hsm_group_delete_one(auth_token, hsm_group_name)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    Ok(resp.into())
   }
 
   async fn get_group_map_and_filter_by_group_name_vec(
@@ -258,9 +248,8 @@ impl GroupTrait for Ochami {
     hsm_name_vec: &[&str],
   ) -> Result<HashMap<String, Vec<String>>, Error> {
     hsm::group::utils::get_hsm_map_and_filter_by_hsm_name_vec(
+      self,
       shasta_token,
-      &self.base_url,
-      &self.root_cert,
       hsm_name_vec,
     )
     .await
@@ -273,20 +262,16 @@ impl GroupTrait for Ochami {
     group_label: &str,
     xname: &str,
   ) -> Result<HsmActionResponse, Error> {
-    let member = hsm::group::types::Member {
-      id: Some(xname.to_string()),
-    };
-
-    let value = hsm::group::http_client::post_member(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      group_label,
-      member,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
-    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
+    // hsm_group_post_member now returns Vec<ResourceUri100>; synthesize a
+    // successful HsmActionResponse for trait parity.
+    let uris = self
+      .hsm_group_post_member(auth_token, group_label, xname)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    Ok(HsmActionResponse {
+      code: "0".to_string(),
+      message: format!("created {} resource(s)", uris.len()),
+    })
   }
 
   async fn add_members_to_group(
@@ -299,9 +284,8 @@ impl GroupTrait for Ochami {
 
     for new_member in new_members {
       sol = hsm::group::utils::add_member(
+        self,
         auth_token,
-        &self.base_url,
-        &self.root_cert,
         group_label,
         new_member,
       )
@@ -318,15 +302,11 @@ impl GroupTrait for Ochami {
     group_label: &str,
     xname: &str,
   ) -> Result<(), Error> {
-    hsm::group::http_client::delete_member(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      group_label,
-      xname,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
+    self
+      .hsm_group_delete_member(auth_token, group_label, xname)
+      .await
+      .map(|_| ())
+      .map_err(|e| Error::Message(e.to_string()))
   }
 
   async fn update_group_members(
@@ -337,9 +317,8 @@ impl GroupTrait for Ochami {
     members_to_add: &[&str],
   ) -> Result<(), Error> {
     hsm::group::utils::update_hsm_group_members(
+      self,
       auth_token,
-      &self.base_url,
-      &self.root_cert,
       group_name,
       members_to_remove,
       members_to_add,
@@ -357,9 +336,8 @@ impl GroupTrait for Ochami {
     dryrun: bool,
   ) -> Result<(Vec<String>, Vec<String>), Error> {
     hsm::group::utils::migrate_hsm_members(
+      self,
       shasta_token,
-      &self.base_url,
-      &self.root_cert,
       target_hsm_group_name,
       parent_hsm_group_name,
       new_target_hsm_members,
@@ -383,32 +361,32 @@ impl HardwareInventory for Ochami {
     // then into the dispatcher's `NodeSummary`. Returns `Default` if the
     // response is empty — matches the original "always return something"
     // shape of the pre-typed implementation.
-    hsm::inventory::hardware::http_client::get(
-      &auth_token,
-      &self.base_url,
-      &self.root_cert,
-      Some(xname),
-      None,
-      None,
-      None,
-      None,
-      None,
-    )
-    .await
-    .map(|inventory_vec| {
-      inventory_vec
-        .into_iter()
-        .find_map(|entry| match entry {
-          crate::hsm::inventory::types::HWInventoryByLocation::HWInvByLocNode(node) => {
-            Some(node)
-          }
-          _ => None,
-        })
-        .map(crate::hsm::inventory::types::NodeSummary::from)
-        .map(Into::into)
-        .unwrap_or_default()
-    })
-    .map_err(|e| Error::Message(e.to_string()))
+    let ids = [xname];
+    self
+      .hsm_inventory_hardware_get(
+        auth_token,
+        Some(&ids),
+        None,
+        None,
+        None,
+        None,
+        None,
+      )
+      .await
+      .map(|inventory_vec| {
+        inventory_vec
+          .into_iter()
+          .find_map(|entry| match entry {
+            crate::hsm::inventory::types::HWInventoryByLocation::HWInvByLocNode(node) => {
+              Some(node)
+            }
+            _ => None,
+          })
+          .map(crate::hsm::inventory::types::NodeSummary::from)
+          .map(Into::into)
+          .unwrap_or_default()
+      })
+      .map_err(|e| Error::Message(e.to_string()))
   }
 
   async fn get_inventory_hardware_query(
@@ -421,20 +399,13 @@ impl HardwareInventory for Ochami {
     partition: Option<&str>,
     format: Option<&str>,
   ) -> Result<FrontEndHWInventory, Error> {
-    let value = hsm::inventory::hardware::http_client::get_query(
-      &auth_token,
-      &self.base_url,
-      &self.root_cert,
-      xname,
-      r#type,
-      children,
-      parents,
-      partition,
-      format,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
-    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
+    let hw = self
+      .hsm_inventory_hardware_get_query(
+        auth_token, xname, r#type, children, parents, partition, format,
+      )
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    Ok(hw.into())
   }
 
   async fn post_inventory_hardware(
@@ -442,15 +413,13 @@ impl HardwareInventory for Ochami {
     auth_token: &str,
     hardware: FrontEndHWInventoryByLocationList,
   ) -> Result<HsmActionResponse, Error> {
-    let value = hsm::inventory::hardware::http_client::post(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      hardware.into(),
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
-    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
+    let hw_internal: crate::hsm::inventory::types::HWInventoryByLocationList =
+      hardware.into();
+    let resp = self
+      .hsm_inventory_hardware_post(auth_token, &hw_internal)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    Ok(resp.into())
   }
 }
 
@@ -460,34 +429,11 @@ impl ComponentTrait for Ochami {
     auth_token: &str,
     nid_only: Option<&str>,
   ) -> Result<NodeMetadataArray, Error> {
-    hsm::component::http_client::get(
-      &self.base_url,
-      &self.root_cert,
-      auth_token,
-      None,
-      Some("Node"),
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      nid_only,
-    )
-    .await
-    .map(|c| c.into())
-    .map_err(|e| Error::Message(e.to_string()))
+    let arr = self
+      .hsm_component_get_all_nodes(auth_token, nid_only)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    json_convert(arr)
   }
 
   async fn get_node_metadata_available(
@@ -524,34 +470,33 @@ impl ComponentTrait for Ochami {
     role_only: Option<&str>,
     nid_only: Option<&str>,
   ) -> Result<NodeMetadataArray, Error> {
-    hsm::component::http_client::get(
-      &self.base_url,
-      &self.root_cert,
-      auth_token,
-      id,
-      r#type,
-      state,
-      flag,
-      role,
-      subrole,
-      enabled,
-      software_status,
-      subtype,
-      arch,
-      class,
-      nid,
-      nid_start,
-      nid_end,
-      partition,
-      group,
-      state_only,
-      flag_only,
-      role_only,
-      nid_only,
-    )
-    .await
-    .map(|c| c.into())
-    .map_err(|e| Error::Message(e.to_string()))
+    let arr = self
+      .hsm_component_get(
+        auth_token,
+        id,
+        r#type,
+        state,
+        flag,
+        role,
+        subrole,
+        enabled,
+        software_status,
+        subtype,
+        arch,
+        class,
+        nid,
+        nid_start,
+        nid_end,
+        partition,
+        group,
+        state_only,
+        flag_only,
+        role_only,
+        nid_only,
+      )
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    json_convert(arr)
   }
 
   async fn post_nodes(
@@ -560,15 +505,11 @@ impl ComponentTrait for Ochami {
     component: FrontEndComponentArrayPostArray,
   ) -> Result<(), Error> {
     let component_backend: ComponentArrayPostArray = component.into();
-
-    hsm::component::http_client::post(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      component_backend,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
+    let generated: GenComponentArrayPostArray = json_convert(component_backend)?;
+    self
+      .hsm_component_post(auth_token, generated)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))
   }
 
   async fn delete_node(
@@ -576,15 +517,11 @@ impl ComponentTrait for Ochami {
     auth_token: &str,
     id: &str,
   ) -> Result<HsmActionResponse, Error> {
-    let value = hsm::component::http_client::delete_one(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      id,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
-    serde_json::from_value(value).map_err(|e| Error::Message(e.to_string()))
+    let resp = self
+      .hsm_component_delete_one(auth_token, id)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    Ok(resp.into())
   }
 
   /// Get list of xnames from NIDs
@@ -608,16 +545,11 @@ impl ComponentTrait for Ochami {
         .map_err(|e| Error::Message(e.to_string()))?;
 
       // Get all HSM components (list of xnames + nids)
-      let hsm_component_vec = hsm::component::http_client::get_all_nodes(
-        &self.base_url,
-        shasta_token,
-        &self.root_cert,
-        Some("true"),
-      )
-      .await
-      .map_err(|e| Error::Message(e.to_string()))?
-      .components
-      .unwrap_or_default();
+      let hsm_component_vec = self
+        .hsm_component_get_all_nodes(shasta_token, Some("true"))
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?
+        .components;
 
       let mut xname_vec: Vec<String> = vec![];
 
@@ -632,7 +564,13 @@ impl ComponentTrait for Ochami {
               nid_long,
               regex.as_str()
             );
-            xname_vec.push(hsm_component.id.clone().expect("No XName found"));
+            xname_vec.push(
+              hsm_component
+                .id
+                .clone()
+                .expect("No XName found")
+                .0,
+            );
           }
         }
       }
@@ -673,40 +611,38 @@ impl ComponentTrait for Ochami {
 
       log::debug!("short NID list: {}", nid_short);
 
-      let hsm_components = hsm::component::http_client::get(
-        &self.base_url,
-        &self.root_cert,
-        shasta_token,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(&nid_short),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some("true"),
-      )
-      .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      let hsm_components = self
+        .hsm_component_get(
+          shasta_token,
+          None,
+          None,
+          None,
+          None,
+          None,
+          None,
+          None,
+          None,
+          None,
+          None,
+          None,
+          Some(&nid_short),
+          None,
+          None,
+          None,
+          None,
+          None,
+          None,
+          None,
+          Some("true"),
+        )
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
 
       // Get list of xnames from HSM components
       let xname_vec: Vec<String> = hsm_components
         .components
-        .unwrap_or_default()
         .iter()
-        .map(|component| component.id.clone().unwrap())
+        .map(|component| component.id.clone().unwrap().0)
         .collect();
 
       log::debug!("xname list:\n{:#?}", xname_vec);
@@ -844,14 +780,13 @@ impl RedfishEndpointTrait for Ochami {
     &self,
     auth_token: &str,
   ) -> Result<RedfishEndpointArray, Error> {
-    hsm::inventory::redfish_endpoint::http_client::get_all(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-    )
-    .await
-    .map(|re| re.into())
-    .map_err(|e| Error::Message(e.to_string()))
+    let gen_arr = self
+      .hsm_inventory_redfish_endpoint_get(
+        auth_token, None, None, None, None, None, None, None,
+      )
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    json_convert(gen_arr)
   }
 
   async fn get_redfish_endpoints(
@@ -865,21 +800,20 @@ impl RedfishEndpointTrait for Ochami {
     ip_address: Option<&str>,
     last_status: Option<&str>,
   ) -> Result<RedfishEndpointArray, Error> {
-    hsm::inventory::redfish_endpoint::http_client::get(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      id,
-      fqdn,
-      r#type,
-      uuid,
-      macaddr,
-      ip_address,
-      last_status,
-    )
-    .await
-    .map(|re| re.into())
-    .map_err(|e| Error::Message(e.to_string()))
+    let gen_arr = self
+      .hsm_inventory_redfish_endpoint_get(
+        auth_token,
+        id,
+        fqdn,
+        r#type,
+        uuid,
+        macaddr,
+        ip_address,
+        last_status,
+      )
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    json_convert(gen_arr)
   }
 
   async fn add_redfish_endpoint(
@@ -887,15 +821,21 @@ impl RedfishEndpointTrait for Ochami {
     auth_token: &str,
     redfish_endpoint: &RedfishEndpointArray,
   ) -> Result<(), Error> {
-    hsm::inventory::redfish_endpoint::http_client::post(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      redfish_endpoint.clone().into(),
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
-
+    // The generated `do_redfish_endpoints_post` takes a single endpoint
+    // per call (mirrors the real HSM OpenAPI schema — the hand-written
+    // http_client.rs::post's array-payload was overly permissive). Iterate
+    // over the front-end array and POST each endpoint individually.
+    let eps = redfish_endpoint
+      .redfish_endpoints
+      .as_deref()
+      .unwrap_or(&[]);
+    for ep in eps {
+      let gen_ep: GenRedfishEndpoint = json_convert(ep.clone())?;
+      self
+        .hsm_inventory_redfish_endpoint_post(auth_token, &gen_ep)
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
+    }
     Ok(())
   }
 
@@ -904,16 +844,12 @@ impl RedfishEndpointTrait for Ochami {
     auth_token: &str,
     redfish_endpoint: &RedfishEndpoint,
   ) -> Result<(), Error> {
-    hsm::inventory::redfish_endpoint::http_client::put(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      redfish_endpoint.id.as_str(),
-      redfish_endpoint.clone().into(),
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
-
+    let xname = redfish_endpoint.id.clone();
+    let gen_ep: GenRedfishEndpoint = json_convert(redfish_endpoint.clone())?;
+    self
+      .hsm_inventory_redfish_endpoint_put(auth_token, xname.as_str(), &gen_ep)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
     Ok(())
   }
 
@@ -922,14 +858,11 @@ impl RedfishEndpointTrait for Ochami {
     auth_token: &str,
     id: &str,
   ) -> Result<Value, Error> {
-    hsm::inventory::redfish_endpoint::http_client::delete_one(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      id,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
+    let resp = self
+      .hsm_inventory_redfish_endpoint_delete_one(auth_token, id)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    serde_json::to_value(resp).map_err(|e| Error::Message(e.to_string()))
   }
 }
 
@@ -938,21 +871,13 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     &self,
     auth_token: &str,
   ) -> Result<Vec<ComponentEthernetInterface>, Error> {
-    hsm::inventory::ethernet_interfaces::http_client::get(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-    )
-    .await
-    .map(|re| re.into_iter().map(|e| e.into()).collect())
-    .map_err(|e| Error::Message(e.to_string()))
+    let gen_vec = self
+      .hsm_inventory_ethernet_interface_get(
+        auth_token, None, None, None, None, None, None, None,
+      )
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    json_convert(gen_vec)
   }
 
   async fn get_component_ethernet_interface(
@@ -960,15 +885,11 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     auth_token: &str,
     eth_interface_id: &str,
   ) -> Result<ComponentEthernetInterface, Error> {
-    hsm::inventory::ethernet_interfaces::http_client::get_one(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      eth_interface_id,
-    )
-    .await
-    .map(|re| re.into())
-    .map_err(|e| Error::Message(e.to_string()))
+    let gen_ei = self
+      .hsm_inventory_ethernet_interface_get_one(auth_token, eth_interface_id)
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    json_convert(gen_ei)
   }
 
   async fn add_component_ethernet_interface(
@@ -976,14 +897,12 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     auth_token: &str,
     ethernet_interface: &ComponentEthernetInterface,
   ) -> Result<(), Error> {
-    hsm::inventory::ethernet_interfaces::http_client::post(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      ethernet_interface.clone().into(),
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
+    let gen_ei: GenCompEthInterface = json_convert(ethernet_interface.clone())?;
+    self
+      .hsm_inventory_ethernet_interface_post(auth_token, &gen_ei)
+      .await
+      .map(|_uri| ())
+      .map_err(|e| Error::Message(e.to_string()))
   }
 
   async fn update_component_ethernet_interface(
@@ -998,32 +917,33 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     description: Option<&str>,
     ip_address_mapping: (&str, &str),
   ) -> Result<Value, Error> {
-    hsm::inventory::ethernet_interfaces::http_client::patch(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      //shasta_token,
-      //shasta_base_url,
-      //shasta_root_cert,
-      eth_interface_id,
-      description,
-      ip_address_mapping,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
-  }
-
-  async fn delete_all_component_ethernet_interfaces(
-    &self,
-    auth_token: &str,
-  ) -> Result<Value, Error> {
-    hsm::inventory::ethernet_interfaces::http_client::delete_all(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
+    // Build a CompEthInterface100Patch inline. The old
+    // http_client::patch bundled description + a single IP mapping into a
+    // ComponentEthernetInterface body — the equivalent generated PATCH
+    // schema (`CompEthInterface100Patch`) carries description, ip_addresses,
+    // and component_id (no MACAddress / LastUpdate on PATCH). Task 13's
+    // slim re-export will provide a `From<ComponentEthernetInterface>` for
+    // this type; until then, construct manually.
+    let (ip_address, network) = ip_address_mapping;
+    let patch = GenCompEthInterfacePatch {
+      component_id: Some(
+        crate::hsm::generated::types::XNameRw100(eth_interface_id.to_string()),
+      ),
+      description: description.map(|s| s.to_string()),
+      ip_addresses: vec![GenIpAddressMapping {
+        ip_address: ip_address.to_string(),
+        network: Some(network.to_string()),
+      }],
+    };
+    self
+      .hsm_inventory_ethernet_interface_patch(
+        auth_token,
+        eth_interface_id,
+        &patch,
+      )
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    Ok(Value::Null)
   }
 
   async fn delete_component_ethernet_interface(
@@ -1033,105 +953,17 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     //root_cert: &[u8],
     eth_interface_id: &str,
   ) -> Result<Value, Error> {
-    hsm::inventory::ethernet_interfaces::http_client::delete_one(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      eth_interface_id,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
+    let resp = self
+      .hsm_inventory_ethernet_interface_delete_one(
+        auth_token,
+        eth_interface_id,
+      )
+      .await
+      .map_err(|e| Error::Message(e.to_string()))?;
+    serde_json::to_value(resp).map_err(|e| Error::Message(e.to_string()))
   }
 
-  /* async fn get_ip_addresses(
-    &self,
-    auth_token: &str,
-    eth_interface_id: &str,
-  ) -> Result<Vec<IpAddressMapping>, Error> {
-    hsm::inventory::ethernet_interfaces::http_client::get_ip_addresses(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      eth_interface_id,
-    )
-    .await
-    .map(|re| re.into_iter().map(|item| item.into()).collect())
-    .map_err(|e| Error::Message(e.to_string()))
-  }
-
-  async fn delete_ip_address(
-    &self,
-    auth_token: &str,
-    //base_url: &str,
-    //root_cert: &[u8],
-    _group_label: &str,
-    eth_interface_id: &str,
-    ip_address: &str,
-  ) -> Result<Value, Error> {
-    hsm::inventory::ethernet_interfaces::http_client::delete_ip_address(
-      auth_token,
-      &self.base_url,
-      &self.root_cert,
-      _group_label,
-      eth_interface_id,
-      ip_address,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))
-  } */
 }
-
-//  async fn add_component_ethernet_interface(
-//    &self,
-//    auth_token: &str,
-//    component_ethernet_interface: &ComponentEthernetInterfaceArray,
-//  ) -> Result<(), Error> {
-//    hsm::inventory::ethernet_interfaces::http_client::post(
-//      auth_token,
-//      &self.base_url,
-//      &self.root_cert,
-//      component_ethernet_interface.clone().into(),
-//    )
-//    .await
-//    .map_err(|e| Error::Message(e.to_string()))?;
-//
-//    Ok(())
-//  }
-//
-//  async fn update_component_ethernet_interface(
-//    &self,
-//    auth_token: &str,
-//    component_ethernet_interface: &ComponentEthernetInterface,
-//  ) -> Result<(), Error> {
-//    hsm::inventory::ethernet_interfaces::http_client::put(
-//      auth_token,
-//      &self.base_url,
-//      &self.root_cert,
-//      component_ethernet_interface.id.as_str(),
-//      component_ethernet_interface.clone().into(),
-//    )
-//    .await
-//    .map_err(|e| Error::Message(e.to_string()))?;
-//
-//    Ok(())
-//  }
-//
-//  async fn delete_component_ethernet_interface(
-//    &self,
-//    auth_token: &str,
-//    id: &str,
-//  ) -> Result<Value, Error> {
-//    hsm::inventory::ethernet_interfaces::http_client::delete_one(
-//      &self.base_url,
-//      auth_token,
-//      &self.root_cert,
-//      id,
-//    )
-//    .await
-//    .map_err(|e| Error::Message(e.to_string()))
-//  }
-//}
-// --------- end
 
 impl AuthenticationTrait for Ochami {
   async fn get_api_token(

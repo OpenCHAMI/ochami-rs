@@ -1,75 +1,71 @@
 use std::collections::HashMap;
 
 use crate::{
+  Ochami,
   error::Error,
-  hsm::{self, group::types::Member},
+  hsm::group::types::{Group, Member},
   node::utils::validate_xnames_format_and_membership_agaisnt_single_hsm,
 };
 
-use crate::hsm::group::{http_client, types::Group};
+/// Bridge helper for Task 12: converts between the progenitor-generated
+/// `Group100` and the internal hand-rolled `Group` via a JSON round-trip.
+/// Both types share the HSM OpenAPI schema serde renames, so this is
+/// safe. Task 13's slim re-exports collapse these into a direct alias
+/// and this helper becomes dead code (to be removed then).
+fn generated_to_internal_groups(
+  gen: Vec<crate::hsm::generated::types::Group100>,
+) -> Result<Vec<Group>, Error> {
+  let v = serde_json::to_value(&gen).map_err(|e| Error::Message(e.to_string()))?;
+  serde_json::from_value(v).map_err(|e| Error::Message(e.to_string()))
+}
 
-use super::http_client::{delete_member, post_member};
+fn generated_to_internal_group(
+  gen: crate::hsm::generated::types::Group100,
+) -> Result<Group, Error> {
+  let v = serde_json::to_value(&gen).map_err(|e| Error::Message(e.to_string()))?;
+  serde_json::from_value(v).map_err(|e| Error::Message(e.to_string()))
+}
 
 /// Add a list of xnames to target HSM group
 /// Returns the new list of nodes in target HSM group
 pub async fn add_member(
+  client: &Ochami,
   auth_token: &str,
-  base_url: &str,
-  root_cert: &[u8],
   group_label: &str,
   new_member: &str,
 ) -> Result<Vec<String>, Error> {
   // Get HSM group from CSM
-  let group = crate::hsm::group::http_client::get_one(
-    base_url,
-    auth_token,
-    root_cert,
-    group_label,
-  )
-  .await?;
+  let group_gen = client.hsm_group_get_one(auth_token, group_label).await?;
+  let group = generated_to_internal_group(group_gen)?;
 
   // Update HSM group with new memebers
-  // Create Member struct
   let new_member = new_member.to_string();
-  let member = crate::hsm::group::types::Member {
-    id: Some(new_member.clone()),
-  };
-
-  // Update HSM group in CSM
-  let _ = crate::hsm::group::http_client::post_member(
-    auth_token,
-    base_url,
-    root_cert,
-    group_label,
-    member,
-  )
-  .await?;
+  let _ = client
+    .hsm_group_post_member(auth_token, group_label, &new_member)
+    .await?;
 
   // Generate list of updated group members
-  group.get_members().push(new_member);
+  let mut members = group.get_members();
+  members.push(new_member);
 
-  Ok(group.get_members())
+  Ok(members)
 }
 
 pub async fn get_member_vec_from_hsm_name_vec_2(
+  client: &Ochami,
   auth_token: &str,
-  base_url: &str,
-  root_cert: &[u8],
   hsm_name_vec: &[String],
 ) -> Result<Vec<String>, Error> {
   log::info!("Get xnames for HSM groups: {:?}", hsm_name_vec);
 
-  let hsm_group_name_vec: Vec<String> = hsm_name_vec.to_vec();
+  let names_ref: Vec<&str> = hsm_name_vec.iter().map(|s| s.as_str()).collect();
 
-  let group_vec = http_client::get(
-    base_url,
-    auth_token,
-    root_cert,
-    Some(&hsm_group_name_vec),
-    None,
-  )
-  .await
-  .map_err(|e| Error::Message(e.to_string()))?;
+  let group_vec_gen = client
+    .hsm_group_get(auth_token, Some(&names_ref), None)
+    .await
+    .map_err(|e| Error::Message(e.to_string()))?;
+
+  let group_vec = generated_to_internal_groups(group_vec_gen)?;
 
   let hsm_group_member_vec: Vec<String> = group_vec
     .into_iter()
@@ -82,14 +78,16 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
 // Returns a HashMap with keys being the hsm names/labels the user has access a curated list of xnames
 // for each hsm name as values
 pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
+  client: &Ochami,
   auth_token: &str,
-  base_url: &str,
-  root_cert: &[u8],
   hsm_name_vec: &[&str],
 ) -> Result<HashMap<String, Vec<String>>, Error> {
-  let hsm_group_vec = http_client::get_all(base_url, auth_token, root_cert)
+  let hsm_group_vec_gen = client
+    .hsm_group_get_all(auth_token)
     .await
     .map_err(|e| Error::Message(e.to_string()))?;
+
+  let hsm_group_vec = generated_to_internal_groups(hsm_group_vec_gen)?;
 
   Ok(filter_by_hsm_group_and_convert_to_map(
     hsm_name_vec,
@@ -100,14 +98,13 @@ pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
 // Returns a HashMap with keys being the hsm names/labels the user has access a curated list of xnames
 // for each hsm name as values
 pub async fn get_hsm_group_map_and_filter_by_hsm_group_member_vec(
+  client: &Ochami,
   shasta_token: &str,
-  shasta_base_url: &str,
-  shasta_root_cert: &[u8],
   hsm_name_vec: &[&str],
 ) -> Result<HashMap<String, Vec<String>>, Error> {
-  let hsm_group_vec =
-    http_client::get_all(shasta_base_url, shasta_token, shasta_root_cert)
-      .await?;
+  let hsm_group_vec_gen = client.hsm_group_get_all(shasta_token).await?;
+
+  let hsm_group_vec = generated_to_internal_groups(hsm_group_vec_gen)?;
 
   Ok(filter_by_hsm_group_members_and_convert_to_map(
     hsm_name_vec,
@@ -163,20 +160,14 @@ pub fn filter_by_hsm_group_members_and_convert_to_map(
 
 /// Receives 2 lists of xnames old xnames to remove from parent HSM group and new xhanges to add to target HSM group, and does just that
 pub async fn update_hsm_group_members(
+  client: &Ochami,
   auth_token: &str,
-  base_url: &str,
-  root_cert: &[u8],
   group_label: &str,
   group_members_to_delete: &[&str],
   group_members_to_add: &[&str],
 ) -> Result<(), Error> {
-  let group = hsm::group::http_client::get_one(
-    base_url,
-    auth_token,
-    root_cert,
-    group_label,
-  )
-  .await?;
+  let group_gen = client.hsm_group_get_one(auth_token, group_label).await?;
+  let group = generated_to_internal_group(group_gen)?;
 
   let mut group_members = group.members.unwrap().ids.unwrap();
 
@@ -192,9 +183,8 @@ pub async fn update_hsm_group_members(
 
 /// Moves list of xnames from parent to target HSM group
 pub async fn migrate_hsm_members(
+  client: &Ochami,
   shasta_token: &str,
-  shasta_base_url: &str,
-  shasta_root_cert: &[u8],
   target_hsm_group_name: &str,
   parent_hsm_group_name: &str,
   new_target_hsm_members: &[&str],
@@ -202,9 +192,8 @@ pub async fn migrate_hsm_members(
 ) -> Result<(Vec<String>, Vec<String>), Error> {
   // Check nodes are valid xnames and they belong to parent HSM group
   if !validate_xnames_format_and_membership_agaisnt_single_hsm(
+    client,
     shasta_token,
-    shasta_base_url,
-    shasta_root_cert,
     new_target_hsm_members,
     Some(&parent_hsm_group_name.to_string()),
   )
@@ -218,9 +207,8 @@ pub async fn migrate_hsm_members(
   // get list of target HSM group members
   let mut target_hsm_group_member_vec: Vec<String> =
     get_member_vec_from_hsm_name_vec_2(
+      client,
       shasta_token,
-      shasta_base_url,
-      shasta_root_cert,
       &[target_hsm_group_name.to_string()],
     )
     .await?;
@@ -235,9 +223,8 @@ pub async fn migrate_hsm_members(
   // get list of parent HSM group members
   let mut parent_hsm_group_member_vec: Vec<String> =
     get_member_vec_from_hsm_name_vec_2(
+      client,
       shasta_token,
-      shasta_base_url,
-      shasta_root_cert,
       &[parent_hsm_group_name.to_string()],
     )
     .await?;
@@ -279,29 +266,19 @@ pub async fn migrate_hsm_members(
     println!("dry-run enabled, changes not persisted.");
   } else {
     for xname in new_target_hsm_members {
-      let member = Member {
-        id: Some(xname.to_string()),
-      };
+      let _ = client
+        .hsm_group_post_member(shasta_token, target_hsm_group_name, xname)
+        .await;
 
-      let _ = post_member(
-        shasta_token,
-        shasta_base_url,
-        shasta_root_cert,
-        target_hsm_group_name,
-        member,
-      )
-      .await;
-
-      let _ = delete_member(
-        shasta_token,
-        shasta_base_url,
-        shasta_root_cert,
-        parent_hsm_group_name,
-        xname,
-      )
-      .await;
+      let _ = client
+        .hsm_group_delete_member(shasta_token, parent_hsm_group_name, xname)
+        .await;
     }
   }
+
+  // Silence unused-import warning for `Member` while callers still expect
+  // the type re-exported here; kept for API compatibility during Task 12.
+  let _ = std::marker::PhantomData::<Member>;
 
   Ok((target_hsm_group_member_vec, parent_hsm_group_member_vec))
 }
