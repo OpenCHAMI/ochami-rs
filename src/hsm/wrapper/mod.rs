@@ -7,20 +7,38 @@ use std::fmt::Debug;
 
 use crate::{error::Error, hsm::generated, Ochami};
 
-// NOTE: `_token` is unused today — bearer auth is applied per-request (see
-// below) rather than baked into the generated client. Kept in the
-// signature so Phase 3 call sites are uniform (`gen_client(client, token)`)
-// and so a future shared-pool/pre_hook refactor (Section 5 follow-up) can
-// wire it in without changing callers.
+mod component;
+
+// Bearer auth is baked into the underlying reqwest client's
+// `default_headers` because progenitor 0.8's direct methods build the
+// request internally (`self.client.get(url).build()`) and expose no
+// hook for the caller to add per-request headers. Mirrors the csm-rs
+// HSM wrapper's `build_client_with_auth`+`gen_client` pattern.
+// A shared connection pool across calls would require a
+// pre_hook-capable progenitor build (Section 5 follow-up); until
+// then, each `gen_client` call constructs a fresh reqwest client
+// carrying the caller's token.
 pub(crate) fn gen_client(
   client: &Ochami,
-  _token: &str,
+  token: &str,
 ) -> Result<generated::Client, Error> {
-  let inner = crate::http::build_client(client.root_cert())?;
+  let mut headers = reqwest::header::HeaderMap::new();
+  let auth = format!("Bearer {token}");
+  let mut value = reqwest::header::HeaderValue::from_str(&auth)
+    .map_err(|e| Error::Message(format!("invalid bearer token: {e}")))?;
+  value.set_sensitive(true);
+  headers.insert(reqwest::header::AUTHORIZATION, value);
+
+  let inner = reqwest::Client::builder()
+    .add_root_certificate(reqwest::Certificate::from_pem(client.root_cert())?)
+    .use_rustls_tls()
+    .connect_timeout(crate::http::HTTP_CONNECT_TIMEOUT)
+    .timeout(crate::http::HTTP_REQUEST_TIMEOUT)
+    .default_headers(headers)
+    .build()
+    .map_err(Error::NetError)?;
+
   let baseurl = format!("{}/hsm/v2", client.base_url());
-  // NOTE: bearer auth is applied per-request via reqwest's `.bearer_auth()`
-  // in each wrapper method body since reqwest doesn't allow inserting
-  // default headers post-build.
   Ok(generated::Client::new_with_client(&baseurl, inner))
 }
 
