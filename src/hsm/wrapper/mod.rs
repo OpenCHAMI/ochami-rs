@@ -86,19 +86,27 @@ pub(crate) fn gen_client(
   Ok(generated::Client::new_with_client(&baseurl, inner))
 }
 
-pub(crate) async fn map_err<E: Debug>(
+pub(crate) async fn map_err<E: Debug + serde::Serialize>(
   err: progenitor_client::Error<E>,
 ) -> Error {
   use progenitor_client::Error::*;
   match err {
     InvalidRequest(s) => Error::Message(format!("HSM invalid request: {s}")),
     CommunicationError(e) | InvalidUpgrade(e) => Error::NetError(e),
+    // Emit structured Error::OchamiError so retry_on_5xx (which only
+    // matches OchamiError with a 5xx status) can fire on typed error
+    // responses too. Fall back to the Debug-formatted string if
+    // serializing the typed body fails (unlikely — progenitor-emitted
+    // error types derive Serialize).
     ErrorResponse(rv) => {
       let status = rv.status().as_u16();
-      Error::Message(format!(
-        "HSM error response: status={status} body={:?}",
-        rv.into_inner()
-      ))
+      let inner = rv.into_inner();
+      match serde_json::to_value(&inner) {
+        Ok(body) => Error::OchamiError { status, body },
+        Err(_) => Error::Message(format!(
+          "HSM error response: status={status} body={inner:?}"
+        )),
+      }
     }
     ResponseBodyError(e) => Error::NetError(e),
     InvalidResponsePayload(_, e) => Error::SerdeError(e),
@@ -130,7 +138,7 @@ where
       progenitor_client::Error<E>,
     >,
   >,
-  E: Debug,
+  E: Debug + serde::Serialize,
 {
   let gc = gen_client(client, token)?;
   match op(gc).await {
