@@ -634,11 +634,21 @@ impl ComponentTrait for Ochami {
         .await
         .map_err(Error::from)?;
 
-      // Get list of xnames from HSM components
+      // Get list of xnames from HSM components. Components with a
+      // missing `id` are skip-logged rather than panicking (a
+      // malformed HSM record should not crash the caller).
       let xname_vec: Vec<String> = hsm_components
         .components
         .iter()
-        .map(|component| component.id.clone().unwrap().0)
+        .filter_map(|component| match component.id.as_ref() {
+          Some(id) => Some(id.0.clone()),
+          None => {
+            log::warn!(
+              "HSM component with no id skipped: {component:?}"
+            );
+            None
+          }
+        })
         .collect();
 
       log::debug!("xname list:\n{:#?}", xname_vec);

@@ -100,7 +100,10 @@ pub async fn post(
     .map_err(Error::NetError)?;
 
   if response.status().is_success() {
-    Ok(response.json::<TransitionResponse>().await.unwrap())
+    response
+      .json::<TransitionResponse>()
+      .await
+      .map_err(Error::NetError)
   } else {
     let payload = response.text().await.map_err(Error::NetError)?;
     Err(Error::Message(payload))

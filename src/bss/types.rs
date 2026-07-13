@@ -57,6 +57,15 @@ impl Into<FrontEndBootParameters> for BootParameters {
 }
 
 impl BootParameters {
+  /// Construct a `BootParameters` from the individual fields.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`crate::error::Error::Message`] if any string in `nids`
+  /// cannot be parsed as a `u32`, or [`crate::error::Error::SerdeError`]
+  /// if `cloud_init_opt` cannot be encoded as JSON (unreachable for a
+  /// plain string but forwarded for shape consistency with the rest of
+  /// the crate's error surface).
   pub fn new(
     hosts: Vec<&str>,
     macs: Option<Vec<&str>>,
@@ -65,23 +74,35 @@ impl BootParameters {
     kernel: &str,
     initrd: &str,
     cloud_init_opt: Option<&str>,
-  ) -> Self {
-    BootParameters {
+  ) -> Result<Self, crate::error::Error> {
+    let nids = nids
+      .map(|nid_vec| {
+        nid_vec
+          .iter()
+          .map(|value| {
+            value.parse::<u32>().map_err(|e| {
+              crate::error::Error::Message(format!(
+                "BootParameters::new: nid {value:?} is not a valid u32: {e}"
+              ))
+            })
+          })
+          .collect::<Result<Vec<u32>, _>>()
+      })
+      .transpose()?;
+    let cloud_init = cloud_init_opt
+      .map(serde_json::to_value)
+      .transpose()
+      .map_err(crate::error::Error::SerdeError)?;
+    Ok(BootParameters {
       hosts: hosts.iter().map(|value| value.to_string()).collect(),
       macs: macs
         .map(|mac_vec| mac_vec.iter().map(|value| value.to_string()).collect()),
-      nids: nids.map(|nid_vec| {
-        nid_vec
-          .iter()
-          .map(|value| value.parse::<u32>().unwrap())
-          .collect()
-      }),
+      nids,
       params: params.to_string(),
       kernel: kernel.to_string(),
       initrd: initrd.to_string(),
-      cloud_init: cloud_init_opt
-        .map(|cloud_init| serde_json::to_value(cloud_init).unwrap()),
-    }
+      cloud_init,
+    })
   }
 
   /// Returns the image id. This function may fail since it assumes kernel path has the following

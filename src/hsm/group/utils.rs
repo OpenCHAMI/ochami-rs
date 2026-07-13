@@ -261,14 +261,36 @@ pub async fn migrate_hsm_members(
 
     log::info!("dry-run enabled, changes not persisted.");
   } else {
+    let mut failures: Vec<String> = Vec::new();
     for xname in new_target_hsm_members {
-      let _ = client
+      if let Err(e) = client
         .hsm_group_post_member(shasta_token, target_hsm_group_name, xname)
-        .await;
+        .await
+      {
+        log::warn!(
+          "post-member {xname} → {target_hsm_group_name} failed: {e}"
+        );
+        failures.push(format!("post {xname} → {target_hsm_group_name}: {e}"));
+      }
 
-      let _ = client
+      if let Err(e) = client
         .hsm_group_delete_member(shasta_token, parent_hsm_group_name, xname)
-        .await;
+        .await
+      {
+        log::warn!(
+          "delete-member {xname} ← {parent_hsm_group_name} failed: {e}"
+        );
+        failures
+          .push(format!("delete {xname} ← {parent_hsm_group_name}: {e}"));
+      }
+    }
+    if !failures.is_empty() {
+      return Err(Error::Message(format!(
+        "migrate_hsm_members: {} of {} xname operations failed: {}",
+        failures.len(),
+        new_target_hsm_members.len() * 2,
+        failures.join("; ")
+      )));
     }
   }
 
