@@ -1967,6 +1967,38 @@ Trigger → `cargo yank` + fix-forward beta.17 (per Section 4 rollback plan).
 
 ## Open Questions Deferred to Task 0
 
+> **Task 0 resolution (2026-07-13)**: all items below are answered in
+> `docs/superpowers/plans/2026-07-13-progenitor-hsm-output-reference.md`.
+> Highlights that override this spec's Sections 2 and 3 sketches (see
+> § L of the output-reference doc for the full list):
+>
+> - Progenitor 0.8's default `Generator` emits **direct methods**, not
+>   builders. Wrapper `run()` callsites use
+>   `c.do_component_get(xname, None).await`, not
+>   `c.do_state_components_get_one_builder().xname(x).send().await`.
+> - No schema named `HsmActionResponse` exists. Alias `Response100`
+>   instead: `pub use crate::hsm::generated::types::Response100 as HsmActionResponse;`.
+> - `ResourceName` inner is **private** and Deserialize enforces regex.
+>   Access via `Deref<Target = String>` (e.g. `&*group.label`);
+>   construct via `ResourceName::from_str()` / `try_from()`. The
+>   ResourceName widening patch is release-blocking.
+> - `Group100.tags` is `Vec<ResourceName>` (not `Option<Vec<…>>`).
+> - `Membership100` has no `ids` field — has `id: Option<XName100>` and
+>   `group_labels: Vec<String>`.
+> - `Members100.ids` is `Vec<XNameRw100>`, not Option.
+> - POST /members body is single-member (`MemberId { id:
+>   Option<XNameRw100> }`), not bulk.
+> - `ComponentArrayPostQuery` has no `falg_only` typo; the field is
+>   `flagonly` (single word).
+> - date-time crate: `chrono` (confirmed).
+> - Baseurl `{base_url}/hsm/v2` remains the working assumption based on
+>   in-crate evidence, but is **not** yet verified against a real
+>   deployment — see the output-reference doc's § M release checklist.
+>
+> No structural (routing-per-resource) rework surfaced. Phase 2+
+> proceeds on the design as originally drafted, subject to the
+> mechanical adjustments above.
+
 - Baseurl `{base_url}/hsm/v2` correct for real OCHAMI deployments?
 - Upstream OpenCHAMI HSM spec repository URL and license?
 - Exact typify-mangled type names (`XName100`, `Component100Component`, etc.)?

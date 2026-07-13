@@ -1,3 +1,5 @@
+pub(crate) mod generated;
+
 pub mod component;
 pub mod defaults;
 pub mod group;
