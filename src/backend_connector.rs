@@ -268,9 +268,18 @@ impl GroupTrait for Ochami {
       .hsm_group_post_member(auth_token, group_label, xname)
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
+    // TODO(phase 5): pass Vec<ResourceUri100> through directly instead of
+    // stringifying.
     Ok(HsmActionResponse {
       code: "0".to_string(),
-      message: format!("created {} resource(s)", uris.len()),
+      message: format!(
+        "created: {}",
+        uris
+          .iter()
+          .map(|u| u.resource_uri.as_deref().unwrap_or(""))
+          .collect::<Vec<_>>()
+          .join(","),
+      ),
     })
   }
 
