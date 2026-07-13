@@ -53,7 +53,8 @@ pub async fn get(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -63,7 +64,10 @@ pub async fn get(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -80,8 +84,7 @@ pub async fn get_xname(
   log::info!("Get membership of node '{}'", xname);
 
   let client = crate::http::build_client(shasta_root_cert)?;
-  let api_url =
-    format!("{}/smd/hsm/v2/memberships/{}", shasta_base_url, xname);
+  let api_url = format!("{}/smd/hsm/v2/memberships/{}", shasta_base_url, xname);
 
   let response = client
     .get(api_url)
@@ -90,7 +93,8 @@ pub async fn get_xname(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -100,7 +104,10 @@ pub async fn get_xname(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }

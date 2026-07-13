@@ -58,14 +58,19 @@ pub struct Ochami {
 }
 
 impl Ochami {
-  pub fn new(
-    base_url: &str,
-    root_cert: &[u8],
-  ) -> Self {
+  pub fn new(base_url: &str, root_cert: &[u8]) -> Self {
     Self {
       base_url: base_url.to_string(),
       root_cert: root_cert.to_vec(),
     }
+  }
+
+  pub(crate) fn base_url(&self) -> &str {
+    &self.base_url
+  }
+
+  pub(crate) fn root_cert(&self) -> &[u8] {
+    &self.root_cert
   }
 }
 
@@ -746,14 +751,10 @@ impl BootParametersTrait for Ochami {
     &self,
     auth_token: &str,
   ) -> Result<Vec<BootParameters>, Error> {
-    let boot_parameter_vec = bss::http_client::get(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      &None,
-    )
-    .await
-    .map_err(|e| Error::Message(e.to_string()))?;
+    let boot_parameter_vec =
+      bss::http_client::get(&self.base_url, auth_token, &self.root_cert, &None)
+        .await
+        .map_err(|e| Error::Message(e.to_string()))?;
 
     let boot_parameter_infra_vec = boot_parameter_vec
       .into_iter()

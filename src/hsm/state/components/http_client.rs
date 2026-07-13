@@ -63,7 +63,8 @@ pub async fn get(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -73,7 +74,10 @@ pub async fn get(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -88,13 +92,13 @@ pub async fn get_one(
   id: &str,
 ) -> Result<Component, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/smd/hsm/v2/State/Components/{}", base_url, id);
+  let api_url = format!("{}/smd/hsm/v2/State/Components/{}", base_url, id);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -104,7 +108,10 @@ pub async fn get_one(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -119,15 +126,14 @@ pub async fn get_by_nid(
   nid: &str,
 ) -> Result<Component, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url = format!(
-    "{}/smd/hsm/v2/State/Components/ByNID/{}",
-    base_url, nid
-  );
+  let api_url =
+    format!("{}/smd/hsm/v2/State/Components/ByNID/{}", base_url, nid);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -137,7 +143,10 @@ pub async fn get_by_nid(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -171,10 +180,8 @@ pub async fn get_query(
   nidonly: Option<&str>,
 ) -> Result<ComponentArray, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url = format!(
-    "{}/smd/hsm/v2/State/Components/Query/{}",
-    base_url, xname
-  );
+  let api_url =
+    format!("{}/smd/hsm/v2/State/Components/Query/{}", base_url, xname);
 
   let response = client
     .get(api_url)
@@ -204,7 +211,8 @@ pub async fn get_query(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -214,7 +222,10 @@ pub async fn get_query(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -239,7 +250,8 @@ pub async fn post(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -249,7 +261,10 @@ pub async fn post(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -264,8 +279,7 @@ pub async fn post_query(
   component_query: ComponentPostQuery,
 ) -> Result<ComponentArray, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    base_url.to_owned() + "/smd/hsm/v2/State/Components/Query";
+  let api_url = base_url.to_owned() + "/smd/hsm/v2/State/Components/Query";
 
   let response = client
     .post(api_url)
@@ -275,7 +289,8 @@ pub async fn post_query(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -285,7 +300,10 @@ pub async fn post_query(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -311,7 +329,8 @@ pub async fn post_by_nid_query(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -321,7 +340,10 @@ pub async fn post_by_nid_query(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -356,7 +378,8 @@ pub async fn put(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -366,7 +389,10 @@ pub async fn put(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -389,7 +415,8 @@ pub async fn delete_all(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -399,7 +426,10 @@ pub async fn delete_all(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -414,8 +444,7 @@ pub async fn delete_one(
   id: &str,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/smd/hsm/v2/State/Components/{}", base_url, id);
+  let api_url = format!("{}/smd/hsm/v2/State/Components/{}", base_url, id);
 
   let response = client
     .delete(api_url)
@@ -424,7 +453,8 @@ pub async fn delete_one(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -434,7 +464,10 @@ pub async fn delete_one(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }

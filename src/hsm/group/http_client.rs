@@ -72,7 +72,8 @@ pub async fn get_one(
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -82,7 +83,10 @@ pub async fn get_one(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -101,7 +105,8 @@ pub async fn get_labels(
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -111,7 +116,10 @@ pub async fn get_labels(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -126,13 +134,13 @@ pub async fn get_members(
   group_label: &str,
 ) -> Result<Members, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
+  let api_url = format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -142,7 +150,10 @@ pub async fn get_members(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -167,7 +178,8 @@ pub async fn post(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -177,7 +189,10 @@ pub async fn post(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -196,8 +211,7 @@ pub async fn post_member(
   member: Member,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
+  let api_url = format!("{}/hsm/v2/groups/{}/members", base_url, group_label);
 
   let response = client
     .post(api_url)
@@ -222,7 +236,10 @@ pub async fn post_member(
     }
   }
 
-  response.json().await.map_err(|e| Error::Message(e.to_string()))
+  response
+    .json()
+    .await
+    .map_err(|e| Error::Message(e.to_string()))
 }
 
 pub async fn delete_one(
@@ -241,7 +258,8 @@ pub async fn delete_one(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -251,7 +269,10 @@ pub async fn delete_one(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -279,7 +300,8 @@ pub async fn delete_member(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -289,7 +311,10 @@ pub async fn delete_member(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }

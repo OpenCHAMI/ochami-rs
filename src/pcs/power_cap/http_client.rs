@@ -22,8 +22,12 @@ pub async fn get(
   if response.status().is_success() {
     response.json().await.map_err(Error::NetError)
   } else {
+    let status = response.status();
     let payload = response.json::<Value>().await.map_err(Error::NetError)?;
-    Err(Error::OchamiError(payload))
+    Err(Error::OchamiError {
+      status: status.as_u16(),
+      body: payload,
+    })
   }
 }
 
@@ -47,8 +51,12 @@ pub async fn get_task_id(
   if response.status().is_success() {
     response.json().await.map_err(Error::NetError)
   } else {
+    let status = response.status();
     let payload = response.json::<Value>().await.map_err(Error::NetError)?;
-    Err(Error::OchamiError(payload))
+    Err(Error::OchamiError {
+      status: status.as_u16(),
+      body: payload,
+    })
   }
 }
 
@@ -75,8 +83,12 @@ pub async fn post_snapshot(
   if response.status().is_success() {
     response.json().await.map_err(Error::NetError)
   } else {
+    let status = response.status();
     let payload = response.json::<Value>().await.map_err(Error::NetError)?;
-    Err(Error::OchamiError(payload))
+    Err(Error::OchamiError {
+      status: status.as_u16(),
+      body: payload,
+    })
   }
 }
 
@@ -103,7 +115,11 @@ pub async fn patch(
   if response.status().is_success() {
     response.json().await.map_err(Error::NetError)
   } else {
+    let status = response.status();
     let payload = response.json::<Value>().await.map_err(Error::NetError)?;
-    Err(Error::OchamiError(payload))
+    Err(Error::OchamiError {
+      status: status.as_u16(),
+      body: payload,
+    })
   }
 }

@@ -48,8 +48,7 @@ pub async fn get_all(
   root_cert: &[u8],
 ) -> Result<RedfishEndpointArray, Error> {
   get(
-    auth_token, base_url, root_cert, None, None, None, None,
-    None, None, None,
+    auth_token, base_url, root_cert, None, None, None, None, None, None, None,
   )
   .await
 }
@@ -67,8 +66,7 @@ pub async fn get(
   last_status: Option<&str>,
 ) -> Result<RedfishEndpointArray, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/hsm/v2/Inventory/RedfishEndpoints", base_url);
+  let api_url = format!("{}/hsm/v2/Inventory/RedfishEndpoints", base_url);
 
   let response = client
     .get(api_url)
@@ -111,10 +109,8 @@ pub async fn get_one(
   xname: &str,
 ) -> Result<RedfishEndpoint, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url = format!(
-    "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
-    base_url, xname
-  );
+  let api_url =
+    format!("{}/hsm/v2/Inventory/RedfishEndpoints/{}", base_url, xname);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
@@ -144,8 +140,7 @@ pub async fn post(
   redfish_endpoint: RedfishEndpointArray,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/hsm/v2/Inventory/RedfishEndpoints", base_url);
+  let api_url = format!("{}/hsm/v2/Inventory/RedfishEndpoints", base_url);
 
   let response = client
     .post(api_url)
@@ -181,10 +176,8 @@ pub async fn put(
   redfish_endpoint: RedfishEndpoint,
 ) -> Result<RedfishEndpoint, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url = format!(
-    "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
-    base_url, xname
-  );
+  let api_url =
+    format!("{}/hsm/v2/Inventory/RedfishEndpoints/{}", base_url, xname);
 
   let response = client
     .put(api_url)
@@ -253,10 +246,8 @@ pub async fn delete_one(
   xname: &str,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url = format!(
-    "{}/hsm/v2/Inventory/RedfishEndpoints/{}",
-    base_url, xname
-  );
+  let api_url =
+    format!("{}/hsm/v2/Inventory/RedfishEndpoints/{}", base_url, xname);
 
   let response = client
     .delete(api_url)

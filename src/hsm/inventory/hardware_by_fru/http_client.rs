@@ -13,8 +13,7 @@ pub async fn get(
   serialnumber: Option<&str>,
 ) -> Result<Vec<HWInventoryByFRU>, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/smd/hsm/v2/Inventory/HardwareByFRU", base_url);
+  let api_url = format!("{}/smd/hsm/v2/Inventory/HardwareByFRU", base_url);
 
   let response = client
     .get(api_url)
@@ -24,7 +23,8 @@ pub async fn get(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -34,7 +34,10 @@ pub async fn get(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -49,13 +52,13 @@ pub async fn get_one(
   fruid: &str,
 ) -> Result<HWInventoryByFRU, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/smd/hsm/v2/Inventory/Hardware/{}", base_url, fruid);
+  let api_url = format!("{}/smd/hsm/v2/Inventory/Hardware/{}", base_url, fruid);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -65,7 +68,10 @@ pub async fn get_one(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -79,8 +85,7 @@ pub async fn delete_all(
   root_cert: &[u8],
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    base_url.to_owned() + "/smd/hsm/v2/Inventory/HardwareByFRU";
+  let api_url = base_url.to_owned() + "/smd/hsm/v2/Inventory/HardwareByFRU";
 
   let response = client
     .delete(api_url)
@@ -89,7 +94,8 @@ pub async fn delete_all(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -99,7 +105,10 @@ pub async fn delete_all(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -114,10 +123,8 @@ pub async fn delete_one(
   fruid: &str,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url = format!(
-    "{}/smd/hsm/v2/Inventory/HardwareByFRU/{}",
-    base_url, fruid
-  );
+  let api_url =
+    format!("{}/smd/hsm/v2/Inventory/HardwareByFRU/{}", base_url, fruid);
 
   let response = client
     .delete(api_url)
@@ -126,7 +133,8 @@ pub async fn delete_one(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -136,7 +144,10 @@ pub async fn delete_one(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }

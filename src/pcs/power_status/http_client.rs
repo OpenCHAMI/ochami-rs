@@ -37,7 +37,11 @@ pub async fn post(
     response.json().await.map_err(Error::NetError)
   } else {
     println!("response is failure");
+    let status = response.status();
     let payload = response.json::<Value>().await.map_err(Error::NetError)?;
-    Err(Error::OchamiError(payload))
+    Err(Error::OchamiError {
+      status: status.as_u16(),
+      body: payload,
+    })
   }
 }

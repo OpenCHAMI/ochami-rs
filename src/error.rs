@@ -20,6 +20,7 @@ pub enum Error {
     payload: String, // NOTE: CSM/OCHAMI Apis either returns plain text or a json therefore, we
                      // will just return a String
   },
-  #[error("OCHAMI-RS > OCHAMI: {0}")]
-  OchamiError(Value),
+  #[error("OCHAMI-RS > OCHAMI: status={status} body={body}")]
+  #[non_exhaustive]
+  OchamiError { status: u16, body: Value },
 }

@@ -23,7 +23,8 @@ pub async fn get(
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -33,7 +34,10 @@ pub async fn get(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -48,13 +52,13 @@ pub async fn get_one(
   xname: &str,
 ) -> Result<NodeMap, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/hsm/v2/Defaults/NodeMaps/{}", base_url, xname);
+  let api_url = format!("{}/hsm/v2/Defaults/NodeMaps/{}", base_url, xname);
 
   let response = client.get(api_url).bearer_auth(auth_token).send().await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -64,7 +68,10 @@ pub async fn get_one(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -89,7 +96,8 @@ pub async fn post(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -99,7 +107,10 @@ pub async fn post(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -115,8 +126,7 @@ pub async fn put(
   node_map: NodeMap,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/hsm/v2/Defaults/NodeMaps/{}", base_url, xname);
+  let api_url = format!("{}/hsm/v2/Defaults/NodeMaps/{}", base_url, xname);
 
   let response = client
     .put(api_url)
@@ -126,7 +136,8 @@ pub async fn put(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -136,7 +147,10 @@ pub async fn put(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -151,8 +165,7 @@ pub async fn delete_one(
   xname: &str,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/hsm/v2/Defaults/NodeMaps/{}", base_url, xname);
+  let api_url = format!("{}/hsm/v2/Defaults/NodeMaps/{}", base_url, xname);
 
   let response = client
     .delete(api_url)
@@ -161,7 +174,8 @@ pub async fn delete_one(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -171,7 +185,10 @@ pub async fn delete_one(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -194,7 +211,8 @@ pub async fn delete(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -204,7 +222,10 @@ pub async fn delete(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }

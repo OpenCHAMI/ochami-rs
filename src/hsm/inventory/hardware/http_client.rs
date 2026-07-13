@@ -17,10 +17,8 @@ pub async fn get_query(
   format: Option<&str>,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url = format!(
-    "{}/hsm/v2/Inventory/Hardware/Query/{}",
-    base_url, xname
-  );
+  let api_url =
+    format!("{}/hsm/v2/Inventory/Hardware/Query/{}", base_url, xname);
 
   let response = client
     .get(api_url)
@@ -36,7 +34,8 @@ pub async fn get_query(
     .await?;
 
   if let Err(e) = response.error_for_status_ref() {
-    match response.status() {
+    let status = response.status();
+    match status {
       reqwest::StatusCode::UNAUTHORIZED => {
         let error_payload = response.text().await?;
         return Err(Error::RequestError {
@@ -46,7 +45,10 @@ pub async fn get_query(
       }
       _ => {
         let error_payload = response.json::<Value>().await?;
-        return Err(Error::OchamiError(error_payload));
+        return Err(Error::OchamiError {
+          status: status.as_u16(),
+          body: error_payload,
+        });
       }
     }
   }
@@ -200,8 +202,7 @@ pub async fn delete_one(
   xname: &str,
 ) -> Result<Value, Error> {
   let client = crate::http::build_client(root_cert)?;
-  let api_url =
-    format!("{}/hsm/v2/Inventory/Hardware/{}", base_url, xname);
+  let api_url = format!("{}/hsm/v2/Inventory/Hardware/{}", base_url, xname);
 
   let response = client
     .delete(api_url)
