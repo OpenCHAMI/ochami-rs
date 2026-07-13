@@ -80,6 +80,18 @@ Without the `use` line, these calls won't resolve (`Group` no longer
 implements them inherently — the generated type lives in this crate,
 but the convenience methods only exist via the trait).
 
+`Members.ids` also changes shape, from `Option<Vec<String>>` to
+`Vec<XNameRw100>`: it's no longer optional (an empty member list is
+`vec![]`, not `None`), and each entry is the `XNameRw100` newtype
+rather than a raw `String`. Code that does
+`group.members.map(|m| m.ids.unwrap_or_default())` will fail to
+compile on the inner `.unwrap_or_default()` — drop it — and code that
+reads individual members should use `member.ids[i].0` (owned) or
+`&*member.ids[i]` (borrowed, via `Deref`) instead of indexing a
+`String` directly. `GroupExt::get_members()` / `get_members_opt()`
+already do this conversion for you, so callers going through the
+trait are unaffected.
+
 ### 1.4 `Group.label`: `String` → `ResourceName`
 
 ```rust
@@ -101,6 +113,15 @@ match `^[0-9a-zA-Z._-]{1,}$`. Same pattern applies to `Partition.name`.
 `Vec<ResourceName>` (no longer optional — an empty tag list serializes
 as an empty array, per `#[serde(default, skip_serializing_if =
 "Vec::is_empty")]`).
+
+`Group.exclusive_group` changes from `Option<String>` to
+`Option<ResourceName>`. Code that reads it as `Option<String>`
+directly (e.g. `if let Some(s) = &group.exclusive_group { s.as_str()
+}`) will get a type error, since `ResourceName`'s inner `String` is
+private. Access it the same way as `label`/`tags` — through
+`Deref<Target = String>` (`&**s` or `s.to_string()` inside the
+`Option`) — and construct new values with
+`ResourceName::from_str("some-group")?`.
 
 ### 1.5 `Component` field newtype/enum wrapping
 
