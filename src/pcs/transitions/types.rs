@@ -37,6 +37,7 @@ impl Into<FrontEndLocation> for Location {
 
 // this matches the query, not the response
 #[derive(Display, Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Operation {
   #[serde(rename = "On")]
   On,
