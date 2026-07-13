@@ -42,16 +42,16 @@ impl From<FrontEndBootParameters> for BootParameters {
   }
 }
 
-impl Into<FrontEndBootParameters> for BootParameters {
-  fn into(self) -> FrontEndBootParameters {
+impl From<BootParameters> for FrontEndBootParameters {
+  fn from(val: BootParameters) -> Self {
     FrontEndBootParameters {
-      hosts: self.hosts,
-      macs: self.macs,
-      nids: self.nids,
-      params: self.params,
-      kernel: self.kernel,
-      initrd: self.initrd,
-      cloud_init: self.cloud_init,
+      hosts: val.hosts,
+      macs: val.macs,
+      nids: val.nids,
+      params: val.params,
+      kernel: val.kernel,
+      initrd: val.initrd,
+      cloud_init: val.cloud_init,
     }
   }
 }
@@ -226,8 +226,7 @@ impl BootParameters {
           kernel_param.split_once('=').unwrap_or((kernel_param, ""))
         })
         .collect();
-    } else {
-    };
+    } ;
 
     // NOTE: NCN nodes have UUID image id 'nmd_data' kernel parameter
     let mut nmd_kernel_param: Vec<&str>;
@@ -248,8 +247,7 @@ impl BootParameters {
         .and_modify(|nmd_param| *nmd_param = &new_nmd_kernel_param);
 
       self.update_kernel_param("nmd_data", &new_nmd_kernel_param);
-    } else {
-    };
+    } ;
 
     self.kernel = format!("s3://boot-images/{}/kernel", new_image_id);
 
@@ -321,7 +319,7 @@ impl BootParameters {
       }
     }
 
-    if change == false {
+    if !change {
       log::debug!("No value change in kernel params. Checking is either new params have been added or removed");
       if new_params.len() != params.len() {
         log::info!("num kernel parameters have changed");

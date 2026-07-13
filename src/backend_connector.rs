@@ -571,7 +571,7 @@ impl ComponentTrait for Ochami {
         }
       }
 
-      return Ok(xname_vec);
+      Ok(xname_vec)
     } else {
       log::debug!(
         "No regex found, getting xnames from list of NIDs or NIDs hostlist"
@@ -596,10 +596,7 @@ impl ComponentTrait for Ochami {
         .map(|nid_long| {
           nid_long
             .strip_prefix("nid")
-            .expect(
-              format!("Nid '{}' not valid, 'nid' prefix missing", nid_long)
-                .as_str(),
-            )
+            .unwrap_or_else(|| panic!("Nid '{}' not valid, 'nid' prefix missing", nid_long))
             .trim_start_matches("0")
         })
         .collect::<Vec<&str>>()
@@ -653,8 +650,8 @@ impl ComponentTrait for Ochami {
 
       log::debug!("xname list:\n{:#?}", xname_vec);
 
-      return Ok(xname_vec);
-    };
+      Ok(xname_vec)
+    }
   }
 }
 
@@ -747,7 +744,6 @@ impl BootParametersTrait for Ochami {
     )
     .await
     .map_err(Error::from)
-    .map(|boot_parameter| boot_parameter.into())
   }
 
   async fn update_bootparameters(
