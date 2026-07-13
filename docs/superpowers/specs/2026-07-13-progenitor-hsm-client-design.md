@@ -575,7 +575,9 @@ Wrapper-body enum coercion is thus concentrated in ONE method.
 pub async fn hsm_component_get_one(&self, token: &str, xname: &str) -> Result<Component, Error> {
     retry_on_5xx(|| async {
         run(self, token, |c| async move {
-            c.do_state_components_get_one_builder().xname(xname).send().await
+            // Task 0 (output-reference § B.2/B.3): progenitor 0.8 emits a
+            // direct method (`do_component_get`), not a builder.
+            c.do_component_get(xname).await
         }).await
     }).await
 }
@@ -713,8 +715,8 @@ Exact names confirmed at Task 0 (typify's mangling).
 | `Component.role/sub_role` | open newtypes | `.role.as_ref().map(\|r\| &r.0)` |
 | `Component.nid: Option<usize>` | `Option<i64>` | signed/unsigned shift |
 | `ComponentArray.components: Option<Vec<...>>` | `Vec<...>` `#[serde(default)]` | drop `.unwrap_or_default()` |
-| `ComponentArrayPostQuery.falg_only` | `.flag_only` | typo fix |
-| `Group.label: String` | `ResourceName` | `.label.0` for string access |
+| `ComponentArrayPostQuery.flagonly` | `.flagonly` (unchanged) | ochami-rs's generated field has no typo/mangling — it's `flagonly` verbatim; the `falg_only` typo exists only in the separate `manta-backend-dispatcher` crate |
+| `Group.label: String` | `ResourceName` | private inner; access via `Deref` (`&*group.label`), construct via `ResourceName::from_str()` |
 | `Group.tags: Option<Vec<String>>` | `Option<Vec<ResourceName>>` | element newtype unwrap |
 | `Partition.name: String` | `ResourceName` | same pattern |
 | `NodeMap.nid: usize` | `i64` | signed/unsigned |
@@ -769,7 +771,9 @@ impl Group {
         // Group100Members is typify's likely nested-schema name; Task 0
         // confirms the actual mangled name.
         Self {
-            label: ResourceName(label.to_string()),
+            // ResourceName's inner is PRIVATE (Task 0 § F.1/§ H); construct
+            // via FromStr, which also enforces the widened pattern regex.
+            label: ResourceName::from_str(label).expect("invalid group label"),
             description: None,
             tags: None,
             members: member_vec_opt.map(|v| Group100Members {
@@ -789,10 +793,16 @@ Orphan rule allows the impls (generated type is in our crate).
 
 ### Cross-crate `falg_only` typo handling
 
-Dispatcher has same typo (`ComponentArrayPostQuery.falg_only`). Fix in
-ochami-rs Rust field name → `flag_only`. From/Into impl body maps:
+Task 0 (output-reference § I/§ L.7) confirms ochami-rs's own generated
+`ComponentArrayPostQuery.flagonly` field has no typo — it's spelled
+`flagonly` verbatim (single word, not mangled). The `falg_only` typo
+exists only in the separate `manta-backend-dispatcher` crate (verified:
+`manta-backend-dispatcher-1.0.0-beta.15/src/types/mod.rs:768`, `pub
+falg_only: Option<bool>` with `#[serde(rename = "flagonly")]`). The
+From/Into impl body maps the dispatcher's typo'd field onto ochami-rs's
+clean one:
 ```rust
-flag_only: value.falg_only,
+flagonly: value.falg_only,
 ```
 Non-blocking; dispatcher stays as-is.
 
@@ -1129,7 +1139,7 @@ call-site shape changes.
   `base_url`/`root_cert` args and moves `token` to the second position
   (after `&self`).
 - ~10-15 field-accessor site updates: `comp.id.as_ref().map(|x| x.0.as_str())`, `.type_.as_ref().map(|t| t.to_string())`, `.state.as_ref().map(|s| s.to_string())`, etc. Newtype and enum unwrap patterns.
-- ~25 return-type absorption updates: `value["field"].as_str()` → `.field` on typed structs (HsmActionResponse, Vec<ResourceUri100>, etc.). `.unwrap_or_default()` on `Option<Vec<T>>` returns drops (typed returns are `Vec<T>` with `#[serde(default)]`).
+- ~25 return-type absorption updates: `value["field"].as_str()` → `.field` on typed structs (HsmActionResponse (alias for Response100), Vec<ResourceUri100>, etc.). `.unwrap_or_default()` on `Option<Vec<T>>` returns drops (typed returns are `Vec<T>` with `#[serde(default)]`).
 - ~5 enum-comparison sites: `comp.r#type.as_deref() == Some("Node")` → `matches!(comp.type_, Some(HmsType100::Node))`. Requires enum imports.
 - 1 site for `_group_label` param drop on `hsm_inventory_ethernet_interface_delete_ip_address` call.
 - 1 site for `.patch.into()` conversion — `ComponentEthernetInterface` → `CompEthInterface100Patch` at the PATCH callsite. Uses the `From` impl Phase 5 adds (Section 3). **Sequencing note**: this specific site fails to compile until Phase 5's From impl lands. Options: (a) do the manual conversion inline in Phase 4 (~5 LOC), replaced by `.into()` after Phase 5; (b) defer this one callsite to Phase 5. Recommend (a) — keeps Phase 4 fully compileable.
@@ -1258,9 +1268,11 @@ Only after `http_client.rs` deletion does the crate compile again.
   per Section 3. Zero migration work in this file.
 
 *Group inherent method rewrites (details Task-0-informed)*:
-- `Group::new(label, member_vec_opt) -> Self` — body wraps `label` in
-  `ResourceName(...)` and members in `Group100Members { ids: Some(vec of
-  XNameRw100(...)) }`. Exact `Group100Members` name confirmed at Task 0.
+- `Group::new(label, member_vec_opt) -> Self` — body constructs `label`
+  via `ResourceName::from_str(label)` (inner is **private**; `.0`/tuple
+  construction doesn't compile — Task 0 § F.1/§ H) and members via
+  `Group100Members { ids: Some(vec of XNameRw100(...)) }`. Exact
+  `Group100Members` name confirmed at Task 0.
 - `get_members()`, `get_members_opt()`, `add_xnames()` bodies rewritten
   to unwrap/wrap newtypes.
 
@@ -1284,7 +1296,8 @@ Only after `http_client.rs` deletion does the crate compile again.
 *Tests update*:
 - `hsm/group/tests.rs` — update `Group::new("label", Some(vec!["xname1",
   "xname2"]))` and `.add_xnames(...)` and `.get_members()` assertions to
-  work with the new field shapes (newtype accessors like `.label.0` etc.).
+  work with the new field shapes (newtype `Deref` access like `&*group.label`
+  — NOT `.label.0`, since `ResourceName`'s inner is private; Task 0 § H).
 
 **Ordering within Phase 5's single atomic commit** (informational — all
 land together, but for the author's implementation order):
@@ -1974,8 +1987,11 @@ Trigger → `cargo yank` + fix-forward beta.17 (per Section 4 rollback plan).
 >
 > - Progenitor 0.8's default `Generator` emits **direct methods**, not
 >   builders. Wrapper `run()` callsites use
->   `c.do_component_get(xname, None).await`, not
->   `c.do_state_components_get_one_builder().xname(x).send().await`.
+>   `c.do_component_get(xname).await`, not
+>   `c.do_state_components_get_one_builder().xname(x).send().await`
+>   (verified against the actual generated signature —
+>   `hsm_generated.rs`'s `do_component_get` takes only `xname: &'a str`,
+>   no trailing `Option` arg).
 > - No schema named `HsmActionResponse` exists. Alias `Response100`
 >   instead: `pub use crate::hsm::generated::types::Response100 as HsmActionResponse;`.
 > - `ResourceName` inner is **private** and Deserialize enforces regex.
