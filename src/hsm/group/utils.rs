@@ -4,7 +4,7 @@ use crate::{
   Ochami,
   error::Error,
   hsm::group::types::{Group, GroupExt},
-  node::utils::validate_xnames_format_and_membership_agaisnt_single_hsm,
+  node::utils::validate_xnames_format_and_membership_against_single_hsm,
 };
 
 /// Add a list of xnames to target HSM group
@@ -127,7 +127,20 @@ pub fn filter_by_hsm_group_members_and_convert_to_map(
   hsm_group_map
 }
 
-/// Receives 2 lists of xnames old xnames to remove from parent HSM group and new xhanges to add to target HSM group, and does just that
+/// **Currently a no-op** (see roadmap Phase C).
+///
+/// This function is documented to remove `group_members_to_delete` and add
+/// `group_members_to_add`, but the implementation both uses a backwards
+/// `retain` predicate and never sends the resulting membership back to the
+/// server. Every call returns `Ok(())` without touching HSM.
+///
+/// A correct implementation is deferred to a follow-up because it requires
+/// a semantic decision (per-xname `post_member`/`delete_member` calls vs
+/// a single PATCH). Do not rely on this function until it lands.
+#[deprecated(
+  since = "1.0.0-beta.17",
+  note = "no-op — never sends changes to HSM. Use per-xname hsm_group_post_member/hsm_group_delete_member for now. See roadmap Phase C."
+)]
 pub async fn update_hsm_group_members(
   client: &Ochami,
   auth_token: &str,
@@ -149,23 +162,39 @@ pub async fn update_hsm_group_members(
   Ok(())
 }
 
-/// Moves list of xnames from parent to target HSM group
+/// Moves a list of xnames from `parent_hsm_group_name` to
+/// `target_hsm_group_name`.
+///
+/// When `dry_run` is `true`, the planned target/parent membership lists
+/// are logged and NO changes are sent to HSM. When `dry_run` is `false`,
+/// each xname is posted to the target group and deleted from the parent
+/// via `hsm_group_post_member` / `hsm_group_delete_member`.
+///
+/// Note: individual per-xname failures are currently swallowed (see
+/// roadmap Phase B.1). The returned Ok tuple reflects the intended
+/// target/parent membership lists, not what actually landed on the wire.
+///
+/// # Errors
+///
+/// Returns [`Error`] if the caller-supplied xnames are invalid, if
+/// they don't belong to `parent_hsm_group_name`, or if the initial
+/// HSM group membership lookups fail.
 pub async fn migrate_hsm_members(
   client: &Ochami,
   shasta_token: &str,
   target_hsm_group_name: &str,
   parent_hsm_group_name: &str,
   new_target_hsm_members: &[&str],
-  nodryrun: bool,
+  dry_run: bool,
 ) -> Result<(Vec<String>, Vec<String>), Error> {
   // Check nodes are valid xnames and they belong to parent HSM group
-  if !validate_xnames_format_and_membership_agaisnt_single_hsm(
+  if !validate_xnames_format_and_membership_against_single_hsm(
     client,
     shasta_token,
     new_target_hsm_members,
-    Some(&parent_hsm_group_name.to_string()),
+    Some(parent_hsm_group_name),
   )
-  .await
+  .await?
   {
     let error_msg =
       format!("Nodes '{}' not valid", new_target_hsm_members.join(", "));
@@ -204,34 +233,33 @@ pub async fn migrate_hsm_members(
   parent_hsm_group_member_vec.sort();
   parent_hsm_group_member_vec.dedup();
 
-  // *********************************************************************************************************
-  // UPDATE HSM GROUP MEMBERS IN CSM
-  if !nodryrun {
+  // UPDATE HSM GROUP MEMBERS IN OCHAMI
+  if dry_run {
     let target_hsm_group = serde_json::json!({
         "label": target_hsm_group_name,
-        "decription": "",
+        "description": "",
         "members": target_hsm_group_member_vec,
         "tags": []
     });
 
-    println!(
-      "Target HSM group:\n{}",
-      serde_json::to_string_pretty(&target_hsm_group).unwrap()
+    log::info!(
+      "dry-run: target HSM group: {}",
+      serde_json::to_string(&target_hsm_group)?
     );
 
     let parent_hsm_group = serde_json::json!({
         "label": parent_hsm_group_name,
-        "decription": "",
+        "description": "",
         "members": parent_hsm_group_member_vec,
         "tags": []
     });
 
-    println!(
-      "Parent HSM group:\n{}",
-      serde_json::to_string_pretty(&parent_hsm_group).unwrap()
+    log::info!(
+      "dry-run: parent HSM group: {}",
+      serde_json::to_string(&parent_hsm_group)?
     );
 
-    println!("dry-run enabled, changes not persisted.");
+    log::info!("dry-run enabled, changes not persisted.");
   } else {
     for xname in new_target_hsm_members {
       let _ = client

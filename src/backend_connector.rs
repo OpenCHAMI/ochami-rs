@@ -305,6 +305,11 @@ impl GroupTrait for Ochami {
     members_to_remove: &[&str],
     members_to_add: &[&str],
   ) -> Result<(), Error> {
+    // The delegated implementation is a documented no-op pending the
+    // Phase C rewrite; suppress the deprecation warning here so the
+    // trait surface still compiles cleanly against the current
+    // manta-backend-dispatcher signature.
+    #[allow(deprecated)]
     hsm::group::utils::update_hsm_group_members(
       self,
       auth_token,
