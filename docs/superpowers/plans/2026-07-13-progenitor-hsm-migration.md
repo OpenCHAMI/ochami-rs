@@ -14,8 +14,8 @@
 - **Rust MSRV:** 1.91.1 (matches csm-rs; set in Cargo.toml this migration).
 - **Version bump:** `1.0.0-beta.15` → `1.0.0-beta.16`.
 - **Scope:** HSM only. BSS/PCS/cloud-init deferred to future migrations (see spec's Section 5).
-- **PR shape:** ONE PR, 23 commits (1 per task; Task 14 = Phase 5 atomic combines types + http_client-deletion).
-- **Compileability invariant:** Every commit leaves `cargo build` green (except mid-Task-14 intermediate state — Phase 5 is atomic).
+- **PR shape:** ONE PR, 23 commits (1 per task; Task 13 = Phase 5 atomic combines types + http_client-deletion).
+- **Compileability invariant:** Every commit leaves `cargo build` green (except mid-Task-13 intermediate state — Phase 5 is atomic).
 - **No `cargo test` regression:** Existing tests must pass at every task boundary.
 - **All commits use conventional-commit prefixes** (`chore`, `feat`, `refactor`, `test`, `docs`) per each task's convention.
 - **Body of every commit** references the design spec: `docs/superpowers/specs/2026-07-13-progenitor-hsm-client-design.md § <Section>`.
