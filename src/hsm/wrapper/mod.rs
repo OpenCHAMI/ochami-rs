@@ -9,6 +9,7 @@ use crate::{error::Error, hsm::generated, Ochami};
 
 mod component;
 mod group;
+mod inventory_hardware;
 mod memberships;
 mod node_map;
 mod partition;
