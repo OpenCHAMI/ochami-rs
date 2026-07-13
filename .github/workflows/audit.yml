@@ -1,0 +1,29 @@
+name: Security audit
+
+on:
+  # Run on pushes to dependency-management files so a new advisory
+  # against a newly-added dep is caught at PR time.
+  push:
+    branches: [main]
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+  # And weekly, so newly-disclosed advisories against existing deps
+  # are surfaced even if nothing in the tree changed.
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  cargo-audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

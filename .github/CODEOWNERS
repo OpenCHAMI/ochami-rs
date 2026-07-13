@@ -1,0 +1,12 @@
+# Default owner for everything not otherwise assigned.
+*                              @masber
+
+# Documentation and codegen infrastructure.
+docs/                          @masber
+build.rs                       @masber
+scripts/patch-hsm-spec.jq      @masber
+
+# Vendored OpenAPI specs.
+src/hsm/ochami_api_docs*       @masber
+src/bss/ochami_api_docs*       @masber
+src/pcs/ochami_api_docs*       @masber
