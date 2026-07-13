@@ -163,7 +163,7 @@ pub async fn wait_to_complete(
     )
     .await?;
 
-    eprintln!(
+    log::info!(
        "Power '{}' summary - status: {}, failed: {}, in-progress: {}, succeeded: {}, total: {}. Attempt {} of {}",
        transition.operation, transition.transition_status, transition.task_counts.failed, transition.task_counts.in_progress, transition.task_counts.succeeded, transition.task_counts.total, i, max_attempt
     );

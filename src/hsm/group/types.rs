@@ -114,12 +114,28 @@ impl From<FrontEndGroup> for Group {
         .tags
         .unwrap_or_default()
         .into_iter()
-        .filter_map(|t| ResourceName::from_str(&t).ok())
+        .filter_map(|t| match ResourceName::from_str(&t) {
+          Ok(r) => Some(r),
+          Err(e) => {
+            log::warn!(
+              "dropped unparseable Group.tag: {t:?} ({e:?})"
+            );
+            None
+          }
+        })
         .collect(),
       members,
-      exclusive_group: value
-        .exclusive_group
-        .and_then(|s| ResourceName::from_str(&s).ok()),
+      exclusive_group: value.exclusive_group.and_then(|s| {
+        match ResourceName::from_str(&s) {
+          Ok(r) => Some(r),
+          Err(e) => {
+            log::warn!(
+              "dropped unparseable Group.exclusive_group: {s:?} ({e:?})"
+            );
+            None
+          }
+        }
+      }),
     }
   }
 }

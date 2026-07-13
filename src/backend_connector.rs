@@ -681,7 +681,7 @@ impl PCSTrait for Ochami {
     )
     .await
     .map(|status| {
-      println!("return value from async fn power_status : {:?}", status);
+      log::debug!("power_status returned: {status:?}");
       status.into()
     })
     .map_err(Error::from)

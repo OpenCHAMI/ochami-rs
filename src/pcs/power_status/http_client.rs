@@ -29,14 +29,14 @@ pub async fn post(
     .send()
     .await
     .map_err(|error| {
-      println!("Failed POST query: {:?}", error);
+      log::warn!("PCS power-status POST failed: {error:?}");
       Error::NetError(error)
     })?;
 
   if response.status().is_success() {
     response.json().await.map_err(Error::NetError)
   } else {
-    println!("response is failure");
+    log::warn!("PCS power-status response is failure");
     let status = response.status();
     let payload = response.json::<Value>().await.map_err(Error::NetError)?;
     Err(Error::OchamiError {

@@ -23,6 +23,27 @@ use manta_backend_dispatcher::types::{
   ComponentCreate as FrontEndComponentCreate, NodeMetadataArray,
 };
 
+/// Parse a stringly-typed HSM enum field into a typed value, logging a
+/// warning and returning `None` on parse failure instead of silently
+/// dropping the value. `field_name` identifies the field in log output
+/// so operators can debug schema-drift issues (e.g. HSM adding a new
+/// component state the client doesn't yet know about).
+fn parse_enum_field<T>(opt: Option<String>, field_name: &str) -> Option<T>
+where
+  T: FromStr,
+  <T as FromStr>::Err: std::fmt::Debug,
+{
+  opt.and_then(|s| match T::from_str(&s) {
+    Ok(v) => Some(v),
+    Err(e) => {
+      log::warn!(
+        "dropped unparseable {field_name}: {s:?} ({e:?})"
+      );
+      None
+    }
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Component <-> FrontEndComponent
 // ---------------------------------------------------------------------------
@@ -31,18 +52,18 @@ impl From<FrontEndComponent> for Component {
   fn from(value: FrontEndComponent) -> Self {
     Component {
       id: value.id.map(XName100),
-      type_: value.r#type.and_then(|s| HmsType100::from_str(&s).ok()),
-      state: value.state.and_then(|s| HmsState100::from_str(&s).ok()),
-      flag: value.flag.and_then(|s| HmsFlag100::from_str(&s).ok()),
+      type_: parse_enum_field::<HmsType100>(value.r#type, "component.type"),
+      state: parse_enum_field::<HmsState100>(value.state, "component.state"),
+      flag: parse_enum_field::<HmsFlag100>(value.flag, "component.flag"),
       enabled: value.enabled,
       software_status: value.software_status,
       role: value.role.map(HmsRole100),
       sub_role: value.sub_role.map(HmsSubRole100),
       nid: value.nid.map(|n| n as i64),
       subtype: value.subtype,
-      net_type: value.net_type.and_then(|s| NetType100::from_str(&s).ok()),
-      arch: value.arch.and_then(|s| HmsArch100::from_str(&s).ok()),
-      class: value.class.and_then(|s| HmsClass100::from_str(&s).ok()),
+      net_type: parse_enum_field::<NetType100>(value.net_type, "component.net_type"),
+      arch: parse_enum_field::<HmsArch100>(value.arch, "component.arch"),
+      class: parse_enum_field::<HmsClass100>(value.class, "component.class"),
       reservation_disabled: value.reservation_disabled,
       locked: value.locked,
     }
@@ -105,16 +126,16 @@ impl From<FrontEndComponentCreate> for ComponentCreate {
     ComponentCreate {
       id: XNameRw100(value.id),
       state: HmsState100::from_str(&value.state).unwrap_or(HmsState100::Unknown),
-      flag: value.flag.and_then(|s| HmsFlag100::from_str(&s).ok()),
+      flag: parse_enum_field::<HmsFlag100>(value.flag, "component.flag"),
       enabled: value.enabled,
       software_status: value.software_status,
       role: value.role.map(HmsRole100),
       sub_role: value.sub_role.map(HmsSubRole100),
       nid: value.nid.map(|n| n as i64),
       subtype: value.subtype,
-      net_type: value.net_type.and_then(|s| NetType100::from_str(&s).ok()),
-      arch: value.arch.and_then(|s| HmsArch100::from_str(&s).ok()),
-      class: value.class.and_then(|s| HmsClass100::from_str(&s).ok()),
+      net_type: parse_enum_field::<NetType100>(value.net_type, "component.net_type"),
+      arch: parse_enum_field::<HmsArch100>(value.arch, "component.arch"),
+      class: parse_enum_field::<HmsClass100>(value.class, "component.class"),
     }
   }
 }
