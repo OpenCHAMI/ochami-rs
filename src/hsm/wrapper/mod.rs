@@ -11,6 +11,7 @@ mod component;
 mod group;
 mod inventory_hardware;
 mod inventory_hardware_by_fru;
+mod inventory_redfish_endpoint;
 mod memberships;
 mod node_map;
 mod partition;
