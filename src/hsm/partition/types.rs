@@ -1,22 +1,13 @@
-use serde::{Deserialize, Serialize};
+//! Slim re-exports from the progenitor-generated HSM types.
+//!
+//! Task 13 (Phase 5) replaced the hand-written duplicate types with
+//! direct aliases. `Partition` = `Partition100`; `Members` =
+//! `Members100`; `MemberId` (POST body) is the shared single-member
+//! shape used by both `/groups/{label}/members` and
+//! `/partitions/{name}/members`. Design spec Section 4 (Phase 5) —
+//! Types migration.
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Member {
-  pub id: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Members {
-  pub ids: Option<Vec<String>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Partition {
-  pub name: String,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub description: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub tags: Option<Vec<String>>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub members: Option<Members>,
-}
+pub use crate::hsm::generated::types::{
+  MemberId, Members100 as Members, Partition100 as Partition,
+  Partition100Patch as PartitionPatch,
+};

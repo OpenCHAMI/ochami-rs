@@ -1,172 +1,137 @@
+//! Slim re-exports from the progenitor-generated HSM types, plus
+//! `From`/`Into` conversions between the generated
+//! `RedfishEndpoint100RedfishEndpoint` /
+//! `RedfishEndpointArrayRedfishEndpointArray` types and the
+//! `manta_backend_dispatcher` front-end `RedfishEndpoint` /
+//! `RedfishEndpointArray` / `DiscoveryInfo` types.
+//!
+//! Task 13 (Phase 5) replaced the hand-written duplicate types with
+//! direct aliases. Design spec Section 4 (Phase 5) — Types migration.
+
+use std::str::FromStr;
+
+pub use crate::hsm::generated::types::{
+  HmsType100,
+  RedfishEndpoint100RedfishEndpoint as RedfishEndpoint,
+  RedfishEndpoint100RedfishEndpointDiscoveryInfo as DiscoveryInfo,
+  RedfishEndpoint100RedfishEndpointDiscoveryInfoLastStatus as DiscoveryLastStatus,
+  RedfishEndpoint100RedfishEndpointMacAddr as MacAddr,
+  RedfishEndpointArrayRedfishEndpointArray as RedfishEndpointArray, Uuid100,
+  XNameRfEndpoint100,
+};
+
 use manta_backend_dispatcher::types::hsm::inventory::{
   DiscoveryInfo as FrontEndDiscoveryInfo,
   RedfishEndpoint as FrontEndRedfishEndpoint,
   RedfishEndpointArray as FrontEndRedfishEndpointArray,
 };
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DiscoveryInfo {
-  #[serde(rename = "LastDiscoveryAttempt")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub last_attempt: Option<String>,
-  #[serde(rename = "LastDiscoveryStatus")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub last_status: Option<String>,
-  #[serde(rename = "RedfishVersion")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  redfish_version: Option<String>,
-}
+// ---------------------------------------------------------------------------
+// DiscoveryInfo <-> FrontEndDiscoveryInfo
+// ---------------------------------------------------------------------------
 
 impl From<FrontEndDiscoveryInfo> for DiscoveryInfo {
-  fn from(info: FrontEndDiscoveryInfo) -> Self {
+  fn from(value: FrontEndDiscoveryInfo) -> Self {
     DiscoveryInfo {
-      last_attempt: info.last_attempt,
-      last_status: info.last_status,
-      redfish_version: info.redfish_version,
+      // Front-end uses a String timestamp; generated uses
+      // `chrono::DateTime<Utc>`. Drop on inbound conversion (server
+      // fills this in — no useful round-trip).
+      last_attempt: None,
+      last_status: value
+        .last_status
+        .and_then(|s| DiscoveryLastStatus::from_str(&s).ok()),
+      redfish_version: value.redfish_version,
     }
   }
 }
 
-impl Into<FrontEndDiscoveryInfo> for DiscoveryInfo {
-  fn into(self) -> FrontEndDiscoveryInfo {
+impl From<DiscoveryInfo> for FrontEndDiscoveryInfo {
+  fn from(value: DiscoveryInfo) -> Self {
     FrontEndDiscoveryInfo {
-      last_attempt: self.last_attempt,
-      last_status: self.last_status,
-      redfish_version: self.redfish_version,
+      last_attempt: value.last_attempt.map(|dt| dt.to_rfc3339()),
+      last_status: value.last_status.map(|s| s.to_string()),
+      redfish_version: value.redfish_version,
     }
   }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RedfishEndpoint {
-  #[serde(rename = "ID")]
-  pub id: String,
-  #[serde(rename = "Type")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub r#type: Option<String>,
-  #[serde(rename = "Name")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub name: Option<String>,
-  #[serde(rename = "Hostname")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub hostname: Option<String>,
-  #[serde(rename = "Domain")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub domain: Option<String>,
-  #[serde(rename = "FQDN")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub fqdn: Option<String>,
-  #[serde(rename = "Enabled")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub enabled: Option<bool>,
-  #[serde(rename = "UUID")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub uuid: Option<String>,
-  #[serde(rename = "User")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub user: Option<String>,
-  #[serde(rename = "Password")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub password: Option<String>,
-  #[serde(rename = "UseSSDP")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub use_ssdp: Option<bool>,
-  #[serde(rename = "MacRequired")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub mac_required: Option<bool>,
-  #[serde(rename = "MACAddr")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub mac_addr: Option<String>,
-  #[serde(rename = "IPAddress")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub ip_address: Option<String>,
-  #[serde(rename = "RediscoverOnUpdate")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub rediscover_on_update: Option<bool>,
-  #[serde(rename = "TemplateID")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub template_id: Option<String>,
-  #[serde(rename = "DiscoveryInfo")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub discovery_info: Option<DiscoveryInfo>,
-}
+// ---------------------------------------------------------------------------
+// RedfishEndpoint <-> FrontEndRedfishEndpoint
+// ---------------------------------------------------------------------------
 
 impl From<FrontEndRedfishEndpoint> for RedfishEndpoint {
-  fn from(endpoint: FrontEndRedfishEndpoint) -> Self {
+  fn from(value: FrontEndRedfishEndpoint) -> Self {
     RedfishEndpoint {
-      id: endpoint.id,
-      r#type: endpoint.r#type,
-      name: endpoint.name,
-      hostname: endpoint.hostname,
-      domain: endpoint.domain,
-      fqdn: endpoint.fqdn,
-      enabled: endpoint.enabled,
-      uuid: endpoint.uuid,
-      user: endpoint.user,
-      password: endpoint.password,
-      use_ssdp: endpoint.use_ssdp,
-      mac_required: endpoint.mac_required,
-      mac_addr: endpoint.mac_addr,
-      ip_address: endpoint.ip_address,
-      rediscover_on_update: endpoint.rediscover_on_update,
-      template_id: endpoint.template_id,
-      discovery_info: endpoint.discovery_info.map(|info| info.into()),
+      id: XNameRfEndpoint100(value.id),
+      type_: value.r#type.and_then(|s| HmsType100::from_str(&s).ok()),
+      name: value.name,
+      hostname: value.hostname,
+      domain: value.domain,
+      fqdn: value.fqdn,
+      enabled: value.enabled,
+      uuid: value.uuid.and_then(|s| Uuid100::from_str(&s).ok()),
+      user: value.user,
+      password: value.password,
+      use_ssdp: value.use_ssdp,
+      mac_required: value.mac_required,
+      mac_addr: value.mac_addr.and_then(|s| MacAddr::from_str(&s).ok()),
+      ip_address: value.ip_address,
+      rediscover_on_update: value.rediscover_on_update,
+      template_id: value.template_id,
+      discovery_info: value.discovery_info.map(Into::into),
     }
   }
 }
 
-impl Into<FrontEndRedfishEndpoint> for RedfishEndpoint {
-  fn into(self) -> FrontEndRedfishEndpoint {
+impl From<RedfishEndpoint> for FrontEndRedfishEndpoint {
+  fn from(value: RedfishEndpoint) -> Self {
     FrontEndRedfishEndpoint {
-      id: self.id,
-      r#type: self.r#type,
-      name: self.name,
-      hostname: self.hostname,
-      domain: self.domain,
-      fqdn: self.fqdn,
-      enabled: self.enabled,
-      uuid: self.uuid,
-      user: self.user,
-      password: self.password,
-      use_ssdp: self.use_ssdp,
-      mac_required: self.mac_required,
-      mac_addr: self.mac_addr,
-      ip_address: self.ip_address,
-      rediscover_on_update: self.rediscover_on_update,
-      template_id: self.template_id,
-      discovery_info: self.discovery_info.map(|info| info.into()),
+      id: value.id.0,
+      r#type: value.type_.map(|t| t.to_string()),
+      name: value.name,
+      hostname: value.hostname,
+      domain: value.domain,
+      fqdn: value.fqdn,
+      enabled: value.enabled,
+      uuid: value.uuid.map(|u| (*u).clone()),
+      user: value.user,
+      password: value.password,
+      use_ssdp: value.use_ssdp,
+      mac_required: value.mac_required,
+      mac_addr: value.mac_addr.map(|m| (*m).clone()),
+      ip_address: value.ip_address,
+      rediscover_on_update: value.rediscover_on_update,
+      template_id: value.template_id,
+      discovery_info: value.discovery_info.map(Into::into),
     }
   }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RedfishEndpointArray {
-  #[serde(rename = "RedfishEndpoints")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub redfish_endpoints: Option<Vec<RedfishEndpoint>>,
-}
+// ---------------------------------------------------------------------------
+// RedfishEndpointArray <-> FrontEndRedfishEndpointArray
+// ---------------------------------------------------------------------------
 
 impl From<FrontEndRedfishEndpointArray> for RedfishEndpointArray {
-  fn from(array: FrontEndRedfishEndpointArray) -> Self {
+  fn from(value: FrontEndRedfishEndpointArray) -> Self {
     RedfishEndpointArray {
-      redfish_endpoints: array.redfish_endpoints.map(|endpoints| {
-        endpoints.into_iter().map(RedfishEndpoint::from).collect()
-      }),
+      redfish_endpoints: value
+        .redfish_endpoints
+        .map(|v| v.into_iter().map(RedfishEndpoint::from).collect())
+        .unwrap_or_default(),
     }
   }
 }
 
-impl Into<FrontEndRedfishEndpointArray> for RedfishEndpointArray {
-  fn into(self) -> FrontEndRedfishEndpointArray {
+impl From<RedfishEndpointArray> for FrontEndRedfishEndpointArray {
+  fn from(value: RedfishEndpointArray) -> Self {
     FrontEndRedfishEndpointArray {
-      redfish_endpoints: self.redfish_endpoints.map(|endpoints| {
-        endpoints
+      redfish_endpoints: Some(
+        value
+          .redfish_endpoints
           .into_iter()
-          .map(|endpoint| endpoint.into())
-          .collect()
-      }),
+          .map(Into::into)
+          .collect(),
+      ),
     }
   }
 }

@@ -46,32 +46,11 @@ use serde_json::Value;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{authentication, bss};
-use crate::{
-  hsm::{self, component::types::ComponentArrayPostArray},
-  pcs,
-};
+use crate::{hsm, pcs};
 use crate::hsm::generated::types::{
-  CompEthInterface100 as GenCompEthInterface,
   CompEthInterface100IpAddressMapping as GenIpAddressMapping,
-  CompEthInterface100Patch as GenCompEthInterfacePatch,
-  ComponentArrayPostArray as GenComponentArrayPostArray,
-  Group100 as GenGroup,
-  RedfishEndpoint100RedfishEndpoint as GenRedfishEndpoint,
+  CompEthInterface100Patch as GenCompEthInterfacePatch, XNameRw100,
 };
-
-/// Bridge helper for Task 12: converts between the
-/// `manta_backend_dispatcher` front-end types and the progenitor-generated
-/// HSM body/response types via a JSON round-trip. Both sides share the
-/// HSM OpenAPI schema serde renames, so this is safe. Task 13's slim
-/// re-exports collapse these into direct aliases and this helper becomes
-/// dead code (to be removed then).
-fn json_convert<A: serde::Serialize, B: serde::de::DeserializeOwned>(
-  value: A,
-) -> Result<B, Error> {
-  let v =
-    serde_json::to_value(&value).map_err(|e| Error::Message(e.to_string()))?;
-  serde_json::from_value(v).map_err(|e| Error::Message(e.to_string()))
-}
 
 #[derive(Debug, Clone)]
 pub struct Ochami {
@@ -110,8 +89,10 @@ impl GroupTrait for Ochami {
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
 
-    // Convert from generated Group100 (backend) to Group (infra) via JSON.
-    let hsm_group_vec: Vec<FrontEndGroup> = json_convert(hsm_group_backend_vec)?;
+    // Slim re-export makes Group100 == crate::hsm::group::types::Group with
+    // From<Group> for FrontEndGroup impls.
+    let hsm_group_vec: Vec<FrontEndGroup> =
+      hsm_group_backend_vec.into_iter().map(Into::into).collect();
 
     Ok(hsm_group_vec)
   }
@@ -131,7 +112,7 @@ impl GroupTrait for Ochami {
     Ok(
       hsm_group_vec
         .iter()
-        .map(|hsm_group| hsm_group.label.to_string())
+        .map(|hsm_group| hsm_group.label.as_str().to_string())
         .collect(),
     )
   }
@@ -141,7 +122,7 @@ impl GroupTrait for Ochami {
     auth_token: &str,
     hsm_group: FrontEndGroup,
   ) -> Result<FrontEndGroup, Error> {
-    let generated: GenGroup = json_convert(hsm_group.clone())?;
+    let generated: hsm::group::types::Group = hsm_group.clone().into();
     let created_uris = self
       .hsm_group_post(auth_token, &generated)
       .await
@@ -206,9 +187,7 @@ impl GroupTrait for Ochami {
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
 
-    let hsm_group: FrontEndGroup = json_convert(hsm_group_backend)?;
-
-    Ok(hsm_group)
+    Ok(hsm_group_backend.into())
   }
 
   async fn get_groups(
@@ -224,8 +203,8 @@ impl GroupTrait for Ochami {
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
 
-    // Convert from generated Group100 (backend) to Group (infra) via JSON.
-    let hsm_group_vec: Vec<FrontEndGroup> = json_convert(hsm_group_backend_vec)?;
+    let hsm_group_vec: Vec<FrontEndGroup> =
+      hsm_group_backend_vec.into_iter().map(Into::into).collect();
 
     Ok(hsm_group_vec)
   }
@@ -262,14 +241,15 @@ impl GroupTrait for Ochami {
     group_label: &str,
     xname: &str,
   ) -> Result<HsmActionResponse, Error> {
-    // hsm_group_post_member now returns Vec<ResourceUri100>; synthesize a
-    // successful HsmActionResponse for trait parity.
+    // hsm_group_post_member returns Vec<ResourceUri100>; synthesize a
+    // successful HsmActionResponse for trait parity. The trait signature
+    // requires a `HsmActionResponse`, so we stringify the created URIs
+    // into the `message` field. Changing the trait to return the raw URI
+    // list is a follow-up on the front-end side.
     let uris = self
       .hsm_group_post_member(auth_token, group_label, xname)
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
-    // TODO(phase 5): pass Vec<ResourceUri100> through directly instead of
-    // stringifying.
     Ok(HsmActionResponse {
       code: "0".to_string(),
       message: format!(
@@ -442,7 +422,7 @@ impl ComponentTrait for Ochami {
       .hsm_component_get_all_nodes(auth_token, nid_only)
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
-    json_convert(arr)
+    Ok(arr.into())
   }
 
   async fn get_node_metadata_available(
@@ -505,7 +485,7 @@ impl ComponentTrait for Ochami {
       )
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
-    json_convert(arr)
+    Ok(arr.into())
   }
 
   async fn post_nodes(
@@ -513,8 +493,10 @@ impl ComponentTrait for Ochami {
     auth_token: &str,
     component: FrontEndComponentArrayPostArray,
   ) -> Result<(), Error> {
-    let component_backend: ComponentArrayPostArray = component.into();
-    let generated: GenComponentArrayPostArray = json_convert(component_backend)?;
+    // Slim re-export: hsm::component::types::ComponentArrayPostArray ==
+    // generated ComponentArrayPostArray, with From<FrontEnd..> impl.
+    let generated: hsm::component::types::ComponentArrayPostArray =
+      component.into();
     self
       .hsm_component_post(auth_token, generated)
       .await
@@ -795,7 +777,7 @@ impl RedfishEndpointTrait for Ochami {
       )
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
-    json_convert(gen_arr)
+    Ok(gen_arr.into())
   }
 
   async fn get_redfish_endpoints(
@@ -822,7 +804,7 @@ impl RedfishEndpointTrait for Ochami {
       )
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
-    json_convert(gen_arr)
+    Ok(gen_arr.into())
   }
 
   async fn add_redfish_endpoint(
@@ -839,7 +821,8 @@ impl RedfishEndpointTrait for Ochami {
       .as_deref()
       .unwrap_or(&[]);
     for ep in eps {
-      let gen_ep: GenRedfishEndpoint = json_convert(ep.clone())?;
+      let gen_ep: hsm::inventory::redfish_endpoint::types::RedfishEndpoint =
+        ep.clone().into();
       self
         .hsm_inventory_redfish_endpoint_post(auth_token, &gen_ep)
         .await
@@ -854,7 +837,8 @@ impl RedfishEndpointTrait for Ochami {
     redfish_endpoint: &RedfishEndpoint,
   ) -> Result<(), Error> {
     let xname = redfish_endpoint.id.clone();
-    let gen_ep: GenRedfishEndpoint = json_convert(redfish_endpoint.clone())?;
+    let gen_ep: hsm::inventory::redfish_endpoint::types::RedfishEndpoint =
+      redfish_endpoint.clone().into();
     self
       .hsm_inventory_redfish_endpoint_put(auth_token, xname.as_str(), &gen_ep)
       .await
@@ -886,7 +870,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       )
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
-    json_convert(gen_vec)
+    Ok(gen_vec.into_iter().map(Into::into).collect())
   }
 
   async fn get_component_ethernet_interface(
@@ -898,7 +882,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       .hsm_inventory_ethernet_interface_get_one(auth_token, eth_interface_id)
       .await
       .map_err(|e| Error::Message(e.to_string()))?;
-    json_convert(gen_ei)
+    Ok(gen_ei.into())
   }
 
   async fn add_component_ethernet_interface(
@@ -906,7 +890,8 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     auth_token: &str,
     ethernet_interface: &ComponentEthernetInterface,
   ) -> Result<(), Error> {
-    let gen_ei: GenCompEthInterface = json_convert(ethernet_interface.clone())?;
+    let gen_ei: hsm::inventory::ethernet_interfaces::types::ComponentEthernetInterface =
+      ethernet_interface.clone().into();
     self
       .hsm_inventory_ethernet_interface_post(auth_token, &gen_ei)
       .await
@@ -926,18 +911,16 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     description: Option<&str>,
     ip_address_mapping: (&str, &str),
   ) -> Result<Value, Error> {
-    // Build a CompEthInterface100Patch inline. The old
+    // Build the CompEthInterface100Patch inline. The old
     // http_client::patch bundled description + a single IP mapping into a
-    // ComponentEthernetInterface body — the equivalent generated PATCH
-    // schema (`CompEthInterface100Patch`) carries description, ip_addresses,
-    // and component_id (no MACAddress / LastUpdate on PATCH). Task 13's
-    // slim re-export will provide a `From<ComponentEthernetInterface>` for
-    // this type; until then, construct manually.
+    // ComponentEthernetInterface body — the generated PATCH schema
+    // (`CompEthInterface100Patch`, aliased via
+    // `hsm::inventory::ethernet_interfaces::types::ComponentEthernetInterfacePatch`)
+    // carries description, ip_addresses, and component_id (no
+    // MACAddress / LastUpdate on PATCH).
     let (ip_address, network) = ip_address_mapping;
     let patch = GenCompEthInterfacePatch {
-      component_id: Some(
-        crate::hsm::generated::types::XNameRw100(eth_interface_id.to_string()),
-      ),
+      component_id: Some(XNameRw100(eth_interface_id.to_string())),
       description: description.map(|s| s.to_string()),
       ip_addresses: vec![GenIpAddressMapping {
         ip_address: ip_address.to_string(),

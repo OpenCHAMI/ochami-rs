@@ -1,109 +1,114 @@
-use serde::{Deserialize, Serialize};
-//use crate::hsm::inventory::types::ComponentType;
-//use manta_backend_dispatcher::types::hsm::inventory::{
+//! Slim re-exports from the progenitor-generated HSM types, plus
+//! `From`/`Into` conversions between the generated `CompEthInterface100`
+//! family of types and the `manta_backend_dispatcher` front-end
+//! `ComponentEthernetInterface` / `IpAddressMapping` types.
+//!
+//! Task 13 (Phase 5) replaced the hand-written duplicate types with
+//! direct aliases. Design spec Section 4 (Phase 5) — Types migration.
+
+use std::str::FromStr;
+
+pub use crate::hsm::generated::types::{
+  CompEthInterface100 as ComponentEthernetInterface,
+  CompEthInterface100IpAddressMapping as IpAddressMapping,
+  CompEthInterface100IpAddressMappingPatch as IpAddressMappingPatch,
+  CompEthInterface100Patch as ComponentEthernetInterfacePatch, HmsType100,
+  XNameRw100,
+};
+
 use manta_backend_dispatcher::types::hsm::inventory::{
   ComponentEthernetInterface as FrontendComponentEthernetInterface,
-  ComponentEthernetInterfaceArray as FrontendComponentEthernetInterfaceArray,
   IpAddressMapping as FrontendIpAddressMapping,
 };
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ComponentEthernetInterface {
-  #[serde(rename = "ID")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub id: Option<String>,
-  #[serde(rename = "Description")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub description: Option<String>,
-  #[serde(rename = "MACAddress")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub mac_address: Option<String>,
-  #[serde(rename = "IPAddresses")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub ip_addresses: Option<Vec<IpAddressMapping>>,
-  #[serde(rename = "LastUpdate")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub last_update: Option<String>,
-  #[serde(rename = "ComponentID")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub component_id: Option<String>,
-  #[serde(rename = "Type")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub parent_hms_type: Option<String>,
-}
-impl From<FrontendComponentEthernetInterface> for ComponentEthernetInterface {
-  fn from(interface: FrontendComponentEthernetInterface) -> Self {
-    ComponentEthernetInterface {
-      id: interface.id,
-      description: interface.description,
-      mac_address: interface.mac_address,
-      ip_addresses: interface.ip_addresses.map(|ips| ips.into_iter().map(IpAddressMapping::from).collect()),
-      last_update: interface.last_update,
-      component_id: interface.component_id,
-      parent_hms_type: interface.parent_hms_type,
-    }
-  }
-}
-impl Into<FrontendComponentEthernetInterface> for ComponentEthernetInterface {
-  fn into(self) -> FrontendComponentEthernetInterface {
-    FrontendComponentEthernetInterface {
-      id: self.id,
-      description: self.description,
-      mac_address: self.mac_address,
-      ip_addresses: self.ip_addresses.map(|ips| ips.into_iter().map(|ip| ip.into()).collect()),
-      last_update: self.last_update,
-      component_id: self.component_id,
-      parent_hms_type: self.parent_hms_type,
-    }
-  }
-}
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ComponentEthernetInterfaceArray {
-  #[serde(rename = "EthernetInterfaces")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub ethernet_interfaces: Option<Vec<ComponentEthernetInterface>>,
-}
-impl From<FrontendComponentEthernetInterfaceArray> for ComponentEthernetInterfaceArray {
-  fn from(array: FrontendComponentEthernetInterfaceArray) -> Self {
-    ComponentEthernetInterfaceArray {
-      ethernet_interfaces: array.ethernet_interfaces.map(|interfaces| {
-        interfaces.into_iter().map(ComponentEthernetInterface::from).collect()
-      }),
-    }
-  }
-}
-impl Into<FrontendComponentEthernetInterfaceArray> for ComponentEthernetInterfaceArray {
-  fn into(self) -> FrontendComponentEthernetInterfaceArray {
-    FrontendComponentEthernetInterfaceArray {
-      ethernet_interfaces: self.ethernet_interfaces.map(|interfaces| {
-        interfaces
-          .into_iter()
-          .map(|interface| interface.into())
-          .collect()
-      }),
-    }
-  }
-}
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
-pub struct IpAddressMapping {
-  #[serde(rename = "IPAddress")]
-  pub ip_address: String,
-  #[serde(rename = "Network")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub network: Option<String>,
-}
+
+// ---------------------------------------------------------------------------
+// IpAddressMapping <-> FrontendIpAddressMapping
+// ---------------------------------------------------------------------------
+
 impl From<FrontendIpAddressMapping> for IpAddressMapping {
-  fn from(address: FrontendIpAddressMapping) -> Self {
+  fn from(value: FrontendIpAddressMapping) -> Self {
     IpAddressMapping {
-      ip_address: address.ip_address,
-      network: address.network,
+      ip_address: value.ip_address,
+      network: value.network,
     }
   }
 }
-impl Into<FrontendIpAddressMapping> for IpAddressMapping {
-  fn into(self) -> FrontendIpAddressMapping {
+
+impl From<IpAddressMapping> for FrontendIpAddressMapping {
+  fn from(value: IpAddressMapping) -> Self {
     FrontendIpAddressMapping {
-      ip_address: self.ip_address,
-      network: self.network,
+      ip_address: value.ip_address,
+      network: value.network,
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ComponentEthernetInterface <-> FrontendComponentEthernetInterface
+// ---------------------------------------------------------------------------
+
+impl From<FrontendComponentEthernetInterface> for ComponentEthernetInterface {
+  fn from(value: FrontendComponentEthernetInterface) -> Self {
+    ComponentEthernetInterface {
+      id: value.id,
+      description: value.description,
+      // MACAddress is required on the generated type; missing input maps
+      // to empty string (upstream will reject on POST — deferred to
+      // caller validation).
+      mac_address: value.mac_address.unwrap_or_default(),
+      ip_addresses: value
+        .ip_addresses
+        .map(|v| v.into_iter().map(IpAddressMapping::from).collect())
+        .unwrap_or_default(),
+      // Front-end uses a String timestamp; generated uses
+      // `chrono::DateTime<Utc>`. Drop on conversion (LastUpdate is
+      // server-populated and not round-tripped through the front-end).
+      last_update: None,
+      component_id: value.component_id.map(XNameRw100),
+      type_: value.parent_hms_type.and_then(|s| HmsType100::from_str(&s).ok()),
+    }
+  }
+}
+
+impl From<ComponentEthernetInterface> for FrontendComponentEthernetInterface {
+  fn from(value: ComponentEthernetInterface) -> Self {
+    FrontendComponentEthernetInterface {
+      id: value.id,
+      description: value.description,
+      mac_address: Some(value.mac_address),
+      ip_addresses: Some(
+        value.ip_addresses.into_iter().map(Into::into).collect(),
+      ),
+      last_update: value.last_update.map(|dt| dt.to_rfc3339()),
+      component_id: value.component_id.map(|x| x.0),
+      parent_hms_type: value.type_.map(|t| t.to_string()),
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ComponentEthernetInterface -> ComponentEthernetInterfacePatch
+// ---------------------------------------------------------------------------
+
+impl From<ComponentEthernetInterface> for ComponentEthernetInterfacePatch {
+  fn from(value: ComponentEthernetInterface) -> Self {
+    ComponentEthernetInterfacePatch {
+      component_id: value.component_id,
+      description: value.description,
+      ip_addresses: value.ip_addresses,
+    }
+  }
+}
+
+impl From<FrontendComponentEthernetInterface> for ComponentEthernetInterfacePatch {
+  fn from(value: FrontendComponentEthernetInterface) -> Self {
+    ComponentEthernetInterfacePatch {
+      component_id: value.component_id.map(XNameRw100),
+      description: value.description,
+      ip_addresses: value
+        .ip_addresses
+        .map(|v| v.into_iter().map(IpAddressMapping::from).collect())
+        .unwrap_or_default(),
     }
   }
 }

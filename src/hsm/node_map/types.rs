@@ -1,25 +1,12 @@
-use serde::{Deserialize, Serialize};
+//! Slim re-exports from the progenitor-generated HSM types.
+//!
+//! Task 13 (Phase 5) replaced the hand-written duplicate types with
+//! direct aliases. `NodeMap` corresponds to `NodeMap100NodeMap`;
+//! `NodeMapArray` to `NodeMapArrayNodeMapArray`; `NodeMapPost` to
+//! `NodeMap100PostNodeMap`. Design spec Section 4 (Phase 5) — Types
+//! migration.
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NodeMapArray {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "NodeMaps"))]
-  pub node_maps: Option<NodeMap>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NodeMap {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "ID"))]
-  pub id: Option<String>,
-  /// put http request payload does not use "ID" field since it is
-  /// part of the URL
-  #[serde(rename(serialize = "NID"))]
-  pub nid: usize,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Role"))]
-  pub role: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "SubRole"))]
-  pub sub_role: Option<String>,
-}
+pub use crate::hsm::generated::types::{
+  NodeMap100NodeMap as NodeMap, NodeMap100PostNodeMap as NodeMapPost,
+  NodeMapArrayNodeMapArray as NodeMapArray,
+};

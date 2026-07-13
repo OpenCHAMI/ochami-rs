@@ -1,350 +1,161 @@
+//! Slim re-exports from the progenitor-generated HSM types, plus
+//! `From`/`Into` conversions between the generated types and the
+//! `manta_backend_dispatcher` front-end types.
+//!
+//! Task 13 (Phase 5) replaced the hand-written duplicate types here
+//! with direct aliases to the generated equivalents. Design spec
+//! Section 4 (Phase 5) — Types migration.
+
+use std::str::FromStr;
+
+pub use crate::hsm::generated::types::{
+  Component100Component as Component,
+  Component100ComponentCreate as ComponentCreate, Component100Put as ComponentPut,
+  ComponentArrayComponentArray as ComponentArray, ComponentArrayPostArray,
+  ComponentArrayPostByNidQuery, ComponentArrayPostQuery, HmsArch100, HmsClass100,
+  HmsFlag100, HmsRole100, HmsState100, HmsSubRole100, HmsType100, NetType100,
+  NidRange100, XName100, XNameForQuery100, XNamePartition100, XNameRw100,
+};
+
 use manta_backend_dispatcher::types::{
   Component as FrontEndComponent,
   ComponentArrayPostArray as FrontEndComponentArrayPostArray,
   ComponentCreate as FrontEndComponentCreate, NodeMetadataArray,
 };
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ComponentArray {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Components")]
-  pub components: Option<Vec<Component>>,
-}
-
-impl From<NodeMetadataArray> for ComponentArray {
-  fn from(value: NodeMetadataArray) -> Self {
-    let component_vec_opt: Option<Vec<Component>> =
-      if let Some(components) = value.components {
-        let mut component_vec: Vec<Component> =
-          Vec::with_capacity(components.len());
-
-        components
-          .into_iter()
-          .for_each(|component: FrontEndComponent| {
-            component_vec.push(Component::from(component))
-          });
-
-        Some(component_vec)
-      } else {
-        None
-      };
-
-    ComponentArray {
-      components: component_vec_opt,
-    }
-  }
-}
-
-impl Into<NodeMetadataArray> for ComponentArray {
-  fn into(self) -> NodeMetadataArray {
-    let component_vec_opt: Option<Vec<FrontEndComponent>> =
-      if let Some(components) = self.components {
-        let mut component_vec: Vec<FrontEndComponent> =
-          Vec::with_capacity(components.len());
-
-        components.into_iter().for_each(|component: Component| {
-          component_vec.push(component.into())
-        });
-
-        Some(component_vec)
-      } else {
-        None
-      };
-
-    NodeMetadataArray {
-      components: component_vec_opt,
-    }
-  }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Component {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "ID")]
-  pub id: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Type")]
-  pub r#type: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "State")]
-  pub state: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Flag")]
-  pub flag: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Enabled")]
-  pub enabled: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "SoftwareStatus")]
-  pub software_status: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Role")]
-  pub role: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "SubRole")]
-  pub sub_role: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "NID")]
-  pub nid: Option<usize>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Subtype")]
-  pub subtype: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "NetType")]
-  pub net_type: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Arch")]
-  pub arch: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Class")]
-  pub class: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "ReservationDisabled")]
-  pub reservation_disabled: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename = "Locked")]
-  pub locked: Option<bool>,
-}
+// ---------------------------------------------------------------------------
+// Component <-> FrontEndComponent
+// ---------------------------------------------------------------------------
 
 impl From<FrontEndComponent> for Component {
   fn from(value: FrontEndComponent) -> Self {
     Component {
-      id: value.id,
-      r#type: value.r#type,
-      state: value.state,
-      flag: value.flag,
+      id: value.id.map(XName100),
+      type_: value.r#type.and_then(|s| HmsType100::from_str(&s).ok()),
+      state: value.state.and_then(|s| HmsState100::from_str(&s).ok()),
+      flag: value.flag.and_then(|s| HmsFlag100::from_str(&s).ok()),
       enabled: value.enabled,
       software_status: value.software_status,
-      role: value.role,
-      sub_role: value.sub_role,
-      nid: value.nid,
+      role: value.role.map(HmsRole100),
+      sub_role: value.sub_role.map(HmsSubRole100),
+      nid: value.nid.map(|n| n as i64),
       subtype: value.subtype,
-      net_type: value.net_type,
-      arch: value.arch,
-      class: value.class,
+      net_type: value.net_type.and_then(|s| NetType100::from_str(&s).ok()),
+      arch: value.arch.and_then(|s| HmsArch100::from_str(&s).ok()),
+      class: value.class.and_then(|s| HmsClass100::from_str(&s).ok()),
       reservation_disabled: value.reservation_disabled,
       locked: value.locked,
     }
   }
 }
 
-impl Into<FrontEndComponent> for Component {
-  fn into(self) -> FrontEndComponent {
+impl From<Component> for FrontEndComponent {
+  fn from(value: Component) -> Self {
     FrontEndComponent {
-      id: self.id,
-      r#type: self.r#type,
-      state: self.state,
-      flag: self.flag,
-      enabled: self.enabled,
-      software_status: self.software_status,
-      role: self.role,
-      sub_role: self.sub_role,
-      nid: self.nid,
-      subtype: self.subtype,
-      net_type: self.net_type,
-      arch: self.arch,
-      class: self.class,
-      reservation_disabled: self.reservation_disabled,
-      locked: self.locked,
+      id: value.id.map(|x| x.0),
+      r#type: value.type_.map(|t| t.to_string()),
+      state: value.state.map(|s| s.to_string()),
+      flag: value.flag.map(|f| f.to_string()),
+      enabled: value.enabled,
+      software_status: value.software_status,
+      role: value.role.map(|r| r.0),
+      sub_role: value.sub_role.map(|s| s.0),
+      nid: value.nid.map(|n| n as usize),
+      subtype: value.subtype,
+      net_type: value.net_type.map(|n| n.to_string()),
+      arch: value.arch.map(|a| a.to_string()),
+      class: value.class.map(|c| c.to_string()),
+      reservation_disabled: value.reservation_disabled,
+      locked: value.locked,
     }
   }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ComponentArrayPostQuery {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "ComponentIDs"))]
-  pub component_ids: Option<Vec<String>>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub partition: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub group: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "stateonly"))]
-  pub state_only: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "flagonly"))]
-  pub falg_only: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "roleonly"))]
-  pub role_only: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "nidonly"))]
-  pub nid_only: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub r#type: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub state: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub flag: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub enabled: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "softwarestatus"))]
-  pub software_status: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub role: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub subrole: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub subtype: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub arch: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub class: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub nid: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub nid_start: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub nid_end: Option<String>,
+// ---------------------------------------------------------------------------
+// ComponentArray <-> NodeMetadataArray
+// ---------------------------------------------------------------------------
+
+impl From<NodeMetadataArray> for ComponentArray {
+  fn from(value: NodeMetadataArray) -> Self {
+    ComponentArray {
+      components: value
+        .components
+        .map(|v| v.into_iter().map(Component::from).collect())
+        .unwrap_or_default(),
+    }
+  }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ComponentArrayPostByNidQuery {
-  #[serde(rename(serialize = "NIDRanges"))]
-  pub nid_ranges: Vec<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub partition: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "stateonly"))]
-  pub state_only: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "flagonly"))]
-  pub falg_only: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "roleonly"))]
-  pub role_only: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "nidonly"))]
-  pub nid_only: Option<bool>,
+impl From<ComponentArray> for NodeMetadataArray {
+  fn from(value: ComponentArray) -> Self {
+    let component_vec: Vec<FrontEndComponent> =
+      value.components.into_iter().map(Into::into).collect();
+    NodeMetadataArray {
+      components: Some(component_vec),
+    }
+  }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ComponentArrayPostArray {
-  #[serde(rename(serialize = "Components"))]
-  pub components: Vec<ComponentCreate>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Force"))]
-  pub force: Option<bool>,
+// ---------------------------------------------------------------------------
+// ComponentCreate <-> FrontEndComponentCreate
+// ---------------------------------------------------------------------------
+
+impl From<FrontEndComponentCreate> for ComponentCreate {
+  fn from(value: FrontEndComponentCreate) -> Self {
+    ComponentCreate {
+      id: XNameRw100(value.id),
+      state: HmsState100::from_str(&value.state).unwrap_or(HmsState100::Unknown),
+      flag: value.flag.and_then(|s| HmsFlag100::from_str(&s).ok()),
+      enabled: value.enabled,
+      software_status: value.software_status,
+      role: value.role.map(HmsRole100),
+      sub_role: value.sub_role.map(HmsSubRole100),
+      nid: value.nid.map(|n| n as i64),
+      subtype: value.subtype,
+      net_type: value.net_type.and_then(|s| NetType100::from_str(&s).ok()),
+      arch: value.arch.and_then(|s| HmsArch100::from_str(&s).ok()),
+      class: value.class.and_then(|s| HmsClass100::from_str(&s).ok()),
+    }
+  }
 }
+
+impl From<ComponentCreate> for FrontEndComponentCreate {
+  fn from(value: ComponentCreate) -> Self {
+    FrontEndComponentCreate {
+      id: value.id.0,
+      state: value.state.to_string(),
+      flag: value.flag.map(|f| f.to_string()),
+      enabled: value.enabled,
+      software_status: value.software_status,
+      role: value.role.map(|r| r.0),
+      sub_role: value.sub_role.map(|s| s.0),
+      nid: value.nid.map(|n| n as usize),
+      subtype: value.subtype,
+      net_type: value.net_type.map(|n| n.to_string()),
+      arch: value.arch.map(|a| a.to_string()),
+      class: value.class.map(|c| c.to_string()),
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ComponentArrayPostArray <-> FrontEndComponentArrayPostArray
+// ---------------------------------------------------------------------------
 
 impl From<FrontEndComponentArrayPostArray> for ComponentArrayPostArray {
   fn from(value: FrontEndComponentArrayPostArray) -> Self {
-    let mut component_vec: Vec<ComponentCreate> =
-      Vec::with_capacity(value.components.len());
-
-    value
-      .components
-      .into_iter()
-      .for_each(|c| component_vec.push(ComponentCreate::from(c)));
-
     ComponentArrayPostArray {
-      components: component_vec,
+      components: value.components.into_iter().map(ComponentCreate::from).collect(),
       force: value.force,
     }
   }
 }
 
-impl Into<FrontEndComponentArrayPostArray> for ComponentArrayPostArray {
-  fn into(self) -> FrontEndComponentArrayPostArray {
-    let mut component_vec: Vec<FrontEndComponentCreate> =
-      Vec::with_capacity(self.components.len());
-
-    self
-      .components
-      .into_iter()
-      .for_each(|c| component_vec.push(c.into()));
-
+impl From<ComponentArrayPostArray> for FrontEndComponentArrayPostArray {
+  fn from(value: ComponentArrayPostArray) -> Self {
     FrontEndComponentArrayPostArray {
-      components: component_vec,
-      force: self.force,
+      components: value.components.into_iter().map(Into::into).collect(),
+      force: value.force,
     }
   }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ComponentCreate {
-  #[serde(rename(serialize = "ID"))]
-  id: String,
-  #[serde(rename(serialize = "State"))]
-  state: String,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Flag"))]
-  flag: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Enabled"))]
-  enabled: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "SoftwareStatus"))]
-  software_status: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Role"))]
-  role: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "SubRole"))]
-  sub_role: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "NID"))]
-  nid: Option<usize>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Subtype"))]
-  subtype: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "NetType"))]
-  net_type: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Arch"))]
-  arch: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Class"))]
-  class: Option<String>,
-}
-
-impl From<FrontEndComponentCreate> for ComponentCreate {
-  fn from(value: FrontEndComponentCreate) -> Self {
-    ComponentCreate {
-      id: value.id,
-      state: value.state,
-      flag: value.flag,
-      enabled: value.enabled,
-      software_status: value.software_status,
-      role: value.role,
-      sub_role: value.sub_role,
-      nid: value.nid,
-      subtype: value.subtype,
-      net_type: value.net_type,
-      arch: value.arch,
-      class: value.class,
-    }
-  }
-}
-
-impl Into<FrontEndComponentCreate> for ComponentCreate {
-  fn into(self) -> FrontEndComponentCreate {
-    FrontEndComponentCreate {
-      id: self.id,
-      state: self.state,
-      flag: self.flag,
-      enabled: self.enabled,
-      software_status: self.software_status,
-      role: self.role,
-      sub_role: self.sub_role,
-      nid: self.nid,
-      subtype: self.subtype,
-      net_type: self.net_type,
-      arch: self.arch,
-      class: self.class,
-    }
-  }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ComponentPut {
-  component: ComponentCreate,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  #[serde(rename(serialize = "Force"))]
-  force: Option<bool>,
 }

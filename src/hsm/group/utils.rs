@@ -3,28 +3,9 @@ use std::collections::HashMap;
 use crate::{
   Ochami,
   error::Error,
-  hsm::group::types::{Group, Member},
+  hsm::group::types::{Group, GroupExt},
   node::utils::validate_xnames_format_and_membership_agaisnt_single_hsm,
 };
-
-/// Bridge helper for Task 12: converts between the progenitor-generated
-/// `Group100` and the internal hand-rolled `Group` via a JSON round-trip.
-/// Both types share the HSM OpenAPI schema serde renames, so this is
-/// safe. Task 13's slim re-exports collapse these into a direct alias
-/// and this helper becomes dead code (to be removed then).
-fn generated_to_internal_groups(
-  gen: Vec<crate::hsm::generated::types::Group100>,
-) -> Result<Vec<Group>, Error> {
-  let v = serde_json::to_value(&gen).map_err(|e| Error::Message(e.to_string()))?;
-  serde_json::from_value(v).map_err(|e| Error::Message(e.to_string()))
-}
-
-fn generated_to_internal_group(
-  gen: crate::hsm::generated::types::Group100,
-) -> Result<Group, Error> {
-  let v = serde_json::to_value(&gen).map_err(|e| Error::Message(e.to_string()))?;
-  serde_json::from_value(v).map_err(|e| Error::Message(e.to_string()))
-}
 
 /// Add a list of xnames to target HSM group
 /// Returns the new list of nodes in target HSM group
@@ -34,9 +15,8 @@ pub async fn add_member(
   group_label: &str,
   new_member: &str,
 ) -> Result<Vec<String>, Error> {
-  // Get HSM group from CSM
-  let group_gen = client.hsm_group_get_one(auth_token, group_label).await?;
-  let group = generated_to_internal_group(group_gen)?;
+  // Get HSM group from CSM (Group == Group100 via slim re-export)
+  let group = client.hsm_group_get_one(auth_token, group_label).await?;
 
   // Update HSM group with new memebers
   let new_member = new_member.to_string();
@@ -60,12 +40,10 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
 
   let names_ref: Vec<&str> = hsm_name_vec.iter().map(|s| s.as_str()).collect();
 
-  let group_vec_gen = client
+  let group_vec = client
     .hsm_group_get(auth_token, Some(&names_ref), None)
     .await
     .map_err(|e| Error::Message(e.to_string()))?;
-
-  let group_vec = generated_to_internal_groups(group_vec_gen)?;
 
   let hsm_group_member_vec: Vec<String> = group_vec
     .into_iter()
@@ -82,12 +60,10 @@ pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
   auth_token: &str,
   hsm_name_vec: &[&str],
 ) -> Result<HashMap<String, Vec<String>>, Error> {
-  let hsm_group_vec_gen = client
+  let hsm_group_vec = client
     .hsm_group_get_all(auth_token)
     .await
     .map_err(|e| Error::Message(e.to_string()))?;
-
-  let hsm_group_vec = generated_to_internal_groups(hsm_group_vec_gen)?;
 
   Ok(filter_by_hsm_group_and_convert_to_map(
     hsm_name_vec,
@@ -102,9 +78,7 @@ pub async fn get_hsm_group_map_and_filter_by_hsm_group_member_vec(
   shasta_token: &str,
   hsm_name_vec: &[&str],
 ) -> Result<HashMap<String, Vec<String>>, Error> {
-  let hsm_group_vec_gen = client.hsm_group_get_all(shasta_token).await?;
-
-  let hsm_group_vec = generated_to_internal_groups(hsm_group_vec_gen)?;
+  let hsm_group_vec = client.hsm_group_get_all(shasta_token).await?;
 
   Ok(filter_by_hsm_group_members_and_convert_to_map(
     hsm_name_vec,
@@ -121,14 +95,11 @@ pub fn filter_by_hsm_group_and_convert_to_map(
   let mut hsm_group_map: HashMap<String, Vec<String>> = HashMap::new();
 
   for hsm_group in hsm_group_vec {
-    if hsm_name_vec.contains(&hsm_group.label.as_str()) {
-      hsm_group_map.entry(hsm_group.label.clone()).or_insert(
-        hsm_group
-          .members
-          .clone()
-          .and_then(|members| Some(members.ids.unwrap_or_default()))
-          .unwrap(),
-      );
+    let label: &str = hsm_group.label.as_str();
+    if hsm_name_vec.contains(&label) {
+      hsm_group_map
+        .entry(label.to_string())
+        .or_insert_with(|| hsm_group.get_members());
     }
   }
 
@@ -144,14 +115,12 @@ pub fn filter_by_hsm_group_members_and_convert_to_map(
   let mut hsm_group_map: HashMap<String, Vec<String>> = HashMap::new();
 
   for hsm_group in hsm_group_vec {
-    if hsm_group
-      .get_members()
+    let members = hsm_group.get_members();
+    if members
       .iter()
       .any(|member| hsm_group_member_vec.contains(&member.as_str()))
     {
-      hsm_group_map
-        .entry(hsm_group.label)
-        .or_insert(hsm_group.members.and_then(|members| members.ids).unwrap());
+      hsm_group_map.insert(hsm_group.label.as_str().to_string(), members);
     }
   }
 
@@ -166,10 +135,9 @@ pub async fn update_hsm_group_members(
   group_members_to_delete: &[&str],
   group_members_to_add: &[&str],
 ) -> Result<(), Error> {
-  let group_gen = client.hsm_group_get_one(auth_token, group_label).await?;
-  let group = generated_to_internal_group(group_gen)?;
+  let group = client.hsm_group_get_one(auth_token, group_label).await?;
 
-  let mut group_members = group.members.unwrap().ids.unwrap();
+  let mut group_members = group.get_members();
 
   group_members
     .retain(|xname| group_members_to_delete.contains(&xname.as_str()));
@@ -275,10 +243,6 @@ pub async fn migrate_hsm_members(
         .await;
     }
   }
-
-  // Silence unused-import warning for `Member` while callers still expect
-  // the type re-exported here; kept for API compatibility during Task 12.
-  let _ = std::marker::PhantomData::<Member>;
 
   Ok((target_hsm_group_member_vec, parent_hsm_group_member_vec))
 }
