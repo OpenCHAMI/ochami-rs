@@ -1,5 +1,11 @@
 # ochami-rs
 
+[![CI](https://github.com/OpenCHAMI/ochami-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenCHAMI/ochami-rs/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/ochami-rs.svg)](https://crates.io/crates/ochami-rs)
+[![Docs.rs](https://docs.rs/ochami-rs/badge.svg)](https://docs.rs/ochami-rs)
+[![License](https://img.shields.io/crates/l/ochami-rs.svg)](LICENSE)
+[![MSRV](https://img.shields.io/badge/MSRV-1.91.1-blue)](https://www.rust-lang.org/)
+
 Rust bindings for the [OpenCHAMI](https://openchami.org/) backend
 (HSM, BSS, PCS). The crate implements the
 [`manta-backend-dispatcher`](https://crates.io/crates/manta-backend-dispatcher)

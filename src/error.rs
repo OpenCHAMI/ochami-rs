@@ -1,13 +1,10 @@
-use std::io;
-
 use serde_json::Value;
 
 #[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
 pub enum Error {
   #[error("OCHAMI-RS: {0}")]
   Message(String),
-  #[error("OCHAMI-RS > IO: {0}")]
-  IoError(#[from] io::Error),
   #[error("OCHAMI-RS > Serde: {0}")]
   SerdeError(#[from] serde_json::Error),
   #[error("OCHAMI-RS > Net: {0}")]
