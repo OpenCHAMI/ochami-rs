@@ -715,7 +715,7 @@ Exact names confirmed at Task 0 (typify's mangling).
 | `Component.role/sub_role` | open newtypes | `.role.as_ref().map(\|r\| &r.0)` |
 | `Component.nid: Option<usize>` | `Option<i64>` | signed/unsigned shift |
 | `ComponentArray.components: Option<Vec<...>>` | `Vec<...>` `#[serde(default)]` | drop `.unwrap_or_default()` |
-| `ComponentArrayPostQuery.flagonly` | `.flagonly` (unchanged) | ochami-rs's generated field has no typo/mangling — it's `flagonly` verbatim; the `falg_only` typo exists only in the separate `manta-backend-dispatcher` crate |
+| `ComponentArrayPostQuery.falg_only` | `.flagonly` | rename happens automatically via slim re-export to the generated type; consumers using `.falg_only` must update to `.flagonly` (the generated field is already correctly spelled — no typo-fix patch needed on the spec side) |
 | `Group.label: String` | `ResourceName` | private inner; access via `Deref` (`&*group.label`), construct via `ResourceName::from_str()` |
 | `Group.tags: Option<Vec<String>>` | `Option<Vec<ResourceName>>` | element newtype unwrap |
 | `Partition.name: String` | `ResourceName` | same pattern |
