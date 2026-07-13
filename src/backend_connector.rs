@@ -87,7 +87,7 @@ impl GroupTrait for Ochami {
     let hsm_group_backend_vec = self
       .hsm_group_get(token, None, None)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
 
     // Slim re-export makes Group100 == crate::hsm::group::types::Group with
     // From<Group> for FrontEndGroup impls.
@@ -107,7 +107,7 @@ impl GroupTrait for Ochami {
     let hsm_group_vec = self
       .hsm_group_get(token, None, None)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
 
     Ok(
       hsm_group_vec
@@ -126,7 +126,7 @@ impl GroupTrait for Ochami {
     let created_uris = self
       .hsm_group_post(auth_token, &generated)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
 
     log::info!("Group created: {:?}", created_uris);
 
@@ -145,7 +145,7 @@ impl GroupTrait for Ochami {
       hsm_group_name_vec,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 
   async fn get_group_map_and_filter_by_group_vec(
@@ -159,7 +159,7 @@ impl GroupTrait for Ochami {
       hsm_name_vec,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 
   async fn get_group_map_and_filter_by_member_vec(
@@ -173,7 +173,7 @@ impl GroupTrait for Ochami {
       hsm_name_vec,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 
   async fn get_group(
@@ -185,7 +185,7 @@ impl GroupTrait for Ochami {
     let hsm_group_backend = self
       .hsm_group_get_one(auth_token, hsm_name)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
 
     Ok(hsm_group_backend.into())
   }
@@ -201,7 +201,7 @@ impl GroupTrait for Ochami {
     let hsm_group_backend_vec = self
       .hsm_group_get(auth_token, names_owned.as_deref(), None)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
 
     let hsm_group_vec: Vec<FrontEndGroup> =
       hsm_group_backend_vec.into_iter().map(Into::into).collect();
@@ -217,7 +217,7 @@ impl GroupTrait for Ochami {
     let resp = self
       .hsm_group_delete_one(auth_token, hsm_group_name)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(resp.into())
   }
 
@@ -232,7 +232,7 @@ impl GroupTrait for Ochami {
       hsm_name_vec,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 
   async fn post_member(
@@ -249,7 +249,7 @@ impl GroupTrait for Ochami {
     let uris = self
       .hsm_group_post_member(auth_token, group_label, xname)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(HsmActionResponse {
       code: "0".to_string(),
       message: format!(
@@ -279,7 +279,7 @@ impl GroupTrait for Ochami {
         new_member,
       )
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     }
 
     Ok(sol)
@@ -295,7 +295,7 @@ impl GroupTrait for Ochami {
       .hsm_group_delete_member(auth_token, group_label, xname)
       .await
       .map(|_| ())
-      .map_err(|e| Error::Message(e.to_string()))
+      .map_err(Error::from)
   }
 
   async fn update_group_members(
@@ -318,7 +318,7 @@ impl GroupTrait for Ochami {
       members_to_add,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 
   async fn migrate_group_members(
@@ -338,7 +338,7 @@ impl GroupTrait for Ochami {
       dryrun,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 }
 
@@ -380,7 +380,7 @@ impl HardwareInventory for Ochami {
           .map(Into::into)
           .unwrap_or_default()
       })
-      .map_err(|e| Error::Message(e.to_string()))
+      .map_err(Error::from)
   }
 
   async fn get_inventory_hardware_query(
@@ -398,7 +398,7 @@ impl HardwareInventory for Ochami {
         auth_token, xname, r#type, children, parents, partition, format,
       )
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(hw.into())
   }
 
@@ -412,7 +412,7 @@ impl HardwareInventory for Ochami {
     let resp = self
       .hsm_inventory_hardware_post(auth_token, &hw_internal)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(resp.into())
   }
 }
@@ -426,7 +426,7 @@ impl ComponentTrait for Ochami {
     let arr = self
       .hsm_component_get_all_nodes(auth_token, nid_only)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(arr.into())
   }
 
@@ -489,7 +489,7 @@ impl ComponentTrait for Ochami {
         nid_only,
       )
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(arr.into())
   }
 
@@ -505,7 +505,7 @@ impl ComponentTrait for Ochami {
     self
       .hsm_component_post(auth_token, generated)
       .await
-      .map_err(|e| Error::Message(e.to_string()))
+      .map_err(Error::from)
   }
 
   async fn delete_node(
@@ -516,7 +516,7 @@ impl ComponentTrait for Ochami {
     let resp = self
       .hsm_component_delete_one(auth_token, id)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(resp.into())
   }
 
@@ -544,7 +544,7 @@ impl ComponentTrait for Ochami {
       let hsm_component_vec = self
         .hsm_component_get_all_nodes(shasta_token, Some("true"))
         .await
-        .map_err(|e| Error::Message(e.to_string()))?
+        .map_err(Error::from)?
         .components;
 
       let mut xname_vec: Vec<String> = vec![];
@@ -632,7 +632,7 @@ impl ComponentTrait for Ochami {
           Some("true"),
         )
         .await
-        .map_err(|e| Error::Message(e.to_string()))?;
+        .map_err(Error::from)?;
 
       // Get list of xnames from HSM components
       let xname_vec: Vec<String> = hsm_components
@@ -674,7 +674,7 @@ impl PCSTrait for Ochami {
       println!("return value from async fn power_status : {:?}", status);
       status.into()
     })
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 }
 
@@ -686,7 +686,7 @@ impl BootParametersTrait for Ochami {
     let boot_parameter_vec =
       bss::http_client::get(&self.base_url, auth_token, &self.root_cert, &None)
         .await
-        .map_err(|e| Error::Message(e.to_string()))?;
+        .map_err(Error::from)?;
 
     let boot_parameter_infra_vec = boot_parameter_vec
       .into_iter()
@@ -714,7 +714,7 @@ impl BootParametersTrait for Ochami {
       &hosts,
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))?;
+    .map_err(Error::from)?;
 
     let boot_parameter_infra_vec = boot_parameter_vec
       .into_iter()
@@ -736,7 +736,7 @@ impl BootParametersTrait for Ochami {
       boot_parameters.clone().into(),
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
     .map(|boot_parameter| boot_parameter.into())
   }
 
@@ -752,7 +752,7 @@ impl BootParametersTrait for Ochami {
       &boot_parameter.clone().into(),
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 
   async fn delete_bootparameters(
@@ -767,7 +767,7 @@ impl BootParametersTrait for Ochami {
       &boot_parameter.clone().into(),
     )
     .await
-    .map_err(|e| Error::Message(e.to_string()))
+    .map_err(Error::from)
   }
 }
 
@@ -781,7 +781,7 @@ impl RedfishEndpointTrait for Ochami {
         auth_token, None, None, None, None, None, None, None,
       )
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(gen_arr.into())
   }
 
@@ -808,7 +808,7 @@ impl RedfishEndpointTrait for Ochami {
         last_status,
       )
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(gen_arr.into())
   }
 
@@ -831,7 +831,7 @@ impl RedfishEndpointTrait for Ochami {
       self
         .hsm_inventory_redfish_endpoint_post(auth_token, &gen_ep)
         .await
-        .map_err(|e| Error::Message(e.to_string()))?;
+        .map_err(Error::from)?;
     }
     Ok(())
   }
@@ -847,7 +847,7 @@ impl RedfishEndpointTrait for Ochami {
     self
       .hsm_inventory_redfish_endpoint_put(auth_token, xname.as_str(), &gen_ep)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(())
   }
 
@@ -859,8 +859,8 @@ impl RedfishEndpointTrait for Ochami {
     let resp = self
       .hsm_inventory_redfish_endpoint_delete_one(auth_token, id)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
-    serde_json::to_value(resp).map_err(|e| Error::Message(e.to_string()))
+      .map_err(Error::from)?;
+    serde_json::to_value(resp).map_err(Error::from)
   }
 }
 
@@ -874,7 +874,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
         auth_token, None, None, None, None, None, None, None,
       )
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(gen_vec.into_iter().map(Into::into).collect())
   }
 
@@ -886,7 +886,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     let gen_ei = self
       .hsm_inventory_ethernet_interface_get_one(auth_token, eth_interface_id)
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(gen_ei.into())
   }
 
@@ -901,7 +901,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
       .hsm_inventory_ethernet_interface_post(auth_token, &gen_ei)
       .await
       .map(|_uri| ())
-      .map_err(|e| Error::Message(e.to_string()))
+      .map_err(Error::from)
   }
 
   async fn update_component_ethernet_interface(
@@ -939,7 +939,7 @@ impl ComponentEthernetInterfaceTrait for Ochami {
         &patch,
       )
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
+      .map_err(Error::from)?;
     Ok(Value::Null)
   }
 
@@ -956,8 +956,8 @@ impl ComponentEthernetInterfaceTrait for Ochami {
         eth_interface_id,
       )
       .await
-      .map_err(|e| Error::Message(e.to_string()))?;
-    serde_json::to_value(resp).map_err(|e| Error::Message(e.to_string()))
+      .map_err(Error::from)?;
+    serde_json::to_value(resp).map_err(Error::from)
   }
 
 }
