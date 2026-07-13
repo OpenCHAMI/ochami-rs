@@ -1,3 +1,17 @@
+# Upstream source: https://github.com/OpenCHAMI/smd (Hardware State
+#   Manager / State Management Database). No explicit source URL or
+#   commit hash is embedded in the spec itself (info block carries no
+#   contact/license/external-docs URL); attribution is inferred from
+#   the API's `host: sms` / `basePath: /apis/smd/hsm/v2` and matching
+#   resource shapes against the upstream repo. Verify against the
+#   upstream repo's spec file before treating the hash as exact.
+# Retrieved: 2026-07-13
+# Local patches applied via `scripts/patch-hsm-spec.jq` (run as part of
+#   `make convert-spec`, AFTER `npx swagger2openapi` upgrades this
+#   Swagger 2.0 doc to OpenAPI 3.0, BEFORE progenitor codegen in
+#   build.rs). See that file for per-patch rationale; as of beta.16 it
+#   widens the `ResourceName` pattern and adds missing `operationId`s
+#   to `/locks/*` endpoints.
 ---
 swagger: '2.0'
 info:

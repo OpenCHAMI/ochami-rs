@@ -1,7 +1,43 @@
 //! Thin wrapper bridging the generated HSM client to the public
-//! `Ochami` API. Uses per-call reqwest client construction (matches
-//! csm-rs). Shared pool via progenitor pre_hook is deferred (per
-//! Section 5 follow-up).
+//! `Ochami` API.
+//!
+//! # Hybrid client pattern
+//!
+//! Most `impl Ochami { hsm_* }` methods route through the
+//! progenitor-generated client (`crate::hsm::generated::Client`), but a
+//! handful stay on raw `reqwest` where the generated client can't
+//! express a needed request shape — most commonly multi-value query
+//! parameters (e.g. repeated `?nid=1&nid=2`) that progenitor's typed
+//! signatures only accept as a single `Option<&str>`. Each per-resource
+//! file under this directory (`component.rs`, `group.rs`, `partition.rs`,
+//! `memberships.rs`, `node_map.rs`, `inventory_*.rs`) documents in its
+//! own module docstring exactly which of its methods take which path,
+//! and why — read those for per-method routing decisions.
+//!
+//! # Shared helpers
+//!
+//! This file provides the three pieces every per-resource wrapper
+//! method builds on:
+//! - [`gen_client`] — constructs a fresh `generated::Client` per call,
+//!   with the caller's bearer token baked into the underlying
+//!   `reqwest::Client`'s `default_headers` (progenitor 0.8's direct
+//!   methods build requests internally and expose no per-request
+//!   header hook, so auth must be injected at client-construction
+//!   time rather than per-call).
+//! - [`map_err`] — converts a `progenitor_client::Error<E>` into this
+//!   crate's [`crate::error::Error`], including decoding JSON error
+//!   bodies from unexpected-status responses into
+//!   `Error::OchamiError { status, body }`.
+//! - [`run`] — glues the two together: build a client, invoke the
+//!   caller-supplied progenitor operation closure, unwrap
+//!   `ResponseValue<T>` into `T` on success or map the error on
+//!   failure. Nearly every progenitor-routed method in this directory
+//!   is a one-line call to `run(self, token, |c| async move {
+//!   c.do_something(...).await })`.
+//!
+//! A shared connection pool across calls (instead of one `reqwest::Client`
+//! per call) would require a pre_hook-capable progenitor build; deferred
+//! per Section 5 follow-up work.
 
 use std::fmt::Debug;
 

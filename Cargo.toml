@@ -12,6 +12,8 @@ documentation = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
 homepage = "https://github.com/OpenCHAMI/ochami-rs/blob/main/README.md"
 repository = "https://github.com/OpenCHAMI/ochami-rs"
 publish = true
+keywords = ["hpc", "ochami", "openchami", "hsm"]
+categories = ["api-bindings", "asynchronous"]
 
 [package.metadata.cargo-machete]
 ignored = ["regress"]
