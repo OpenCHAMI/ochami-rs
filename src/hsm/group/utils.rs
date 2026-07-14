@@ -127,20 +127,25 @@ pub fn filter_by_hsm_group_members_and_convert_to_map(
   hsm_group_map
 }
 
-/// **Currently a no-op** (see roadmap Phase C).
+/// Update an HSM group's membership: remove `group_members_to_delete`
+/// and add `group_members_to_add`.
 ///
-/// This function is documented to remove `group_members_to_delete` and add
-/// `group_members_to_add`, but the implementation both uses a backwards
-/// `retain` predicate and never sends the resulting membership back to the
-/// server. Every call returns `Ok(())` without touching HSM.
+/// Applied as per-xname calls to `hsm_group_delete_member` and
+/// `hsm_group_post_member`. Deletions happen first so a subsequent
+/// add for the same xname in the same call is a no-op on the wire
+/// (the delete would 404 if the add came first, which HSM may treat
+/// as an error). Per-xname failures are logged (`log::warn!`) and
+/// collected; if any op failed the function returns an
+/// [`Error::Message`] summarising the failures.
 ///
-/// A correct implementation is deferred to a follow-up because it requires
-/// a semantic decision (per-xname `post_member`/`delete_member` calls vs
-/// a single PATCH). Do not rely on this function until it lands.
-#[deprecated(
-  since = "1.0.0-beta.17",
-  note = "no-op — never sends changes to HSM. Use per-xname hsm_group_post_member/hsm_group_delete_member for now. See roadmap Phase C."
-)]
+/// # Errors
+///
+/// Returns [`Error::Message`] if one or more per-xname operations
+/// failed. Partial success is possible — the returned error message
+/// enumerates which operations failed but by then some may have
+/// applied on the server. Callers who need atomicity should re-fetch
+/// the group's canonical membership via `hsm_group_get_members`
+/// after this call to see the actual post-call state.
 pub async fn update_hsm_group_members(
   client: &Ochami,
   auth_token: &str,
@@ -148,15 +153,39 @@ pub async fn update_hsm_group_members(
   group_members_to_delete: &[&str],
   group_members_to_add: &[&str],
 ) -> Result<(), Error> {
-  let group = client.hsm_group_get_one(auth_token, group_label).await?;
+  let mut failures: Vec<String> = Vec::new();
 
-  let mut group_members = group.get_members();
-
-  group_members
-    .retain(|xname| group_members_to_delete.contains(&xname.as_str()));
+  for xname in group_members_to_delete {
+    if let Err(e) = client
+      .hsm_group_delete_member(auth_token, group_label, xname)
+      .await
+    {
+      log::warn!(
+        "delete-member {xname} ← {group_label} failed: {e}"
+      );
+      failures.push(format!("delete {xname} ← {group_label}: {e}"));
+    }
+  }
 
   for xname in group_members_to_add {
-    group_members.push(xname.to_string());
+    if let Err(e) = client
+      .hsm_group_post_member(auth_token, group_label, xname)
+      .await
+    {
+      log::warn!(
+        "post-member {xname} → {group_label} failed: {e}"
+      );
+      failures.push(format!("post {xname} → {group_label}: {e}"));
+    }
+  }
+
+  if !failures.is_empty() {
+    return Err(Error::Message(format!(
+      "update_hsm_group_members: {} of {} operations failed: {}",
+      failures.len(),
+      group_members_to_delete.len() + group_members_to_add.len(),
+      failures.join("; ")
+    )));
   }
 
   Ok(())

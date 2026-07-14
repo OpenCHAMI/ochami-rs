@@ -35,6 +35,17 @@ policy); breaking changes may land between `beta.N` releases.
   `/power-cap/snapshot`). Callers relying on the wrong verbs will
   see server-side behaviour change.
 
+### Fixed (Correctness)
+
+- `hsm::group::utils::update_hsm_group_members` — was a documented
+  no-op (backwards `retain` predicate + no wire call, always
+  returned `Ok(())`). Now applies deletions then additions via
+  per-xname `hsm_group_delete_member` / `hsm_group_post_member`
+  calls, collecting per-xname failures and returning an
+  `Error::Message` summary when any op fails. `#[deprecated]`
+  attribute removed; the `#[allow(deprecated)]` shim in
+  `backend_connector.rs::update_group_members` also removed.
+
 ### Runtime Behavior Changes
 
 - `bss_bootparameters_get*` retry up to 3 times on 5xx with
