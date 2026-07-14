@@ -15,5 +15,6 @@ pub mod hsm;
 pub mod http;
 pub mod node;
 pub mod pcs;
+mod wrapper_common;
 
 pub use backend_connector::Ochami;

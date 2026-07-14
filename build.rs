@@ -1,5 +1,5 @@
-//! Build-time codegen of the HSM HTTP client from the committed
-//! OpenAPI 3.0 spec via progenitor.
+//! Build-time codegen of the HSM and BSS HTTP clients from committed
+//! OpenAPI 3.0 specs via progenitor.
 
 use std::{env, fs, path::PathBuf};
 
@@ -8,12 +8,21 @@ fn main() {
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let spec_path = manifest_dir.join("src/hsm/ochami_api_docs.openapi3.json");
-    let out_path = out_dir.join("hsm_generated.rs");
 
+    codegen(
+        &manifest_dir.join("src/hsm/ochami_api_docs.openapi3.json"),
+        &out_dir.join("hsm_generated.rs"),
+    );
+    codegen(
+        &manifest_dir.join("src/bss/ochami_api_docs.openapi3.json"),
+        &out_dir.join("bss_generated.rs"),
+    );
+}
+
+fn codegen(spec_path: &PathBuf, out_path: &PathBuf) {
     println!("cargo:rerun-if-changed={}", spec_path.display());
 
-    let src = fs::read_to_string(&spec_path)
+    let src = fs::read_to_string(spec_path)
         .unwrap_or_else(|e| panic!("read {}: {e}", spec_path.display()));
 
     let mut spec: openapiv3::OpenAPI = serde_json::from_str(&src)
@@ -38,6 +47,6 @@ fn main() {
     let ast: syn::File = syn::parse2(tokens).expect("generated tokens do not parse");
     let pretty = prettyplease::unparse(&ast);
 
-    fs::write(&out_path, pretty)
+    fs::write(out_path, pretty)
         .unwrap_or_else(|e| panic!("write {}: {e}", out_path.display()));
 }

@@ -1,3 +1,61 @@
+# Migration Guide: `1.0.0-beta.16` → next release (BSS migration)
+
+The BSS (Boot Script Service) client is now progenitor-generated at build
+time, mirroring the HSM migration that shipped in beta.16. If you only
+consume BSS through the `manta-backend-dispatcher::BootParametersTrait`
+trait (the recommended path), nothing changes for you — the trait
+implementation is preserved and its return types are unchanged.
+
+## Breaking changes
+
+### `ochami_rs::bss::http_client::*` removed
+
+The hand-written `bss::http_client::{get, get_all, post, put, patch,
+delete}` free functions are gone. Every operation is now an async method
+on `Ochami`:
+
+```rust
+// old
+bss::http_client::get(base_url, token, root_cert, &Some(hosts)).await?;
+
+// new
+ochami.bss_bootparameters_get(token, Some(hosts.as_slice())).await?;
+```
+
+### `bss_bootparameters_put` / `_patch` / `_delete` return `()`
+
+The hand-written `put` returned `Result<BootParameters, Error>` (the
+round-tripped payload). The new `Ochami::bss_bootparameters_put` returns
+`Result<(), Error>` because the BSS spec declares an empty 200 response
+on PUT. Callers who need the server-canonical form must re-fetch via
+`bss_bootparameters_get(...)`.
+
+Same shape for `_delete` (was `Result<String, Error>` returning raw text
+that no in-crate caller actually used; now `Result<(), Error>`).
+
+## Non-breaking behaviour changes
+
+### Retry on 5xx
+
+`bss_bootparameters_get_all` and `bss_bootparameters_get` now retry up
+to 3 times on 5xx responses with exponential backoff (500ms → 1000ms),
+matching the HSM wrapper policy. POST/PUT/PATCH/DELETE do NOT retry.
+
+### Bearer auth baked into a fresh reqwest client per call
+
+Matches the HSM wrapper's construction pattern. Adds ~1 TLS handshake
+per BSS call vs pre-migration behaviour; the shared-pool optimisation
+(via progenitor pre-hooks) is a future improvement.
+
+### Structured `Error::OchamiError` on 4xx/5xx
+
+Errors from BSS now surface as `Error::OchamiError { status, body }`
+(same shape as HSM). Downstream trait consumers see
+`manta::Error::CsmError { status, detail, body }` — matching the
+`beta.16` HSM improvement.
+
+---
+
 # Migration Guide: `1.0.0-beta.15` → `1.0.0-beta.16`
 
 `1.0.0-beta.16` replaces the HSM (Hardware State Manager) client's

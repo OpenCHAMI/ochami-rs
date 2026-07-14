@@ -45,7 +45,7 @@ use regex::Regex;
 use serde_json::Value;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::{authentication, bss};
+use crate::authentication;
 use crate::{hsm, pcs};
 use crate::hsm::generated::types::{
   CompEthInterface100IpAddressMapping as GenIpAddressMapping,
@@ -690,17 +690,12 @@ impl BootParametersTrait for Ochami {
     &self,
     auth_token: &str,
   ) -> Result<Vec<BootParameters>, Error> {
-    let boot_parameter_vec =
-      bss::http_client::get(&self.base_url, auth_token, &self.root_cert, &None)
-        .await
-        .map_err(Error::from)?;
+    let boot_parameter_vec = self
+      .bss_bootparameters_get_all(auth_token)
+      .await
+      .map_err(Error::from)?;
 
-    let boot_parameter_infra_vec = boot_parameter_vec
-      .into_iter()
-      .map(|boot_parameter| boot_parameter.into())
-      .collect();
-
-    Ok(boot_parameter_infra_vec)
+    Ok(boot_parameter_vec.into_iter().map(Into::into).collect())
   }
 
   async fn get_bootparameters(
@@ -708,27 +703,19 @@ impl BootParametersTrait for Ochami {
     auth_token: &str,
     hosts: &[String],
   ) -> Result<Vec<BootParameters>, Error> {
-    let hosts = if hosts.is_empty() {
+    let host_refs: Vec<&str> = hosts.iter().map(String::as_str).collect();
+    let filter = if host_refs.is_empty() {
       None
     } else {
-      Some(hosts.to_vec())
+      Some(host_refs.as_slice())
     };
 
-    let boot_parameter_vec = bss::http_client::get(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      &hosts,
-    )
-    .await
-    .map_err(Error::from)?;
+    let boot_parameter_vec = self
+      .bss_bootparameters_get(auth_token, filter)
+      .await
+      .map_err(Error::from)?;
 
-    let boot_parameter_infra_vec = boot_parameter_vec
-      .into_iter()
-      .map(|boot_parameter| boot_parameter.into())
-      .collect();
-
-    Ok(boot_parameter_infra_vec)
+    Ok(boot_parameter_vec.into_iter().map(Into::into).collect())
   }
 
   async fn add_bootparameters(
@@ -736,14 +723,11 @@ impl BootParametersTrait for Ochami {
     auth_token: &str,
     boot_parameters: &BootParameters,
   ) -> Result<(), Error> {
-    bss::http_client::post(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      boot_parameters.clone().into(),
-    )
-    .await
-    .map_err(Error::from)
+    let bp: crate::bss::types::BootParameters = boot_parameters.clone().into();
+    self
+      .bss_bootparameters_post(auth_token, &bp)
+      .await
+      .map_err(Error::from)
   }
 
   async fn update_bootparameters(
@@ -751,14 +735,11 @@ impl BootParametersTrait for Ochami {
     auth_token: &str,
     boot_parameter: &BootParameters,
   ) -> Result<(), Error> {
-    bss::http_client::patch(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      &boot_parameter.clone().into(),
-    )
-    .await
-    .map_err(Error::from)
+    let bp: crate::bss::types::BootParameters = boot_parameter.clone().into();
+    self
+      .bss_bootparameters_patch(auth_token, &bp)
+      .await
+      .map_err(Error::from)
   }
 
   async fn delete_bootparameters(
@@ -766,14 +747,17 @@ impl BootParametersTrait for Ochami {
     auth_token: &str,
     boot_parameter: &BootParameters,
   ) -> Result<String, Error> {
-    bss::http_client::delete(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      &boot_parameter.clone().into(),
-    )
-    .await
-    .map_err(Error::from)
+    let bp: crate::bss::types::BootParameters = boot_parameter.clone().into();
+    // The wrapper method returns `()` (matches BSS's actual 200-empty
+    // response); the trait signature returns `String` (a legacy from
+    // the old hand-written client which returned raw response text).
+    // Synthesize an empty string on success — no known callers consume
+    // this value for anything but log output.
+    self
+      .bss_bootparameters_delete(auth_token, &bp)
+      .await
+      .map(|()| String::new())
+      .map_err(Error::from)
   }
 }
 

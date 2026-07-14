@@ -86,43 +86,14 @@ pub(crate) fn gen_client(
   Ok(generated::Client::new_with_client(&baseurl, inner))
 }
 
+/// Thin wrapper over [`crate::wrapper_common::map_err`] that pins the
+/// service label to `"HSM"`. Kept `pub(crate)` so per-resource wrapper
+/// files (`component.rs`, `group.rs`, ...) can still `use super::map_err;`
+/// without needing to thread the service name through every call site.
 pub(crate) async fn map_err<E: Debug + serde::Serialize>(
   err: progenitor_client::Error<E>,
 ) -> Error {
-  use progenitor_client::Error::*;
-  match err {
-    InvalidRequest(s) => Error::Message(format!("HSM invalid request: {s}")),
-    CommunicationError(e) | InvalidUpgrade(e) => Error::NetError(e),
-    // Emit structured Error::OchamiError so retry_on_5xx (which only
-    // matches OchamiError with a 5xx status) can fire on typed error
-    // responses too. Fall back to the Debug-formatted string if
-    // serializing the typed body fails (unlikely — progenitor-emitted
-    // error types derive Serialize).
-    ErrorResponse(rv) => {
-      let status = rv.status().as_u16();
-      let inner = rv.into_inner();
-      match serde_json::to_value(&inner) {
-        Ok(body) => Error::OchamiError { status, body },
-        Err(_) => Error::Message(format!(
-          "HSM error response: status={status} body={inner:?}"
-        )),
-      }
-    }
-    ResponseBodyError(e) => Error::NetError(e),
-    InvalidResponsePayload(_, e) => Error::SerdeError(e),
-    UnexpectedResponse(resp) => {
-      let status = resp.status().as_u16();
-      let bytes = resp.bytes().await.unwrap_or_default();
-      match serde_json::from_slice::<serde_json::Value>(&bytes) {
-        Ok(body) => Error::OchamiError { status, body },
-        Err(_) => Error::Message(format!(
-          "HSM unexpected: status={status} body={}",
-          String::from_utf8_lossy(&bytes)
-        )),
-      }
-    }
-    PreHookError(s) => Error::Message(format!("HSM pre-hook error: {s}")),
-  }
+  crate::wrapper_common::map_err("HSM", err).await
 }
 
 pub(crate) async fn run<F, Fut, T, E>(

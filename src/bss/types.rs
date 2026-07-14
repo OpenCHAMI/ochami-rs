@@ -56,6 +56,109 @@ impl From<BootParameters> for FrontEndBootParameters {
   }
 }
 
+// ---------------------------------------------------------------------------
+// BootParameters <-> generated::types::BootParams
+// ---------------------------------------------------------------------------
+//
+// The generated `BootParams` differs slightly from this hand-rolled
+// `BootParameters` (which matches the manta-backend-dispatcher trait
+// signature exactly):
+//   - macs:   Vec<String>     (generated, always-vec)  ↔  Option<Vec<String>>
+//   - nids:   Vec<i64>        (generated)              ↔  Option<Vec<u32>>
+//   - params: Option<String>  (generated)              ↔  String
+//   - kernel: Option<String>  (generated)              ↔  String
+//   - initrd: Option<String>  (generated)              ↔  String
+//   - cloud_init: Option<CloudInit>  (typed generated) ↔  Option<Value>
+//
+// The From impls normalise: absent/empty on one side becomes None/empty
+// on the other, and NID widening `u32 -> i64` is a no-op that fits every
+// real BSS deployment.
+
+impl From<BootParameters> for crate::bss::generated::types::BootParams {
+  fn from(value: BootParameters) -> Self {
+    Self {
+      hosts: value.hosts,
+      macs: value.macs.unwrap_or_default(),
+      nids: value
+        .nids
+        .map(|v| v.into_iter().map(i64::from).collect())
+        .unwrap_or_default(),
+      params: if value.params.is_empty() {
+        None
+      } else {
+        Some(value.params)
+      },
+      kernel: if value.kernel.is_empty() {
+        None
+      } else {
+        Some(value.kernel)
+      },
+      initrd: if value.initrd.is_empty() {
+        None
+      } else {
+        Some(value.initrd)
+      },
+      cloud_init: value.cloud_init.and_then(|v| {
+        match serde_json::from_value::<crate::bss::generated::types::CloudInit>(
+          v.clone(),
+        ) {
+          Ok(ci) => Some(ci),
+          Err(e) => {
+            log::warn!(
+              "dropped unparseable BootParameters.cloud_init: {v:?} ({e})"
+            );
+            None
+          }
+        }
+      }),
+    }
+  }
+}
+
+impl From<crate::bss::generated::types::BootParams> for BootParameters {
+  fn from(value: crate::bss::generated::types::BootParams) -> Self {
+    Self {
+      hosts: value.hosts,
+      macs: if value.macs.is_empty() {
+        None
+      } else {
+        Some(value.macs)
+      },
+      nids: if value.nids.is_empty() {
+        None
+      } else {
+        Some(
+          value
+            .nids
+            .into_iter()
+            .filter_map(|n| {
+              u32::try_from(n)
+                .map_err(|_| {
+                  log::warn!(
+                    "dropped negative/oversize BootParams.nid: {n}"
+                  );
+                })
+                .ok()
+            })
+            .collect(),
+        )
+      },
+      params: value.params.unwrap_or_default(),
+      kernel: value.kernel.unwrap_or_default(),
+      initrd: value.initrd.unwrap_or_default(),
+      cloud_init: value.cloud_init.and_then(|ci| {
+        serde_json::to_value(&ci)
+          .map_err(|e| {
+            log::warn!(
+              "dropped unserializable BootParams.cloud_init: {ci:?} ({e})"
+            )
+          })
+          .ok()
+      }),
+    }
+  }
+}
+
 impl BootParameters {
   /// Construct a `BootParameters` from the individual fields.
   ///

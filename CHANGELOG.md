@@ -6,6 +6,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project is pre-1.0 (see [`MIGRATION.md`](MIGRATION.md)'s version
 policy); breaking changes may land between `beta.N` releases.
 
+## [Unreleased]
+
+### Breaking Changes
+
+- BSS client migrated to progenitor codegen. Removed
+  `bss::http_client::{get, get_all, post, put, patch, delete}` free
+  functions; replaced by `Ochami::bss_bootparameters_{get, get_all,
+  post, put, patch, delete}` methods.
+- `bss_bootparameters_put` returns `Result<(), Error>` (was
+  `Result<BootParameters, Error>` — the BSS spec has an empty 200
+  response on PUT). Re-fetch via `bss_bootparameters_get` if the
+  round-tripped value is needed.
+- `bss_bootparameters_delete` returns `Result<(), Error>` (was
+  `Result<String, Error>` returning raw response text).
+
+### Runtime Behavior Changes
+
+- `bss_bootparameters_get*` retry up to 3 times on 5xx with
+  exponential backoff (500ms → 1000ms), matching HSM. Mutating
+  methods (POST/PUT/PATCH/DELETE) do NOT retry.
+- BSS errors surface as `Error::OchamiError { status, body }`,
+  matching the HSM improvement from beta.16. Downstream trait
+  consumers see `manta::Error::CsmError`.
+
+### Added
+
+- `src/wrapper_common.rs` — shared progenitor `map_err` helper used by
+  both `hsm::wrapper` and `bss::wrapper`. Service name is passed as
+  a parameter so log lines identify which service surfaced the error.
+- `Makefile` gains `convert-spec-bss` target; the aggregate
+  `convert-spec` target regenerates both HSM and BSS specs.
+- `scripts/patch-bss-spec.jq` — jq patches applied to the BSS spec
+  during `convert-spec-bss`: synthesises operationIds on 14 endpoints
+  the upstream spec omits, and strips non-2xx responses to work
+  around progenitor 0.8's single-response-type assertion.
+- `src/bss/generated.rs` — includes the build-time progenitor-generated
+  BSS client.
+- `src/bss/ochami_api_docs.openapi3.json` — vendored, committed
+  OpenAPI 3.0 conversion of the Swagger 2.0 source.
+
+### Fixed
+
+- BSS errors now carry HTTP status codes end-to-end instead of being
+  stringified into `Error::Message` at the trait boundary.
+
 ## [1.0.0-beta.16] - 2026-07-13
 
 The HSM (Hardware State Manager) client is rewritten: the hand-written
