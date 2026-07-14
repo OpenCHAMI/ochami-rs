@@ -2,13 +2,16 @@
 //! public `Ochami` API. Mirrors `crate::hsm::wrapper` and
 //! `crate::bss::wrapper`.
 //!
-//! # Scope
+//! # Surface
 //!
-//! Only `pcs_power_status_post` is provided at present — the sole PCS
-//! path exercised by the crate's own trait implementation
-//! (`impl PCSTrait for Ochami`). Wrappers for the `power_cap` and
-//! `transitions` endpoints (which had no in-crate consumers under the
-//! hand-written surface either) are deferred to a follow-up commit.
+//! - `pcs_power_status_{get, post}` (raw reqwest — see note below)
+//! - `pcs_power_cap_get / _task_get / _snapshot_post / _patch`
+//! - `pcs_transitions_get / _post`, `pcs_transition_get / _delete`,
+//!   `pcs_transition_post_block`, `pcs_transition_wait_to_complete`
+//!
+//! Every method uses `crate::http::build_client` (45 min connect / 15
+//! min request timeouts) and surfaces PCS 4xx/5xx as
+//! [`Error::OchamiError { status, body }`] uniformly.
 //!
 //! # Raw-reqwest carve-out for `power_status_post`
 //!
@@ -26,21 +29,41 @@
 //! actually accepts. Raw reqwest sends the correct on-wire shape
 //! directly.
 //!
-//! Every other planned wrapper method can use the generated client
-//! normally — this carve-out is a targeted, single-endpoint workaround.
+//! `power_cap` and `transitions` methods also use raw reqwest — the
+//! trait-boundary types (`PowerCapTaskInfo`, `TransitionResponse`, ...)
+//! are hand-rolled in `pcs/*/types.rs`; wrapping the generated client
+//! would require an extra layer of type-bridge From impls with no
+//! practical benefit. If typed request/response bodies from the
+//! generated spec become important later, migrate individual methods
+//! by swapping the raw block for `gen_client(...)` + progenitor call.
 //!
 //! # gen_client
 //!
-//! Baseurl is `{ochami base_url}/power-control/v1` — matches the
-//! path prefix the hand-written `pcs::power_status::http_client::post`
-//! used.
+//! Baseurl is `{ochami base_url}/power-control/v1`.
+//!
+//! # Silent bug fixes vs pre-migration
+//!
+//! The hand-written `power_cap::http_client::post_snapshot` and
+//! `patch` methods both used `.put()` on `/power-cap/snapshot`. Per
+//! the OpenAPI spec, `POST /power-cap/snapshot` and `PATCH /power-cap`
+//! are the correct verb/path pairs. Both are corrected in this
+//! wrapper. Documented in MIGRATION.md.
 
 use std::fmt::Debug;
+use std::time::Duration;
 
 use crate::{
   error::Error,
-  http::build_client,
-  pcs::{generated, power_status::types::PowerStatusAll},
+  http::{build_client, retry_on_5xx},
+  pcs::{
+    generated,
+    power_cap::types::{PowerCapComponent, PowerCapTaskInfo},
+    power_status::types::PowerStatusAll,
+    transitions::types::{
+      Location, Operation, Transition, TransitionResponse,
+      TransitionResponseList,
+    },
+  },
   Ochami,
 };
 
@@ -139,6 +162,334 @@ impl Ochami {
         body,
       })
     }
+  }
+
+  // -----------------------------------------------------------------
+  // power_cap
+  // -----------------------------------------------------------------
+
+  /// GET /power-control/v1/power-cap — list every power-cap task.
+  /// Retries up to 3 times on 5xx.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`Error`] on transport failure or PCS 4xx/5xx.
+  pub async fn pcs_power_cap_get(
+    &self,
+    token: &str,
+  ) -> Result<PowerCapTaskInfo, Error> {
+    retry_on_5xx(|| async {
+      let http = build_client(self.root_cert())?;
+      let url = format!("{}/power-control/v1/power-cap", self.base_url());
+      let response = http
+        .get(&url)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(Error::NetError)?;
+      pcs_json_or_ochami_error(response).await
+    })
+    .await
+  }
+
+  /// GET /power-control/v1/power-cap/{task_id}.
+  /// Retries up to 3 times on 5xx.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`Error`] on transport failure or PCS 4xx/5xx.
+  pub async fn pcs_power_cap_task_get(
+    &self,
+    token: &str,
+    task_id: &str,
+  ) -> Result<PowerCapTaskInfo, Error> {
+    retry_on_5xx(|| async {
+      let http = build_client(self.root_cert())?;
+      let url = format!(
+        "{}/power-control/v1/power-cap/{}",
+        self.base_url(),
+        task_id
+      );
+      let response = http
+        .get(&url)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(Error::NetError)?;
+      pcs_json_or_ochami_error(response).await
+    })
+    .await
+  }
+
+  /// POST /power-control/v1/power-cap/snapshot — start a snapshot
+  /// task for `xname_vec`. **Silent bug fix vs pre-migration**: the
+  /// hand-written `post_snapshot` used `.put()`; the spec declares
+  /// POST for this endpoint. Callers who depended on the server
+  /// accepting both verbs (unlikely) may see a status change.
+  ///
+  /// # Errors
+  ///
+  /// See [`Ochami::pcs_power_cap_get`]. Does NOT retry on 5xx (POST).
+  pub async fn pcs_power_cap_snapshot_post(
+    &self,
+    token: &str,
+    xname_vec: &[&str],
+  ) -> Result<PowerCapTaskInfo, Error> {
+    log::info!("Create PCS power snapshot for nodes: {xname_vec:?}");
+    let http = build_client(self.root_cert())?;
+    let url = format!(
+      "{}/power-control/v1/power-cap/snapshot",
+      self.base_url()
+    );
+    let response = http
+      .post(&url)
+      .bearer_auth(token)
+      .json(&serde_json::json!({ "xnames": xname_vec }))
+      .send()
+      .await
+      .map_err(Error::NetError)?;
+    pcs_json_or_ochami_error(response).await
+  }
+
+  /// PATCH /power-control/v1/power-cap — apply power-cap changes.
+  /// **Silent bug fix vs pre-migration**: hand-written `patch` used
+  /// `.put()` and the wrong URL `/power-cap/snapshot`; both are
+  /// corrected here. Callers who worked around the broken URL are
+  /// unlikely to exist.
+  ///
+  /// # Errors
+  ///
+  /// See [`Ochami::pcs_power_cap_get`]. Does NOT retry on 5xx (PATCH).
+  pub async fn pcs_power_cap_patch(
+    &self,
+    token: &str,
+    power_cap: &[PowerCapComponent],
+  ) -> Result<PowerCapTaskInfo, Error> {
+    log::info!("Apply PCS power cap: {} components", power_cap.len());
+    let http = build_client(self.root_cert())?;
+    let url = format!("{}/power-control/v1/power-cap", self.base_url());
+    let response = http
+      .patch(&url)
+      .bearer_auth(token)
+      .json(&power_cap)
+      .send()
+      .await
+      .map_err(Error::NetError)?;
+    pcs_json_or_ochami_error(response).await
+  }
+
+  // -----------------------------------------------------------------
+  // transitions
+  // -----------------------------------------------------------------
+
+  /// GET /power-control/v1/transitions — list every transition
+  /// currently tracked by the server. Retries up to 3 times on 5xx.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`Error`] on transport failure or PCS 4xx/5xx.
+  pub async fn pcs_transitions_get(
+    &self,
+    token: &str,
+  ) -> Result<Vec<TransitionResponse>, Error> {
+    retry_on_5xx(|| async {
+      let http = build_client(self.root_cert())?;
+      let url = format!("{}/power-control/v1/transitions", self.base_url());
+      let response = http
+        .get(&url)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(Error::NetError)?;
+      let list: TransitionResponseList =
+        pcs_json_or_ochami_error(response).await?;
+      Ok(list.transitions)
+    })
+    .await
+  }
+
+  /// GET /power-control/v1/transitions/{id}. Retries up to 3 times on
+  /// 5xx.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`Error`] on transport failure or PCS 4xx/5xx.
+  pub async fn pcs_transition_get(
+    &self,
+    token: &str,
+    transition_id: &str,
+  ) -> Result<TransitionResponse, Error> {
+    retry_on_5xx(|| async {
+      let http = build_client(self.root_cert())?;
+      let url = format!(
+        "{}/power-control/v1/transitions/{}",
+        self.base_url(),
+        transition_id
+      );
+      let response = http
+        .get(&url)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(Error::NetError)?;
+      pcs_json_or_ochami_error(response).await
+    })
+    .await
+  }
+
+  /// DELETE /power-control/v1/transitions/{id} — abort a running
+  /// transition. Returns the response body as raw JSON (server-side
+  /// shape is `TransitionsAbort` per the spec but the hand-written
+  /// client discarded it; kept flexible here as a `serde_json::Value`
+  /// pending a real caller need).
+  ///
+  /// # Errors
+  ///
+  /// See [`Ochami::pcs_transition_get`]. Does NOT retry on 5xx (DELETE).
+  pub async fn pcs_transition_delete(
+    &self,
+    token: &str,
+    transition_id: &str,
+  ) -> Result<serde_json::Value, Error> {
+    let http = build_client(self.root_cert())?;
+    let url = format!(
+      "{}/power-control/v1/transitions/{}",
+      self.base_url(),
+      transition_id
+    );
+    let response = http
+      .delete(&url)
+      .bearer_auth(token)
+      .send()
+      .await
+      .map_err(Error::NetError)?;
+    pcs_json_or_ochami_error(response).await
+  }
+
+  /// POST /power-control/v1/transitions — start a new transition
+  /// (power on/off/soft-off/...). `operation` accepts the same
+  /// lowercase strings as [`Operation::from_str`] (`"on"`, `"off"`,
+  /// `"soft-off"`, `"soft-restart"`, `"hard-restart"`, `"init"`,
+  /// `"force-off"`).
+  ///
+  /// # Errors
+  ///
+  /// Returns [`Error::Message`] if `operation` is not a valid
+  /// `Operation` value, or [`Error`] on transport / PCS 4xx/5xx.
+  /// Does NOT retry on 5xx (POST).
+  pub async fn pcs_transitions_post(
+    &self,
+    token: &str,
+    operation: &str,
+    xname_vec: &[String],
+  ) -> Result<TransitionResponse, Error> {
+    log::info!("Create PCS transition '{operation}' on {xname_vec:?}");
+    let location_vec: Vec<Location> = xname_vec
+      .iter()
+      .map(|xname| Location {
+        xname: xname.clone(),
+        deputy_key: None,
+      })
+      .collect();
+    let request_payload = Transition {
+      operation: Operation::from_str(operation)?,
+      task_deadline_minutes: None,
+      location: location_vec,
+    };
+    let http = build_client(self.root_cert())?;
+    let url = format!("{}/power-control/v1/transitions", self.base_url());
+    let response = http
+      .post(&url)
+      .bearer_auth(token)
+      .json(&request_payload)
+      .send()
+      .await
+      .map_err(Error::NetError)?;
+    pcs_json_or_ochami_error(response).await
+  }
+
+  /// Post a transition and block until it reports `transition_status
+  /// == "completed"`. Polls with `pcs_transition_get` every 3 seconds
+  /// up to 300 attempts (~15 minutes).
+  ///
+  /// # Errors
+  ///
+  /// Any error from the underlying `pcs_transitions_post` or
+  /// `pcs_transition_wait_to_complete` calls propagates.
+  pub async fn pcs_transition_post_block(
+    &self,
+    token: &str,
+    operation: &str,
+    xname_vec: &[String],
+  ) -> Result<TransitionResponse, Error> {
+    let started =
+      self.pcs_transitions_post(token, operation, xname_vec).await?;
+    log::info!("PCS transition ID: {}", started.transition_id);
+    self
+      .pcs_transition_wait_to_complete(token, &started.transition_id)
+      .await
+  }
+
+  /// Poll `pcs_transition_get` until the transition reports
+  /// `transition_status == "completed"` or 300 attempts elapse.
+  /// Sleeps 3 seconds between polls.
+  ///
+  /// # Errors
+  ///
+  /// Any error from `pcs_transition_get` propagates. Returns the
+  /// last observed `TransitionResponse` even if the loop exits
+  /// without reaching `"completed"` (matches hand-written
+  /// `wait_to_complete` behaviour).
+  pub async fn pcs_transition_wait_to_complete(
+    &self,
+    token: &str,
+    transition_id: &str,
+  ) -> Result<TransitionResponse, Error> {
+    let mut transition = self.pcs_transition_get(token, transition_id).await?;
+    let max_attempt = 300;
+    for attempt in 1..=max_attempt {
+      if transition.transition_status == "completed" {
+        break;
+      }
+      transition = self.pcs_transition_get(token, transition_id).await?;
+      log::info!(
+        "Power '{}' summary - status: {}, failed: {}, in-progress: {}, succeeded: {}, total: {}. Attempt {} of {}",
+        transition.operation,
+        transition.transition_status,
+        transition.task_counts.failed,
+        transition.task_counts.in_progress,
+        transition.task_counts.succeeded,
+        transition.task_counts.total,
+        attempt,
+        max_attempt,
+      );
+      tokio::time::sleep(Duration::from_secs(3)).await;
+    }
+    Ok(transition)
+  }
+}
+
+/// Deserialize a successful response body as `T`, or convert a 4xx/5xx
+/// response into `Error::OchamiError { status, body }`. Shared by
+/// every raw-reqwest PCS wrapper method above.
+async fn pcs_json_or_ochami_error<T>(
+  response: reqwest::Response,
+) -> Result<T, Error>
+where
+  T: serde::de::DeserializeOwned,
+{
+  let status = response.status();
+  if status.is_success() {
+    response.json::<T>().await.map_err(Error::NetError)
+  } else {
+    let body = response
+      .json::<serde_json::Value>()
+      .await
+      .unwrap_or(serde_json::Value::Null);
+    Err(Error::OchamiError {
+      status: status.as_u16(),
+      body,
+    })
   }
 }
 

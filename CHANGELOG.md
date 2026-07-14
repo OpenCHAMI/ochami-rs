@@ -20,12 +20,20 @@ policy); breaking changes may land between `beta.N` releases.
   round-tripped value is needed.
 - `bss_bootparameters_delete` returns `Result<(), Error>` (was
   `Result<String, Error>` returning raw response text).
-- PCS `power_status` migrated to a wrapper method (raw-reqwest carve-out
-  due to a progenitor codegen limitation on the `xname` array query
-  parameter). Removed `pcs::power_status::http_client::post`; replaced
-  by `Ochami::pcs_power_status_post`. `pcs::power_cap` and
-  `pcs::transitions` hand-written modules are unchanged in this
-  release (deferred to a follow-up — no in-crate callers).
+- PCS fully migrated to wrapper methods. Removed all three hand-written
+  http_client modules (`pcs::power_status`, `pcs::power_cap`,
+  `pcs::transitions`); replaced by `Ochami::pcs_power_status_{get,
+  post}`, `pcs_power_cap_{get, task_get, snapshot_post, patch}`,
+  `pcs_transitions_{get, post}`, `pcs_transition_{get, delete,
+  post_block, wait_to_complete}`. `power_status_post` uses a raw-reqwest
+  carve-out (progenitor codegen limitation on the `xname` array query
+  parameter — see `scripts/patch-pcs-spec.jq`). The other 10 methods
+  use raw reqwest against the hand-rolled trait-boundary types (no
+  benefit to routing through the generated client's type shapes).
+- Silent bug fixes: `pcs_power_cap_snapshot_post` uses POST (was
+  PUT); `pcs_power_cap_patch` uses PATCH on `/power-cap` (was PUT on
+  `/power-cap/snapshot`). Callers relying on the wrong verbs will
+  see server-side behaviour change.
 
 ### Runtime Behavior Changes
 

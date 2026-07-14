@@ -9,44 +9,67 @@ bottom.
 
 # PCS migration (partial)
 
-Only `pcs::power_status::http_client::post` had an in-crate caller and
-is migrated in this release. The `power_cap` and `transitions`
-hand-written modules remain in place — they had no in-crate consumers
-under the hand-written surface either, and their migration to the new
-progenitor-generated `crate::pcs::generated::Client` is deferred to a
-follow-up commit. The generated PCS client is present and usable; only
-the wrapper methods are missing.
+All three PCS hand-written modules — `power_status`, `power_cap`, and
+`transitions` — are now migrated to `Ochami::pcs_*` wrapper methods.
+The hand-written `http_client.rs` files are deleted.
 
 ## Breaking changes
 
-### `pcs::power_status::http_client::post` removed
+### `pcs::*::http_client::*` free functions removed
 
-```rust
-// old
-pcs::power_status::http_client::post(base, token, cert, Some(&xnames), None, None).await?;
+All three PCS sub-modules' hand-written HTTP clients are gone,
+replaced by `Ochami::pcs_*` methods:
 
-// new
-ochami.pcs_power_status_post(token, Some(&xnames), None, None).await?;
-```
+| Old free function | New wrapper method |
+|---|---|
+| `pcs::power_status::http_client::post` | `Ochami::pcs_power_status_post` |
+| `pcs::power_cap::http_client::get` | `Ochami::pcs_power_cap_get` |
+| `pcs::power_cap::http_client::get_task_id` | `Ochami::pcs_power_cap_task_get` |
+| `pcs::power_cap::http_client::post_snapshot` | `Ochami::pcs_power_cap_snapshot_post` |
+| `pcs::power_cap::http_client::patch` | `Ochami::pcs_power_cap_patch` |
+| `pcs::transitions::http_client::get` | `Ochami::pcs_transitions_get` |
+| `pcs::transitions::http_client::get_by_id` | `Ochami::pcs_transition_get` |
+| `pcs::transitions::http_client::post` | `Ochami::pcs_transitions_post` |
+| `pcs::transitions::http_client::post_block` | `Ochami::pcs_transition_post_block` |
+| `pcs::transitions::http_client::wait_to_complete` | `Ochami::pcs_transition_wait_to_complete` |
 
-The wrapper's return type is unchanged (`PowerStatusAll` from
-`pcs::power_status::types`); the trait implementation
-(`impl PCSTrait for Ochami { fn power_status(...) }`) is preserved.
+Return types and semantics are preserved for every method except:
+- `pcs_transition_delete` (new — mirrors DELETE /transitions/{id})
+  returns `serde_json::Value` (the hand-written client didn't expose
+  this endpoint at all).
+
+## Silent bug fixes (on-wire behavior changes)
+
+The wrapper corrects two bugs baked into the hand-written surface:
+
+- **`power_cap::http_client::post_snapshot`** issued `PUT
+  /power-cap/snapshot`. The spec declares `POST`. `Ochami::
+  pcs_power_cap_snapshot_post` uses POST. Callers who relied on the
+  server-side accepting the wrong verb will see behaviour change.
+- **`power_cap::http_client::patch`** issued `PUT /power-cap/snapshot`
+  — wrong verb AND wrong URL. The spec declares `PATCH /power-cap`.
+  `Ochami::pcs_power_cap_patch` uses PATCH on `/power-cap`.
 
 ## Non-breaking behaviour changes
 
-- **Timeouts**: previous behaviour used `crate::http::build_client_no_tls`
-  which set no timeouts. The wrapper uses `crate::http::build_client`
-  (45 min connect / 15 min request).
+- **Timeouts**: previous behaviour on `power_status::http_client::post`
+  used `crate::http::build_client_no_tls` (no timeouts). Every wrapper
+  method now uses `crate::http::build_client` (45 min connect / 15 min
+  request).
+- **Retry on 5xx**: GET-family methods (`pcs_power_cap_get`,
+  `pcs_power_cap_task_get`, `pcs_transitions_get`,
+  `pcs_transition_get`) now retry up to 3 times on 5xx with
+  exponential backoff. Mutating methods (POST/PATCH/DELETE) don't
+  retry.
 - **Structured errors**: PCS 4xx/5xx now surface as
-  `Error::OchamiError { status, body }` uniformly (the pre-migration
-  path already produced this for POST; only the client-construction
-  path changed).
-- **`PowerStatus.error` is now `pub`**: previously private (only
-  reachable through Deserialize). Made public so the wrapper's
-  generated→hand-rolled `From` impl can populate it. External
-  consumers who read `PowerStatus` fields see one additional accessor;
-  nothing is removed.
+  `Error::OchamiError { status, body }` uniformly. The pre-migration
+  `transitions` module returned `Error::Message(payload)` (plain text,
+  no status). Consumers who matched on `Error::Message` for PCS
+  transition errors will need to switch to `Error::OchamiError`.
+- **`PowerStatus.error` is now `pub`**: previously private. Made
+  public so the wrapper's generated→hand-rolled `From` impl can
+  populate it. External consumers see one additional accessor; nothing
+  is removed.
 
 ---
 
