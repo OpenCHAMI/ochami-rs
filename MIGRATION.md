@@ -1,3 +1,55 @@
+# Migration Guide: `1.0.0-beta.16` → next release (BSS + PCS migrations)
+
+**Note:** the next release bundles two service migrations — see the
+[BSS section](#migration-guide-100-beta16--next-release-bss-migration)
+directly below and the [PCS section](#pcs-migration-partial) at the
+bottom.
+
+---
+
+# PCS migration (partial)
+
+Only `pcs::power_status::http_client::post` had an in-crate caller and
+is migrated in this release. The `power_cap` and `transitions`
+hand-written modules remain in place — they had no in-crate consumers
+under the hand-written surface either, and their migration to the new
+progenitor-generated `crate::pcs::generated::Client` is deferred to a
+follow-up commit. The generated PCS client is present and usable; only
+the wrapper methods are missing.
+
+## Breaking changes
+
+### `pcs::power_status::http_client::post` removed
+
+```rust
+// old
+pcs::power_status::http_client::post(base, token, cert, Some(&xnames), None, None).await?;
+
+// new
+ochami.pcs_power_status_post(token, Some(&xnames), None, None).await?;
+```
+
+The wrapper's return type is unchanged (`PowerStatusAll` from
+`pcs::power_status::types`); the trait implementation
+(`impl PCSTrait for Ochami { fn power_status(...) }`) is preserved.
+
+## Non-breaking behaviour changes
+
+- **Timeouts**: previous behaviour used `crate::http::build_client_no_tls`
+  which set no timeouts. The wrapper uses `crate::http::build_client`
+  (45 min connect / 15 min request).
+- **Structured errors**: PCS 4xx/5xx now surface as
+  `Error::OchamiError { status, body }` uniformly (the pre-migration
+  path already produced this for POST; only the client-construction
+  path changed).
+- **`PowerStatus.error` is now `pub`**: previously private (only
+  reachable through Deserialize). Made public so the wrapper's
+  generated→hand-rolled `From` impl can populate it. External
+  consumers who read `PowerStatus` fields see one additional accessor;
+  nothing is removed.
+
+---
+
 # Migration Guide: `1.0.0-beta.16` → next release (BSS migration)
 
 The BSS (Boot Script Service) client is now progenitor-generated at build

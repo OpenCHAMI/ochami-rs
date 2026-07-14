@@ -1,5 +1,5 @@
-//! Build-time codegen of the HSM and BSS HTTP clients from committed
-//! OpenAPI 3.0 specs via progenitor.
+//! Build-time codegen of the HSM, BSS, and PCS HTTP clients from
+//! committed OpenAPI 3.0 specs via progenitor.
 
 use std::{env, fs, path::PathBuf};
 
@@ -16,6 +16,10 @@ fn main() {
     codegen(
         &manifest_dir.join("src/bss/ochami_api_docs.openapi3.json"),
         &out_dir.join("bss_generated.rs"),
+    );
+    codegen(
+        &manifest_dir.join("src/pcs/ochami_api_docs.openapi3.json"),
+        &out_dir.join("pcs_generated.rs"),
     );
 }
 

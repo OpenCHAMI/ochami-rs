@@ -72,7 +72,7 @@ pub struct PowerStatus {
   pub management_state: Option<ManagementState>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "error")]
-  error: Option<String>,
+  pub error: Option<String>,
   #[serde(rename = "supportedPowerTransitions")]
   pub supported_power_transitions: Vec<Operation>,
   #[serde(rename = "lastUpdated")]

@@ -46,7 +46,7 @@ use serde_json::Value;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::authentication;
-use crate::{hsm, pcs};
+use crate::hsm;
 use crate::hsm::generated::types::{
   CompEthInterface100IpAddressMapping as GenIpAddressMapping,
   CompEthInterface100Patch as GenCompEthInterfacePatch, XNameRw100,
@@ -668,20 +668,19 @@ impl PCSTrait for Ochami {
     let nodes_str: Vec<&str> = nodes.iter().map(|s| s.as_str()).collect();
     let nodes_opt = Some(nodes_str.as_slice());
 
-    pcs::power_status::http_client::post(
-      &self.base_url,
-      auth_token,
-      &self.root_cert,
-      nodes_opt,
-      power_state_filter,
-      management_state_filter,
-    )
-    .await
-    .map(|status| {
-      log::debug!("power_status returned: {status:?}");
-      status.into()
-    })
-    .map_err(Error::from)
+    self
+      .pcs_power_status_post(
+        auth_token,
+        nodes_opt,
+        power_state_filter,
+        management_state_filter,
+      )
+      .await
+      .map(|status| {
+        log::debug!("power_status returned: {status:?}");
+        status.into()
+      })
+      .map_err(Error::from)
   }
 }
 

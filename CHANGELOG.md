@@ -20,6 +20,12 @@ policy); breaking changes may land between `beta.N` releases.
   round-tripped value is needed.
 - `bss_bootparameters_delete` returns `Result<(), Error>` (was
   `Result<String, Error>` returning raw response text).
+- PCS `power_status` migrated to a wrapper method (raw-reqwest carve-out
+  due to a progenitor codegen limitation on the `xname` array query
+  parameter). Removed `pcs::power_status::http_client::post`; replaced
+  by `Ochami::pcs_power_status_post`. `pcs::power_cap` and
+  `pcs::transitions` hand-written modules are unchanged in this
+  release (deferred to a follow-up — no in-crate callers).
 
 ### Runtime Behavior Changes
 
@@ -33,18 +39,24 @@ policy); breaking changes may land between `beta.N` releases.
 ### Added
 
 - `src/wrapper_common.rs` — shared progenitor `map_err` helper used by
-  both `hsm::wrapper` and `bss::wrapper`. Service name is passed as
-  a parameter so log lines identify which service surfaced the error.
-- `Makefile` gains `convert-spec-bss` target; the aggregate
-  `convert-spec` target regenerates both HSM and BSS specs.
-- `scripts/patch-bss-spec.jq` — jq patches applied to the BSS spec
-  during `convert-spec-bss`: synthesises operationIds on 14 endpoints
-  the upstream spec omits, and strips non-2xx responses to work
-  around progenitor 0.8's single-response-type assertion.
-- `src/bss/generated.rs` — includes the build-time progenitor-generated
-  BSS client.
-- `src/bss/ochami_api_docs.openapi3.json` — vendored, committed
-  OpenAPI 3.0 conversion of the Swagger 2.0 source.
+  `hsm::wrapper`, `bss::wrapper`, and `pcs::wrapper`. Service name is
+  passed as a parameter so log lines identify which service surfaced
+  the error.
+- `Makefile` gains `convert-spec-bss` and `convert-spec-pcs` targets;
+  the aggregate `convert-spec` target regenerates all three service
+  specs.
+- `scripts/patch-bss-spec.jq` — jq patches for BSS.
+- `scripts/patch-pcs-spec.jq` — jq patches for PCS (synthesises 13
+  missing operationIds, downgrades the `non_empty_string_list` schema
+  to `type: string` to work around a progenitor codegen limitation,
+  and strips non-2xx responses).
+- `src/bss/generated.rs` and `src/pcs/generated.rs` include the
+  build-time progenitor-generated clients.
+- `src/bss/ochami_api_docs.openapi3.json` and
+  `src/pcs/ochami_api_docs.openapi3.json` — vendored, committed
+  OpenAPI 3.0 spec conversions.
+- `uuid` crate now has the `"serde"` feature enabled (required by the
+  generated PCS types).
 
 ### Fixed
 
