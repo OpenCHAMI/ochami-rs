@@ -76,6 +76,10 @@ policy); breaking changes may land between `beta.N` releases.
   OpenAPI 3.0 spec conversions.
 - `uuid` crate now has the `"serde"` feature enabled (required by the
   generated PCS types).
+- `examples/` directory with three runnable end-to-end demos:
+  `fetch_components`, `power_status`, `boot_params_upsert`. Each reads
+  `OCHAMI_URL` / `OCHAMI_TOKEN` / `OCHAMI_CA` from the environment
+  so the same binary can point at any deployment.
 
 ### Fixed
 

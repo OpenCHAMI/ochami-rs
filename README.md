@@ -30,6 +30,12 @@ ochami-rs = "1.0.0-beta.16"
 
 ## Usage
 
+See the [`examples/`](examples/) directory for runnable end-to-end
+demos (component listing, PCS power status, BSS boot-parameter
+read-modify-write). Each reads connection settings from
+`OCHAMI_URL` / `OCHAMI_TOKEN` / `OCHAMI_CA` and can be launched with
+`cargo run --example <name>`.
+
 The entry point is the [`Ochami`](src/backend_connector.rs) client,
 constructed with a base URL and a root CA certificate (PEM bytes):
 
