@@ -25,7 +25,7 @@ manta-backend-dispatcher = "1.0.0-beta.15"
 # manta-backend-dispatcher = { git = "https://github.com/eth-cscs/manta-backend-dispatcher", branch="feature/power-status" } # Only for development purposes
 
 strum = { version = "0.27.1", default-features = false }
-strum_macros = "0.27.1"
+strum_macros = "0.28.0"
 reqwest = { version = "0.12.15", default-features = false, features = ["json", "rustls-tls"] }
 tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "time"] }
 uuid = { version = "1.10.0", features = ["fast-rng", "v4", "serde"] }
