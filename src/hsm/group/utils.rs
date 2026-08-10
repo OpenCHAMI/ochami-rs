@@ -31,6 +31,7 @@ pub async fn add_member(
   Ok(members)
 }
 
+/// Returns the union of member xnames across the named HSM groups.
 pub async fn get_member_vec_from_hsm_name_vec_2(
   client: &Ochami,
   auth_token: &str,
@@ -55,6 +56,7 @@ pub async fn get_member_vec_from_hsm_name_vec_2(
 
 // Returns a HashMap with keys being the hsm names/labels the user has access a curated list of xnames
 // for each hsm name as values
+/// Fetches all HSM groups, keeps those whose label is in `hsm_name_vec`, and returns a `label → members` map.
 pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
   client: &Ochami,
   auth_token: &str,
@@ -73,6 +75,7 @@ pub async fn get_hsm_map_and_filter_by_hsm_name_vec(
 
 // Returns a HashMap with keys being the hsm names/labels the user has access a curated list of xnames
 // for each hsm name as values
+/// Fetches all HSM groups, keeps those whose members intersect `hsm_name_vec`, and returns a `label → members` map.
 pub async fn get_hsm_group_map_and_filter_by_hsm_group_member_vec(
   client: &Ochami,
   shasta_token: &str,

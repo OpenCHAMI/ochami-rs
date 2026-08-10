@@ -48,18 +48,32 @@ use strum_macros::{AsRefStr, Display, EnumIter, EnumString, IntoStaticStr};
   Deserialize,
   Clone,
 )]
+/// Coarse category label for a hardware artifact surfaced through the HSM
+/// inventory summary layer (`NodeSummary` / `ArtifactSummary`).
 pub enum ArtifactType {
+  /// DIMM / memory module.
   Memory,
+  /// CPU / general-purpose processor.
   Processor,
+  /// Node accelerator (e.g. GPU).
   NodeAccel,
+  /// High-Speed Network NIC attached to a node.
   NodeHsnNic,
+  /// Storage drive.
   Drive,
+  /// Cabinet Power Distribution Unit.
   CabinetPDU,
+  /// Individual outlet on a cabinet PDU.
   CabinetPDUPowerConnector,
+  /// Chassis Management Module rectifier.
   CMMRectifier,
+  /// Riser card for a node accelerator.
   NodeAccelRiser,
+  /// Node enclosure power supply.
   NodeEnclosurePowerSupplie,
+  /// Baseboard Management Controller for a node.
   NodeBMC,
+  /// Baseboard Management Controller for a router.
   RouterBMC,
 }
 
@@ -110,12 +124,21 @@ impl From<ArtifactType> for FrontEndArtifactType {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Flattened per-node view of an HSM hardware inventory entry: the node's
+/// xname plus lightweight summaries of its processors, memory, accelerators,
+/// and HSN NICs.
 pub struct NodeSummary {
+  /// Node xname (HSM component identifier).
   pub xname: String,
+  /// HSM component `Type` string for the node (e.g. `"Node"`).
   pub r#type: String,
+  /// Summarised processors installed on this node.
   pub processors: Vec<ArtifactSummary>,
+  /// Summarised memory modules installed on this node.
   pub memory: Vec<ArtifactSummary>,
+  /// Summarised accelerators (e.g. GPUs) installed on this node.
   pub node_accels: Vec<ArtifactSummary>,
+  /// Summarised HSN NICs attached to this node.
   pub node_hsn_nics: Vec<ArtifactSummary>,
 }
 
@@ -421,6 +444,9 @@ impl From<NodeSummary> for FrontEndNodeSummary {
 }
 
 impl NodeSummary {
+  /// Build a `NodeSummary` from a raw CSM-shaped inventory JSON payload,
+  /// pulling out the `Processors`, `Memory`, `NodeAccels` and `NodeHsnNics`
+  /// child arrays.
   pub fn from_csm_value(hw_artifact_value: Value) -> Self {
     let processors = hw_artifact_value["Processors"]
       .as_array()
@@ -470,9 +496,16 @@ impl NodeSummary {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Lightweight one-line summary of a single hardware artifact — the xname,
+/// its `ArtifactType`, and an opaque `info` string (typically model name or
+/// capacity) chosen per artifact kind.
 pub struct ArtifactSummary {
+  /// Artifact xname (HSM component identifier).
   pub xname: String,
+  /// Classifier for the artifact.
   pub r#type: ArtifactType,
+  /// Free-form descriptor whose meaning depends on `r#type` (processor
+  /// model, memory capacity in MiB, NIC description, etc.).
   pub info: Option<String>,
 }
 
@@ -767,92 +800,146 @@ impl ArtifactSummary {
 ///////////////////////////////////////////////////////////////////////////////
 // CSM - structs from CSM API documentation. FIXME: need to address FRU structs properly with enums
 #[derive(Debug, Serialize, Deserialize)]
+/// Canonical HSM component-type classifier. Mirrors the `Type` field used
+/// throughout the CSM/OCHAMI HSM inventory API.
 pub enum ComponentType {
+  /// Coolant Distribution Unit.
   CDU,
+  /// Cabinet-level CDU.
   CabinetCDU,
+  /// Cabinet Power Distribution Unit.
   CabinetPDU,
+  /// Outlet on a cabinet PDU.
   CabinetPDUOutlet,
+  /// Individual power connector on a cabinet PDU.
   CabinetPDUPowerConnector,
+  /// Controller for a cabinet PDU.
   CabinetPDUController,
+  /// Cabinet.
   r#Cabinet,
+  /// Chassis.
   Chassis,
+  /// BMC managing a chassis.
   ChassisBMC,
+  /// Rectifier module inside a Chassis Management Module.
   CMMRectifier,
+  /// FPGA on a Chassis Management Module.
   CMMFpga,
+  /// Cabinet Environmental Controller.
   CEC,
+  /// Compute module (slot within a chassis).
   ComputeModule,
+  /// Router / switch module (slot within a chassis).
   RouterModule,
+  /// BMC managing a node.
   NodeBMC,
+  /// Node enclosure.
   NodeEnclosure,
+  /// Power supply for a node enclosure.
   NodeEnclosurePowerSupply,
+  /// High-Speed Network board.
   HSNBoard,
+  /// Compute node.
   Node,
+  /// CPU / processor.
   Processor,
+  /// Storage drive.
   Drive,
+  /// Logical group of storage drives.
   StorageGroup,
+  /// NIC installed on a node.
   NodeNIC,
+  /// Memory module.
   Memory,
+  /// Node accelerator (e.g. GPU).
   NodeAccel,
+  /// Riser for a node accelerator.
   NodeAccelRiser,
+  /// FPGA on a node.
   NodeFpga,
+  /// HSN ASIC.
   HSNAsic,
+  /// FPGA on a router.
   RouterFpga,
+  /// BMC managing a router.
   RouterBMC,
+  /// HSN link between two connectors.
   HSNLink,
+  /// HSN connector.
   HSNConnector,
+  /// Sentinel value for unrecognised component types.
   INVALID,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `ProcessorId` sub-object identifying a specific processor
+/// implementation (family / model / stepping / microcode / vendor).
 pub struct ProcessorId {
   #[serde(rename = "EffectiveFamily")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `EffectiveFamily`.
   pub effective_family: Option<String>,
   #[serde(rename = "EffectiveModel")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `EffectiveModel` (name preserves original spelling).
   pub efffective_model: Option<String>,
   #[serde(rename = "IdentificationRegisters")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `IdentificationRegisters` blob.
   pub identification_registers: Option<String>,
   #[serde(rename = "MicrocodeInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `MicrocodeInfo`.
   pub microcode_info: Option<String>,
   #[serde(rename = "Step")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish stepping identifier.
   pub step: Option<String>,
   #[serde(rename = "VendorId")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `VendorId`.
   pub vendor_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `ProcessorFRUInfo` — FRU-level (vendor / model / topology) fields
+/// for a processor.
 pub struct RedfishProcessorFRUInfo {
   #[serde(rename = "InstructionSet")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Instruction-set name (e.g. `x86-64`, `ARM-A64`).
   pub instruction_set: Option<String>,
   #[serde(rename = "Manufacturer")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Processor manufacturer.
   pub manufacturer: Option<String>,
   #[serde(rename = "MaxSpeedMHz")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Maximum clock speed, MHz.
   pub max_speed_mhz: Option<usize>,
   #[serde(rename = "Model")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Marketing model name.
   pub model: Option<String>,
   #[serde(rename = "ProcessorArchitecture")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Processor architecture (e.g. `x86`, `ARM`).
   pub processor_architecture: Option<String>,
   #[serde(rename = "ProcessorId")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Nested Redfish `ProcessorId` identification block.
   pub processor_id: Option<ProcessorId>,
   #[serde(rename = "ProcessorType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Processor type (e.g. `CPU`, `GPU`, `Accelerator`).
   pub processor_type: Option<String>,
   #[serde(rename = "TotalCores")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Total physical cores.
   pub total_cores: Option<usize>,
   #[serde(rename = "TotalThreads")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Total hardware threads across all cores.
   pub total_threads: Option<usize>,
 }
 
@@ -889,19 +976,26 @@ impl From<RedfishProcessorFRUInfo> for FrontEndRedfishProcessorFRUInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// FRU-level inventory entry for a processor: identity fields plus the
+/// nested Redfish processor FRU info.
 pub struct HWInvByFRUProcessor {
   #[serde(rename = "FRUID")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU identifier reported by the endpoint.
   pub fru_id: Option<String>,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "FRUSubType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU sub-type discriminator.
   pub fru_sub_type: Option<String>,
   #[serde(rename = "HWInventoryByFRUType")]
+  /// Discriminator that names the concrete FRU-inventory variant.
   pub hw_inventory_by_fru_type: String,
   #[serde(rename = "ProcessorFRUInfo")]
+  /// Processor FRU details.
   pub processor_fru_info: RedfishProcessorFRUInfo,
 }
 
@@ -932,42 +1026,55 @@ impl From<HWInvByFRUProcessor> for FrontEndHWInvByFRUProcessor {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `MemoryFRUInfo` — FRU-level fields for a memory module.
 pub struct RedfishMemoryFRUInfo {
   #[serde(rename = "BaseModuleType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Physical form factor / base module type.
   pub base_module_type: Option<String>,
   #[serde(rename = "BusWidthBits")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Bus width in bits.
   pub bus_width_bits: Option<usize>,
   #[serde(rename = "CapacityMiB")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Capacity in mebibytes.
   pub capacity_mib: Option<usize>,
   #[serde(rename = "DataWidthBits")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Data width in bits.
   pub data_width_bits: Option<usize>,
   #[serde(rename = "ErrorCorrection")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// ECC scheme (e.g. `SingleBitECC`, `MultiBitECC`).
   pub error_correction: Option<String>,
   #[serde(rename = "Manufacturer")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Module manufacturer.
   pub manufacturer: Option<String>,
   #[serde(rename = "MemoryType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Coarse memory type (e.g. `DRAM`, `NVDIMM_N`).
   pub memory_type: Option<String>,
   #[serde(rename = "MemoryDeviceType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Detailed device type (e.g. `DDR4`, `DDR5`).
   pub memory_device_type: Option<String>,
   #[serde(rename = "OperatingSpeedMhz")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Operating speed in MHz.
   pub operating_speed_mhz: Option<usize>,
   #[serde(rename = "PartNumber")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Manufacturer part number.
   pub part_number: Option<String>,
   #[serde(rename = "RankCount")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Number of ranks on this module.
   pub rank_count: Option<usize>,
   #[serde(rename = "SerialNumber")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Serial number.
   pub serial_number: Option<String>,
 }
 
@@ -1010,19 +1117,26 @@ impl From<RedfishMemoryFRUInfo> for FrontEndRedfishMemoryFRUInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// FRU-level inventory entry for a memory module: identity fields plus
+/// the nested Redfish memory FRU info.
 pub struct HWInvByFRUMemory {
   #[serde(rename = "FRUID")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU identifier reported by the endpoint.
   pub fru_id: Option<String>,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "FRUSubType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU sub-type discriminator.
   pub fru_sub_type: Option<String>,
   #[serde(rename = "HWInventoryByFRUType")]
+  /// Discriminator that names the concrete FRU-inventory variant.
   pub hw_inventory_by_fru_type: String,
   #[serde(rename = "MemoryFRUInfo")]
+  /// Memory module FRU details.
   pub memory_fru_info: RedfishMemoryFRUInfo,
 }
 
@@ -1051,19 +1165,26 @@ impl From<HWInvByFRUMemory> for FrontEndHWInvByFRUMemory {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// FRU-level inventory entry for a node accelerator. Per the HSM API,
+/// accelerator FRU details reuse the Redfish processor FRU shape.
 pub struct HWInvByFRUNodeAccel {
   #[serde(rename = "FRUID")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU identifier reported by the endpoint.
   pub fru_id: Option<String>,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "FRUSubType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU sub-type discriminator.
   pub fru_sub_type: Option<String>,
   #[serde(rename = "HWInventoryByFRUType")]
+  /// Discriminator that names the concrete FRU-inventory variant.
   pub hw_inventory_by_fru_type: String,
   #[serde(rename = "NodeAccelFRUInfo")]
+  /// Accelerator FRU details (Redfish processor FRU shape).
   pub node_accel_fru_info: RedfishProcessorFRUInfo, // NOTE: according to API
                                                     // docs, yes this is using the redfish for "processor"
 }
@@ -1095,21 +1216,27 @@ impl From<HWInvByFRUNodeAccel> for FrontEndHWInvByFRUNodeAccel {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// FRU-level fields for an HSN NIC attached to a node.
 pub struct NodeHsnNicFRUInfo {
   #[serde(rename = "Manufacturer")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// NIC manufacturer.
   pub manufacturer: Option<String>,
   #[serde(rename = "Model")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Model name.
   pub model: Option<String>,
   #[serde(rename = "PartNumber")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Manufacturer part number.
   pub part_number: Option<String>,
   #[serde(rename = "SKU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// SKU string.
   pub sku: Option<String>,
   #[serde(rename = "SerialNumber")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Serial number.
   pub serial_number: Option<String>,
 }
 
@@ -1138,19 +1265,25 @@ impl From<NodeHsnNicFRUInfo> for FrontEndHSNNICFRUInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// FRU-level inventory entry for an HSN NIC attached to a node.
 pub struct HWInvByFRUHSNNIC {
   #[serde(rename = "FRUID")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU identifier reported by the endpoint.
   pub fru_id: Option<String>,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "FRUSubType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU sub-type discriminator.
   pub fru_sub_type: Option<String>,
   #[serde(rename = "HWInventoryByFRUType")]
+  /// Discriminator that names the concrete FRU-inventory variant.
   pub hw_inventory_by_fru_type: String,
   #[serde(rename = "NodeHsnNicFRUInfo")]
+  /// HSN NIC FRU details.
   pub node_hsn_nic_fru_info: NodeHsnNicFRUInfo,
 }
 
@@ -1179,257 +1312,348 @@ impl From<HWInvByFRUHSNNIC> for FrontEndHWInvByFRUHSNNIC {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Generic FRU-level inventory entry used for component classes that don't
+/// have a class-specific FRU payload struct.
 pub struct HWInventoryByFRU {
   #[serde(rename = "FRUID")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU identifier reported by the endpoint.
   pub fru_id: Option<String>,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "FRUSubType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU sub-type discriminator.
   pub fru_sub_type: Option<String>,
   #[serde(rename = "HWInventoryByFRUType")]
+  /// Discriminator that names the concrete FRU-inventory variant.
   pub hw_inventory_by_fru_type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `Chassis` location-info block (id / name / description / hostname).
 pub struct RedfishChassisLocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
   #[serde(rename = "Hostname")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Hostname`, if the chassis exposes one.
   pub hostname: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a chassis.
 pub struct HWInvByLocChassis {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "ChassisLocatinInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Chassis location metadata (upstream field name preserved).
   pub chassis_location_info: Option<RedfishChassisLocationInfo>,
   #[serde(rename = "ComputeModules")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Compute module installed in this chassis, if reported.
   pub compute_modules: Option<HWInvByLocComputeModule>,
   #[serde(rename = "RouterModules")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Router module installed in this chassis, if reported.
   pub router_modules: Option<HWInvByLocRouterModule>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a node enclosure.
 pub struct HWInvByLocNodeEnclosure {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "NodeEnclosureLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node enclosure location metadata.
   pub node_enclosure_location_info: Option<RedfishChassisLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a compute module slot.
 pub struct HWInvByLocComputeModule {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "ComputeModuleLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Compute-module location metadata.
   pub compute_module_location_info: Option<RedfishChassisLocationInfo>,
   #[serde(rename = "NodeEnclosures")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node enclosure installed in this module, if reported.
   pub node_enclosures: Option<HWInvByLocNodeEnclosure>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for an HSN board.
 pub struct HWInvByLocHSNBoard {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "HSNBoardLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSN board location metadata.
   pub hsn_board_location_info: Option<RedfishChassisLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a router module slot.
 pub struct HWInvByLocRouterModule {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "RouterModuleLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Router-module location metadata.
   pub router_module_location_info: Option<RedfishChassisLocationInfo>,
+  /// HSN board installed in this module, if reported.
   pub hsn_boards: Option<HWInvByLocHSNBoard>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a cabinet.
 pub struct HWInvByLocCabinet {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "CabinetLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Cabinet location metadata.
   pub cabinet_location_info: Option<RedfishChassisLocationInfo>,
   #[serde(rename = "Chassis")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Chassis installed in this cabinet, if reported.
   pub chassis: Option<HWInvByLocChassis>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a management (leaf) switch.
 pub struct HWInvByLocMgmtSwitch {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "MgmtSwitchLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Management-switch location metadata.
   pub mgmt_switch_location_info: Option<RedfishChassisLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a management high-level (spine)
+/// switch.
 pub struct HWInvByLocMgmtHLSwitch {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "MgmtHLSwitchLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Management-HL-switch location metadata.
   pub mgmt_hl_switch_location_info: Option<RedfishChassisLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a CDU management switch.
 pub struct HWInvByLocCDUMgmtSwitch {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the part installed at this location, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "CDUMgmtSwitchLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// CDU management-switch location metadata.
   pub cdu_mgmt_switch_location_info: Option<RedfishChassisLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `ProcessorSummary` — total count and representative model for
+/// the processors on a system.
 pub struct ProcessorSummary {
   #[serde(rename = "Count")]
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -1458,9 +1682,11 @@ impl From<ProcessorSummary> for FrontEndProcessorSummary {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `MemorySummary` — aggregate memory installed on a system.
 pub struct MemorySummary {
   #[serde(rename = "TotalSystemMemoryGiB")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Total installed system memory in gibibytes.
   pub total_system_memory_gib: Option<u32>,
 }
 
@@ -1481,24 +1707,32 @@ impl From<MemorySummary> for FrontEndMemorySummary {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `System` location-info block: identity plus processor / memory
+/// summaries.
 pub struct RedfishSystemLocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
   #[serde(rename = "Hostname")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// System hostname.
   pub hostname: Option<String>,
   #[serde(rename = "ProcessorSummary")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Summary of installed processors.
   pub processor_summary: Option<ProcessorSummary>,
   #[serde(rename = "MemorySummary")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Summary of installed memory.
   pub memory_summary: Option<MemorySummary>,
 }
 
@@ -1529,18 +1763,23 @@ impl From<RedfishSystemLocationInfo> for FrontEndRedfishSystemLocationInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `Processor` location-info block (id / name / description / socket).
 pub struct RedfishProcessorLocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
   #[serde(rename = "Socket")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Socket identifier where the processor is installed.
   pub socket: Option<String>,
 }
 
@@ -1571,24 +1810,32 @@ impl From<RedfishProcessorLocationInfo>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a processor.
 pub struct HWInvByLocProcessor {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the processor installed here, if any.
   pub populated_fru: Option<HWInvByFRUProcessor>,
   #[serde(rename = "ProcessorLocationInfo")]
+  /// Processor location metadata.
   pub processor_location_info: RedfishProcessorLocationInfo,
 }
 
@@ -1622,25 +1869,35 @@ impl From<HWInvByLocProcessor> for FrontEndHWInvByLocProcessor {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a node accelerator. Per the HSM
+/// API, accelerator location metadata reuses the Redfish processor location
+/// shape.
 pub struct HWInvByLocNodeAccel {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the accelerator installed here, if any.
   pub populated_fru: Option<HWInvByFRUNodeAccel>,
   #[serde(rename = "NodeAccelLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Accelerator location metadata (Redfish processor location shape).
   pub node_accel_location_info: Option<RedfishProcessorLocationInfo>, // NOTE: according to API
                                                                       // docs, yes this is using the redfish for "processor"
 }
@@ -1675,54 +1932,72 @@ impl From<HWInvByLocNodeAccel> for FrontEndHWInvByLocNodeAccel {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `Drive` location-info block (id / name / description).
 pub struct RedfishDriveLocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a storage drive.
 pub struct HWInvByLocDrive {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the drive installed here, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "DriveLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Drive location metadata.
   pub drive_location_info: Option<RedfishDriveLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `MemoryLocation` — physical placement of a memory module
+/// (socket / controller / channel / slot).
 pub struct MemoryLocation {
   #[serde(rename = "Socket")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// CPU socket number the module is attached to.
   pub socket: Option<u32>,
   #[serde(rename = "MemoryController")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Memory controller index within the socket.
   pub memory_controller: Option<u32>,
   #[serde(rename = "Channel")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Channel index within the memory controller.
   pub channel: Option<u32>,
   #[serde(rename = "Slot")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Slot index within the channel.
   pub slot: Option<u32>,
 }
 
@@ -1749,18 +2024,24 @@ impl From<MemoryLocation> for FrontEndMemoryLocation {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `Memory` location-info block: identity plus the physical
+/// `MemoryLocation` placement.
 pub struct RedfishMemoryLocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
   #[serde(rename = "MemoryLocation")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Physical socket / controller / channel / slot placement.
   pub memory_location: Option<MemoryLocation>,
 }
 
@@ -1787,24 +2068,32 @@ impl From<RedfishMemoryLocationInfo> for FrontEndRedfishMemoryLocationInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a memory module.
 pub struct HWInvByLocMemory {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the memory module installed here, if any.
   pub populated_fru: Option<HWInvByFRUMemory>,
   #[serde(rename = "MemoryLocationInfo")]
+  /// Memory location metadata.
   pub memory_location_info: RedfishMemoryLocationInfo,
 }
 
@@ -1838,48 +2127,63 @@ impl From<HWInvByLocMemory> for FrontEndHWInvByLocMemory {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish location-info block for a node accelerator riser.
 pub struct RedfishNodeAccelRiserLocationInfo {
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a node accelerator riser card.
 pub struct HWInvByLocNodeAccelRiser {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the riser installed here, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "NodeAccelRiserLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Riser location metadata.
   pub node_accel_riser_location_info: Option<RedfishNodeAccelRiserLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-info block for an HSN NIC installed on a node.
 pub struct HSNNICLocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
 }
 
@@ -1904,26 +2208,34 @@ impl From<HSNNICLocationInfo> for FrontEndHSNNICLocationInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for an HSN NIC.
 pub struct HWInvByLocHSNNIC {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the HSN NIC installed here, if any.
   pub populated_fru: Option<HWInvByFRUHSNNIC>,
   /* #[serde(rename = "NodeHsnNicLocationInfo")]
   pub node_hsn_nic_location_info: HSNNICLocationInfo, */
   #[serde(rename = "NodeHsnNicLocationInfo")]
+  /// HSN NIC location metadata.
   pub hsn_nic_location_info: HSNNICLocationInfo,
 }
 
@@ -1957,50 +2269,68 @@ impl From<HWInvByLocHSNNIC> for FrontEndHWInvByLocHSNNIC {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Envelope that wraps a `Hardware` array of node-scoped inventory entries.
 pub struct Hardware {
   #[serde(rename = "Hardware")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node-scoped inventory entries.
   pub hardware: Option<Vec<HWInvByLocNode>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a node, with nested child
+/// component arrays (processors, accelerators, memory, drives, risers,
+/// HSN NICs).
 pub struct HWInvByLocNode {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the node installed here, if any.
   pub populated_fru: Option<HWInvByFRUNode>,
   #[serde(rename = "NodeLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node location metadata (identity + processor/memory summaries).
   pub node_location_info: Option<RedfishSystemLocationInfo>,
   #[serde(rename = "Processors")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Processors installed on this node.
   pub processors: Option<Vec<HWInvByLocProcessor>>,
   #[serde(rename = "NodeAccels")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Accelerators installed on this node.
   pub node_accels: Option<Vec<HWInvByLocNodeAccel>>,
   #[serde(rename = "Dives")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Drives installed on this node (upstream key `Dives` preserved).
   pub drives: Option<Vec<HWInvByLocDrive>>,
   #[serde(rename = "Memory")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Memory modules installed on this node.
   pub memory: Option<Vec<HWInvByLocMemory>>,
   #[serde(rename = "NodeAccelRisers")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Accelerator risers installed on this node.
   pub node_accel_risers: Option<Vec<HWInvByLocNodeAccelRiser>>,
   #[serde(rename = "NodeHsnNICs")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSN NICs installed on this node.
   pub node_hsn_nics: Option<Vec<HWInvByLocHSNNIC>>,
 }
 
@@ -2077,110 +2407,147 @@ impl From<HWInvByLocNode> for FrontEndHWInvByLocNode {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish PDU location-info block.
 pub struct RedfishPDULocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
   #[serde(rename = "UUID")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// PDU UUID.
   pub uuid: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish outlet location-info block for a PDU power connector.
 pub struct RedfishOutletLocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a PDU outlet / power connector.
 pub struct HWInvByLocOutlet {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the outlet installed here, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "OutletLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Outlet location metadata.
   pub outlet_location_info: Option<RedfishOutletLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a cabinet PDU, including its
+/// outlets.
 pub struct HWInvByLocPDU {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the PDU installed here, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "PDULocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// PDU location metadata.
   pub pdu_location_info: Option<RedfishPDULocationInfo>,
   #[serde(rename = "CabinetPDUPowerConnectors")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Outlets present on this PDU.
   pub cabinet_pdu_power_connectors: Option<Vec<HWInvByLocOutlet>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish location-info block for a CMM rectifier.
 pub struct RedfishCMMRectifierLocationInfo {
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "FirmwareVersion")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Firmware version reported by the rectifier.
   pub firmware_version: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a CMM rectifier.
 pub struct HWInvByLocCMMRectifier {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the rectifier installed here, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "CMMRectifierLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -2188,104 +2555,138 @@ pub struct HWInvByLocCMMRectifier {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish location-info block for a node enclosure power supply.
 pub struct RedfishNodeEnclosurePowerSupplyLocationInfo {
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "FirmwareVersion")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Firmware version reported by the power supply.
   pub firmware_version: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a node enclosure power supply.
 pub struct HWInvByLocNodePowerSupply {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the power supply installed here, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "NodeEnclosurePowerSupplyLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Power supply location metadata.
   pub node_enclosure_power_supply_location_info:
     Option<RedfishNodeEnclosurePowerSupplyLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `Manager` location-info block (used by BMC entries).
 pub struct RedfishManagerLocationInfo {
   #[serde(rename = "Id")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Id`.
   pub id: Option<String>,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
   #[serde(rename = "DateTime")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Current date/time as reported by the manager.
   pub date_time: Option<String>,
   #[serde(rename = "DateTimeLocalOffset")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Local time zone offset for `date_time`.
   pub date_time_local_offset: Option<String>,
   #[serde(rename = "FirmwareVersion")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Firmware version reported by the manager.
   pub firmware_version: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a node BMC.
 pub struct HWInvByLocNodeBMC {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the BMC installed here, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "NodeBMCLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node BMC location metadata.
   pub node_bmc_location_info: Option<RedfishManagerLocationInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Location-scoped HSM inventory entry for a router BMC.
 pub struct HWInvByLocRouterBMC {
   #[serde(rename = "ID")]
+  /// Component xname.
   pub id: String,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "Ordinal")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Ordinal position within its parent.
   pub ordinal: Option<u32>,
   #[serde(rename = "Status")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Status reported by HSM.
   pub status: Option<String>,
   #[serde(rename = "HWInventoryByLocationType")]
+  /// Discriminator that names the concrete location-inventory variant.
   pub hw_inventory_by_location_type: String,
   #[serde(rename = "PopulatedFRU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU-level details for the BMC installed here, if any.
   pub populated_fru: Option<HWInventoryByFRU>,
   #[serde(rename = "RouterBMCLocationInfo")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Router BMC location metadata.
   pub router_bmc_location_info: Option<RedfishManagerLocationInfo>,
 }
 
@@ -2320,78 +2721,105 @@ impl Into<FrontEndHWInventoryList> for HWInventoryList {
 } */
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Full HSM hardware inventory payload rooted at a component (typically the
+/// system root or a cabinet). Each optional vector holds the location-scoped
+/// entries for one HSM component class.
 pub struct HWInventory {
   #[serde(rename = "XName")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// XName of the inventory root, if reported.
   pub xname: Option<String>,
   #[serde(rename = "Format")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Format discriminator declared by the endpoint.
   pub format: Option<String>,
   #[serde(rename = "Cabinets")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Cabinets under the root.
   pub cabinets: Option<Vec<HWInvByLocCabinet>>,
   #[serde(rename = "Chassis")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Chassis under the root.
   pub chassis: Option<Vec<HWInvByLocChassis>>,
   #[serde(rename = "ComputeModules")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Compute module slots.
   pub compute_modules: Option<Vec<HWInvByLocComputeModule>>,
   #[serde(rename = "RouterModules")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Router module slots.
   pub router_modules: Option<Vec<HWInvByLocRouterModule>>,
   #[serde(rename = "NodeEnclosures")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node enclosures.
   pub node_enclosures: Option<Vec<HWInvByLocNodeEnclosure>>,
   #[serde(rename = "HSNBoards")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSN boards.
   pub hsn_boards: Option<Vec<HWInvByLocHSNBoard>>,
   #[serde(rename = "MgmtSwitches")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Management (leaf) switches.
   pub mgmt_switches: Option<Vec<HWInvByLocMgmtSwitch>>,
   #[serde(rename = "MgmtHLSwitches")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Management (high-level / spine) switches.
   pub mgmt_hl_switches: Option<Vec<HWInvByLocMgmtHLSwitch>>,
   #[serde(rename = "CDUMgmtSwitches")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// CDU management switches.
   pub cdu_mgmt_switches: Option<Vec<HWInvByLocCDUMgmtSwitch>>,
   #[serde(rename = "Nodes")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Compute nodes.
   pub nodes: Option<Vec<HWInvByLocNode>>,
   #[serde(rename = "Processors")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Processors across all nodes.
   pub processors: Option<Vec<HWInvByLocProcessor>>,
   #[serde(rename = "NodeAccels")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node accelerators across all nodes.
   pub node_accels: Option<Vec<HWInvByLocNodeAccel>>,
   #[serde(rename = "Drives")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Drives across all nodes.
   pub drives: Option<Vec<HWInvByLocDrive>>,
   #[serde(rename = "Memory")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Memory modules across all nodes.
   pub memory: Option<Vec<HWInvByLocMemory>>,
   #[serde(rename = "CabinetPDUs")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Cabinet PDUs.
   pub cabinet_pdus: Option<Vec<HWInvByLocPDU>>,
   #[serde(rename = "CabinetPDUPowerConnectors")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Outlets on cabinet PDUs.
   pub cabinet_pdu_power_connectors: Option<Vec<HWInvByLocOutlet>>,
   #[serde(rename = "CMMRectifiers")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// CMM rectifiers.
   pub cmm_rectifiers: Option<Vec<HWInvByLocCMMRectifier>>,
   #[serde(rename = "NodeAccelRisers")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node accelerator risers.
   pub node_accel_risers: Option<Vec<HWInvByLocNodeAccelRiser>>,
   #[serde(rename = "NodeHsnNics")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSN NICs across all nodes.
   pub node_hsn_nics: Option<Vec<HWInvByLocHSNNIC>>,
   #[serde(rename = "NodeEnclosurePowerSupplies")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node enclosure power supplies.
   pub node_enclosure_power_supplies: Option<Vec<HWInvByLocNodePowerSupply>>,
   #[serde(rename = "NodeBMC")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node BMCs.
   pub node_bmc: Option<Vec<HWInvByLocNodeBMC>>,
   #[serde(rename = "RouterBMC")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Router BMCs.
   pub router_bmc: Option<Vec<HWInvByLocRouterBMC>>,
 }
 
@@ -2486,19 +2914,26 @@ impl From<HWInventory> for FrontEndHWInventory {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// FRU-level inventory entry for a node: identity fields plus the nested
+/// Redfish system FRU info.
 pub struct HWInvByFRUNode {
   #[serde(rename = "FRUID")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU identifier reported by the endpoint.
   pub fru_id: Option<String>,
   #[serde(rename = "Type")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// HSM component `Type` string.
   pub r#type: Option<String>,
   #[serde(rename = "FRUSubType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// FRU sub-type discriminator.
   pub fru_sub_type: Option<String>,
   #[serde(rename = "HWInventoryByFRUType")]
+  /// Discriminator that names the concrete FRU-inventory variant.
   pub hw_inventory_by_fru_type: String,
   #[serde(rename = "NodeFRUInfo")]
+  /// Node FRU details.
   pub node_fru_info: RedfishSystemFRUInfo,
 }
 
@@ -2527,33 +2962,44 @@ impl From<HWInvByFRUNode> for FrontEndHWInvByFRUNode {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish `System` FRU-info block: identity strings that describe the
+/// system as a field-replaceable unit.
 pub struct RedfishSystemFRUInfo {
   #[serde(rename = "AssetTag")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Site-assigned asset tag.
   pub asset_tag: Option<String>,
   #[serde(rename = "BiosVersion")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// System BIOS version.
   pub bios_version: Option<String>,
   #[serde(rename = "Model")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Marketing model name.
   pub model: Option<String>,
   #[serde(rename = "Manufacturer")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// System manufacturer.
   pub manufacturer: Option<String>,
   #[serde(rename = "PartNumber")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Manufacturer part number.
   pub part_number: Option<String>,
   #[serde(rename = "SerialNumber")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Serial number.
   pub serial_number: Option<String>,
   #[serde(rename = "SKU")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// SKU string.
   pub sku: Option<String>,
   #[serde(rename = "SystemType")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `SystemType` (e.g. `Physical`, `Virtual`).
   pub system_type: Option<String>,
   #[serde(rename = "UUID")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// System UUID.
   pub uuid: Option<String>,
 }
 
@@ -2590,23 +3036,32 @@ impl From<RedfishSystemFRUInfo> for FrontEndRedfishSystemFRUInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Redfish node location-info block: identity plus processor / memory
+/// summaries. Similar to `RedfishSystemLocationInfo` but with a required
+/// `id` field.
 pub struct NodeLocationInfo {
   #[serde(rename = "Id")]
+  /// Redfish `Id`.
   pub id: String,
   #[serde(rename = "Name")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Name`.
   pub name: Option<String>,
   #[serde(rename = "Description")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Redfish `Description`.
   pub description: Option<String>,
   #[serde(rename = "Hostname")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Node hostname.
   pub hostname: Option<String>,
   #[serde(rename = "ProcessorSummary")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Summary of installed processors.
   pub processor_summary: Option<ProcessorSummary>,
   #[serde(rename = "MemorySummary")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Summary of installed memory.
   pub memory_summary: Option<MemorySummary>,
 }
 
@@ -2638,6 +3093,8 @@ impl From<NodeLocationInfo> for FrontEndNodeLocationInfo {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)] // <-- this is important. More info https://serde.rs/enum-representations.html#untagged
+/// Untagged sum of the node-scoped HSM location-inventory variants that
+/// ochami-rs currently models. Serde discriminates by field shape.
 pub enum HWInventoryByLocation {
   /* HWInvByLocCabinet(HWInvByLocCabinet),
   HWInvByLocChassis(HWInvByLocChassis),
@@ -2648,15 +3105,20 @@ pub enum HWInventoryByLocation {
   HWInvByLocMgmtSwitch(HWInvByLocMgmtSwitch),
   HWInvByLocMgmtHLSwitch(HWInvByLocMgmtHLSwitch),
   HWInvByLocCDUMgmtSwitch(HWInvByLocCDUMgmtSwitch), */
+  /// Node entry.
   HWInvByLocNode(HWInvByLocNode),
+  /// Processor entry.
   HWInvByLocProcessor(HWInvByLocProcessor),
+  /// Accelerator entry.
   HWInvByLocNodeAccel(HWInvByLocNodeAccel),
   /*     HWInvByLocDrive(HWInvByLocDrive), */
+  /// Memory-module entry.
   HWInvByLocMemory(HWInvByLocMemory),
   /* HWInvByLocPDU(HWInvByLocPDU),
   HWInvByLocOutlet(HWInvByLocOutlet),
   HWInvByLocCMMRectifier(HWInvByLocCMMRectifier),
   HWInvByLocNodeAccelRiser(HWInvByLocNodeAccelRiser), */
+  /// HSN NIC entry.
   HWInvByLocHSNNIC(HWInvByLocHSNNIC),
   /* HWInvByLocNodePowerSupply(HWInvByLocNodePowerSupply),
   HWInvByLocNodeBMC(HWInvByLocNodeBMC),
@@ -2735,6 +3197,7 @@ impl From<HWInventoryByLocation> for FrontEndHWInventoryByLocation {
 pub struct HWInventoryByLocationList {
   #[serde(rename = "Hardware")]
   #[serde(skip_serializing_if = "Option::is_none")]
+  /// Location-inventory entries carried by this request/response.
   pub hardware: Option<Vec<HWInventoryByLocation>>,
 }
 

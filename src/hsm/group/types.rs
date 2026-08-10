@@ -41,9 +41,13 @@ fn resource_name(s: &str) -> ResourceName {
 /// convenience methods. Kept as a trait so downstream code that
 /// uses these methods continues to compile against the slim re-export.
 pub trait GroupExt {
+  /// Constructs a [`Group`] with the given label and optional initial members.
   fn new(label: &str, member_vec_opt: Option<Vec<&str>>) -> Self;
+  /// Returns the group's member xnames, or an empty vec if there are none.
   fn get_members(&self) -> Vec<String>;
+  /// Returns the group's member xnames as an `Option`, `None` if the field is absent.
   fn get_members_opt(&self) -> Option<Vec<String>>;
+  /// Appends `xnames` to the group's member list and returns the updated list.
   fn add_xnames(&mut self, xnames: &[String]) -> Vec<String>;
 }
 

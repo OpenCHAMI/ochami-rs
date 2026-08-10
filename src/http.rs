@@ -11,6 +11,7 @@ pub(crate) const HTTP_5XX_RETRY_ATTEMPTS: u32 = 3;
 pub(crate) const HTTP_5XX_RETRY_INITIAL_DELAY: Duration =
   Duration::from_millis(500);
 
+/// Builds a `reqwest::Client` trusting `root_cert` (PEM), using rustls and the crate's timeouts.
 pub fn build_client(root_cert: &[u8]) -> Result<reqwest::Client, Error> {
   let builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?)
@@ -20,6 +21,7 @@ pub fn build_client(root_cert: &[u8]) -> Result<reqwest::Client, Error> {
   builder.build().map_err(Error::NetError)
 }
 
+/// Builds a `reqwest::Client` trusting `root_cert` (PEM), without forcing rustls or timeouts.
 pub fn build_client_no_tls(root_cert: &[u8]) -> Result<reqwest::Client, Error> {
   let builder = reqwest::Client::builder()
     .add_root_certificate(reqwest::Certificate::from_pem(root_cert)?);

@@ -7,22 +7,30 @@ use serde_json::Value;
 
 use crate::error::Error;
 
+/// Network boot parameters for a set of hosts (BSS `/bootparameters` payload).
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct BootParameters {
+  /// Host xnames these boot parameters apply to.
   #[serde(default)]
   pub hosts: Vec<String>,
+  /// Optional MAC addresses these boot parameters apply to.
   #[serde(skip_serializing_if = "Option::is_none")]
   pub macs: Option<Vec<String>>,
+  /// Optional node IDs these boot parameters apply to.
   #[serde(skip_serializing_if = "Option::is_none")]
   pub nids: Option<Vec<u32>>,
+  /// Kernel command-line parameters as a single space-separated string.
   #[serde(default)]
   pub params: String, // FIXME: change type to HashMap<String, String> by using function
   // bss::utils::convert_kernel_params_to_map AND create new method
   // bss::BootParameters::num_kernel_params which returns the list of kernel parameters
+  /// Kernel image location (typically an `s3://` URL).
   #[serde(default)]
   pub kernel: String,
+  /// Initrd image location (typically an `s3://` URL).
   #[serde(default)]
   pub initrd: String,
+  /// Optional cloud-init payload (opaque JSON as served by BSS).
   #[serde(rename = "cloud-init")]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub cloud_init: Option<Value>,
@@ -359,6 +367,7 @@ impl BootParameters {
     Ok(changed)
   }
 
+  /// Returns the value of the kernel parameter named `key`, or `None` if not present.
   pub fn get_kernel_param_value(&self, key: &str) -> Option<String> {
     let params: HashMap<&str, &str> = self
       .params
@@ -371,6 +380,7 @@ impl BootParameters {
     params.get(key).map(|value| value.to_string())
   }
 
+  /// Returns the number of distinct kernel parameters parsed from `params`.
   pub fn get_num_kernel_params(&self) -> usize {
     let params: HashMap<&str, &str> = self
       .params

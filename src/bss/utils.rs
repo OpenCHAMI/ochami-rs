@@ -4,6 +4,7 @@ use serde_json::Value;
 
 use super::types::BootParameters;
 
+/// Parses a space-separated `key[=value]` kernel-parameter string into a map.
 pub fn convert_kernel_params_to_map(
   kernel_params: &str,
 ) -> HashMap<String, String> {
@@ -21,6 +22,7 @@ pub fn convert_kernel_params_to_map(
     .collect()
 }
 
+/// Returns the first [`BootParameters`] entry whose `hosts` list contains `node`.
 pub fn find_boot_params_related_to_node(
   node_boot_params_list: &[BootParameters],
   node: &String,

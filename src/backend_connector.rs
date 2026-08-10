@@ -52,6 +52,10 @@ use crate::hsm::generated::types::{
   CompEthInterface100Patch as GenCompEthInterfacePatch, XNameRw100,
 };
 
+/// Top-level client for the OCHAMI backend (HSM, BSS, PCS).
+///
+/// Holds the API base URL and the root certificate used to build the
+/// underlying `reqwest::Client` for each request.
 #[derive(Debug, Clone)]
 pub struct Ochami {
   base_url: String,
@@ -59,6 +63,7 @@ pub struct Ochami {
 }
 
 impl Ochami {
+  /// Constructs an [`Ochami`] client from an API base URL and a PEM-encoded root certificate.
   pub fn new(base_url: &str, root_cert: &[u8]) -> Self {
     Self {
       base_url: base_url.to_string(),

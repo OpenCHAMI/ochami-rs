@@ -10,9 +10,12 @@ use strum_macros::Display;
 
 use crate::error::Error;
 
+/// Target component of a PCS power transition request.
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Location {
+  /// Component xname (Cray/OpenCHAMI hardware identifier).
   pub xname: String,
+  /// Optional deputy key authorizing the transition on this component.
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "deputyKey")]
   pub deputy_key: Option<String>,
@@ -36,26 +39,35 @@ impl From<Location> for FrontEndLocation {
 }
 
 // this matches the query, not the response
+/// Power transition operation requested from PCS.
 #[derive(Display, Debug, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Operation {
+  /// Power on.
   #[serde(rename = "On")]
   On,
+  /// Power off (graceful, then hard if needed).
   #[serde(rename = "Off")]
   Off,
+  /// Graceful shutdown request.
   #[serde(rename = "Soft-Off")]
   SoftOff,
+  /// Graceful restart request.
   #[serde(rename = "Soft-Restart")]
   SoftRestart,
+  /// Immediate restart (hard reset).
   #[serde(rename = "Hard-Restart")]
   HardRestart,
+  /// Initialization / reinitialize sequence.
   #[serde(rename = "Init")]
   Init,
+  /// Immediate power cut (no graceful shutdown).
   #[serde(rename = "Force-Off")]
   ForceOff,
 }
 
 impl Operation {
+  /// Parses a lowercase operation name (e.g. `"on"`, `"soft-off"`) into an [`Operation`].
   pub fn from_str(operation: &str) -> Result<Operation, Error> {
     match operation {
       "on" => Ok(Operation::On),
@@ -97,12 +109,16 @@ impl From<Operation> for FrontEndOperation {
   }
 }
 
+/// Body of a PCS transition request: one operation applied to a set of locations.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Transition {
+  /// Operation to perform on every listed location.
   pub operation: Operation,
+  /// Optional per-task deadline in minutes before PCS gives up.
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "taskDeadlineMinutes")]
   pub task_deadline_minutes: Option<usize>,
+  /// Targets of this transition.
   pub location: Vec<Location>,
 }
 
@@ -130,13 +146,20 @@ impl From<Transition> for FrontEndTransition {
   }
 }
 
+/// Roll-up of per-task states reported by PCS for a transition.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskCounts {
+  /// Total number of tasks in the transition.
   pub total: usize,
+  /// Tasks in the `new` state (accepted, not yet started).
   pub new: usize,
+  /// Tasks currently in progress.
   pub in_progress: usize,
+  /// Tasks that failed.
   pub failed: usize,
+  /// Tasks that completed successfully.
   pub succeeded: usize,
+  /// Tasks whose operation is not supported by the target hardware.
   pub un_supported: usize,
 }
 
@@ -166,13 +189,18 @@ impl From<TaskCounts> for FrontEndTaskCounts {
   }
 }
 
+/// Per-component task status inside a PCS transition response.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
+  /// Component xname this task targets.
   pub xname: String,
+  /// Current task status string as reported by PCS.
   #[serde(rename = "taskStatus")]
   pub task_status: String,
+  /// Human-readable description of the task status.
   #[serde(rename = "taskStatusDescription")]
   pub task_status_description: String,
+  /// Error message if the task failed.
   pub error: Option<String>,
 }
 
@@ -202,19 +230,27 @@ impl From<Task>
   }
 }
 
+/// Response body describing a PCS transition and its per-component tasks.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransitionResponse {
+  /// Unique identifier assigned by PCS to this transition.
   #[serde(rename = "transitionID")]
   pub transition_id: String,
+  /// Timestamp (RFC 3339) when PCS accepted the transition.
   #[serde(rename = "createTime")]
   pub create_time: String,
+  /// Timestamp (RFC 3339) after which the transition record is auto-expired.
   #[serde(rename = "automaticExpirationTime")]
   pub automatic_expiration_time: String,
+  /// Overall status string reported by PCS for the transition.
   #[serde(rename = "transitionStatus")]
   pub transition_status: String,
+  /// Operation this transition is performing.
   pub operation: Operation,
+  /// Roll-up counts of tasks by state.
   #[serde(rename = "taskCounts")]
   pub task_counts: TaskCounts,
+  /// Per-component task entries.
   pub tasks: Vec<Task>,
 }
 
@@ -246,8 +282,10 @@ impl From<TransitionResponse> for FrontEndTransitionResponse {
   }
 }
 
+/// Wrapper for a list of transition responses returned by PCS.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransitionResponseList {
+  /// Transitions returned by the endpoint.
   pub transitions: Vec<TransitionResponse>,
 }
 

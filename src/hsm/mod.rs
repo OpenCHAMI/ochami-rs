@@ -51,13 +51,21 @@
 pub(crate) mod generated;
 pub mod types;
 
+/// HSM component (node) resource: query, create, delete.
 pub mod component;
+/// HSM defaults resource (node-map defaults applied to new components).
 pub mod defaults;
+/// HSM group resource: labels, members, tags, per-member add/delete.
 pub mod group;
+/// HSM inventory resource: hardware, Redfish endpoints, Ethernet interfaces.
 pub mod inventory;
+/// HSM component memberships (a component's group/partition affiliations).
 pub mod memberships;
+/// HSM node-map resource (xname → NID/role/subrole mapping).
 pub mod node_map;
+/// HSM partition resource (mutually-exclusive component groupings).
 pub mod partition;
+/// HSM component-state changes (transitions between Ready/Off/etc.).
 pub mod state;
 
 mod wrapper;

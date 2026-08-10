@@ -7,13 +7,17 @@ use crate::pcs::transitions::types::Operation;
 
 use serde::{Deserialize, Serialize};
 
+/// Current power state of a component as reported by PCS.
 #[derive(Debug, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum PowerState {
+  /// Component is powered on.
   #[serde(rename = "on")]
   On,
+  /// Component is powered off.
   #[serde(rename = "off")]
   Off,
+  /// Power state could not be determined.
   #[serde(rename = "undefined")]
   Undefined,
 }
@@ -36,11 +40,14 @@ impl From<PowerState> for FrontEndPowerState {
   }
 }
 
+/// Whether PCS can currently manage the component.
 #[derive(Debug, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum ManagementState {
+  /// Component cannot be reached or controlled.
   #[serde(rename = "unavailable")]
   Unavailable,
+  /// Component is reachable and controllable.
   #[serde(rename = "available")]
   Available,
 }
@@ -61,20 +68,27 @@ impl From<ManagementState> for FrontEndManagementState {
   }
 }
 
+/// Power-status record for a single component returned by PCS.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PowerStatus {
+  /// Component xname.
   pub xname: String,
+  /// Current power state, if known.
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "powerState")]
   pub power_state: Option<PowerState>,
+  /// Current management-plane availability, if known.
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "managementState")]
   pub management_state: Option<ManagementState>,
+  /// Error message if the component's status could not be read.
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "error")]
   pub error: Option<String>,
+  /// Power transition operations the component currently supports.
   #[serde(rename = "supportedPowerTransitions")]
   pub supported_power_transitions: Vec<Operation>,
+  /// Timestamp (RFC 3339) of the last successful status update.
   #[serde(rename = "lastUpdated")]
   pub last_updated: String,
 }
@@ -119,8 +133,10 @@ impl From<PowerStatus> for FrontEndPowerStatus {
   }
 }
 
+/// Wrapper for the full list of component power statuses returned by PCS.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PowerStatusAll {
+  /// Power-status entries for every queried component.
   pub status: Vec<PowerStatus>,
 }
 
