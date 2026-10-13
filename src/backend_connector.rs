@@ -964,10 +964,17 @@ impl AuthenticationTrait for Ochami {
     })
   }
 
-  async fn validate_api_token(&self, auth_token: &str) -> Result<(), Error> {
-    authentication::validate_api_token(auth_token).map_err(|_e| {
-      Error::Message("Authentication token not valid".to_string())
-    })
+  /// Pass-through for now: returns `subject_token` unchanged after a
+  /// non-empty check. OpenCHAMI does not accept the CSCS token, so the
+  /// real exchange (via TokenSmith) still has to be implemented here.
+  async fn exchange_api_token(
+    &self,
+    subject_token: &str,
+  ) -> Result<String, Error> {
+    authentication::validate_api_token(subject_token).map_err(|_e| {
+      Error::Unauthorized("Authentication token is empty".to_string())
+    })?;
+    Ok(subject_token.to_string())
   }
 }
 
