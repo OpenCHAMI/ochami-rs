@@ -63,8 +63,6 @@ pub(crate) async fn map_err<E: Debug + serde::Serialize>(
         )),
       }
     }
-    PreHookError(s) => {
-      Error::Message(format!("{service} pre-hook error: {s}"))
-    }
+    PreHookError(s) => Error::Message(format!("{service} pre-hook error: {s}")),
   }
 }

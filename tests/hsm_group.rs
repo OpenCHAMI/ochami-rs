@@ -30,8 +30,7 @@ async fn hsm_group_get_all_returns_group_array() {
     .and(path("/hsm/v2/groups"))
     .and(header("authorization", "Bearer test-token"))
     .respond_with(
-      ResponseTemplate::new(200)
-        .set_body_json(json!([{"label": "compute"}])),
+      ResponseTemplate::new(200).set_body_json(json!([{"label": "compute"}])),
     )
     .mount(&server)
     .await;
@@ -95,8 +94,7 @@ async fn hsm_group_get_labels_returns_names() {
     .and(path("/hsm/v2/groups/labels"))
     .and(header("authorization", "Bearer test-token"))
     .respond_with(
-      ResponseTemplate::new(200)
-        .set_body_json(json!(["compute", "worker"])),
+      ResponseTemplate::new(200).set_body_json(json!(["compute", "worker"])),
     )
     .mount(&server)
     .await;
@@ -116,8 +114,7 @@ async fn hsm_group_get_members_returns_ids() {
     .and(path("/hsm/v2/groups/compute/members"))
     .and(header("authorization", "Bearer test-token"))
     .respond_with(
-      ResponseTemplate::new(200)
-        .set_body_json(json!({"ids": ["x1", "x2"]})),
+      ResponseTemplate::new(200).set_body_json(json!({"ids": ["x1", "x2"]})),
     )
     .mount(&server)
     .await;

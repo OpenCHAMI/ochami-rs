@@ -371,11 +371,7 @@ impl From<NodeSummary> for HWInvByLocNode {
       ),
       drives: None,
       memory: Some(
-        val
-          .memory
-          .into_iter()
-          .map(|memory| memory.into())
-          .collect(),
+        val.memory.into_iter().map(|memory| memory.into()).collect(),
       ),
       node_accel_risers: None, // FIXME: implement From/Into traits!
       node_hsn_nics: Some(
@@ -3092,7 +3088,8 @@ impl From<NodeLocationInfo> for FrontEndNodeLocationInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)] // <-- this is important. More info https://serde.rs/enum-representations.html#untagged
+#[serde(untagged)]
+// <-- this is important. More info https://serde.rs/enum-representations.html#untagged
 /// Untagged sum of the node-scoped HSM location-inventory variants that
 /// ochami-rs currently models. Serde discriminates by field shape.
 pub enum HWInventoryByLocation {

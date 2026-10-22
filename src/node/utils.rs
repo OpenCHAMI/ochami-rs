@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::{Ochami, hsm};
+use crate::{hsm, Ochami};
 
 /// Validate xname is correct (it uses regex taken from HPE Cray CSM docs)
 pub fn validate_xname_format(xname: &str) -> bool {

@@ -205,11 +205,8 @@ impl Ochami {
   ) -> Result<PowerCapTaskInfo, Error> {
     retry_on_5xx(|| async {
       let http = build_client(self.root_cert())?;
-      let url = format!(
-        "{}/power-control/v1/power-cap/{}",
-        self.base_url(),
-        task_id
-      );
+      let url =
+        format!("{}/power-control/v1/power-cap/{}", self.base_url(), task_id);
       let response = http
         .get(&url)
         .bearer_auth(token)
@@ -237,10 +234,8 @@ impl Ochami {
   ) -> Result<PowerCapTaskInfo, Error> {
     log::info!("Create PCS power snapshot for nodes: {xname_vec:?}");
     let http = build_client(self.root_cert())?;
-    let url = format!(
-      "{}/power-control/v1/power-cap/snapshot",
-      self.base_url()
-    );
+    let url =
+      format!("{}/power-control/v1/power-cap/snapshot", self.base_url());
     let response = http
       .post(&url)
       .bearer_auth(token)
@@ -422,8 +417,9 @@ impl Ochami {
     operation: &str,
     xname_vec: &[String],
   ) -> Result<TransitionResponse, Error> {
-    let started =
-      self.pcs_transitions_post(token, operation, xname_vec).await?;
+    let started = self
+      .pcs_transitions_post(token, operation, xname_vec)
+      .await?;
     log::info!("PCS transition ID: {}", started.transition_id);
     self
       .pcs_transition_wait_to_complete(token, &started.transition_id)

@@ -45,12 +45,12 @@
 //! from the wrapper's public surface.
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{inventory::types::HWInventoryByFRU, types::HsmActionResponse},
   http::{
     build_client, handle_action_response, handle_json_response, retry_on_5xx,
   },
+  Ochami,
 };
 
 impl Ochami {
@@ -79,8 +79,7 @@ impl Ochami {
   ) -> Result<Vec<HWInventoryByFRU>, Error> {
     retry_on_5xx(|| async {
       let client = build_client(self.root_cert())?;
-      let url =
-        format!("{}/hsm/v2/Inventory/HardwareByFRU", self.base_url());
+      let url = format!("{}/hsm/v2/Inventory/HardwareByFRU", self.base_url());
 
       let mut query_params: Vec<(&str, Option<&str>)> = vec![
         ("fruid", fruid),

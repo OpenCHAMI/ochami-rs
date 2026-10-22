@@ -37,7 +37,6 @@
 //! `do_group_members_post` (no `Response.1.0.0` body on these endpoints).
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{
     generated::types::{
@@ -48,6 +47,7 @@ use crate::{
     wrapper::run,
   },
   http::retry_on_5xx,
+  Ochami,
 };
 
 /// `GET /partitions` response shape. No named array schema exists in the
@@ -106,8 +106,12 @@ impl Ochami {
     token: &str,
   ) -> Result<Vec<String>, Error> {
     retry_on_5xx(|| async {
-      run(self, token, |c| async move { c.do_partition_names_get().await })
-        .await
+      run(
+        self,
+        token,
+        |c| async move { c.do_partition_names_get().await },
+      )
+      .await
     })
     .await
   }
@@ -188,8 +192,12 @@ impl Ochami {
     token: &str,
     name: &str,
   ) -> Result<HsmActionResponse, Error> {
-    run(self, token, |c| async move { c.do_partition_delete(name).await })
-      .await
+    run(
+      self,
+      token,
+      |c| async move { c.do_partition_delete(name).await },
+    )
+    .await
   }
 
   /// `DELETE /hsm/v2/partitions/{partition_name}/members/{xname_id}` —

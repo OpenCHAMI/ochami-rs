@@ -16,7 +16,6 @@
 //! with the design spec's naming.
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{
     generated::types::{
@@ -27,6 +26,7 @@ use crate::{
     wrapper::{gen_client, map_err, run},
   },
   http::{build_client, handle_json_response, retry_on_5xx},
+  Ochami,
 };
 
 /// `GET /groups` response shape. No named array schema exists in the
@@ -43,7 +43,10 @@ impl Ochami {
   /// # Errors
   /// Returns [`Error`] on transport, HSM 4xx/5xx, or deserialization
   /// failure.
-  pub async fn hsm_group_get_all(&self, token: &str) -> Result<GroupArray, Error> {
+  pub async fn hsm_group_get_all(
+    &self,
+    token: &str,
+  ) -> Result<GroupArray, Error> {
     self.hsm_group_get(token, None, None).await
   }
 
@@ -166,7 +169,12 @@ impl Ochami {
     token: &str,
     group: &Group,
   ) -> Result<Vec<ResourceUri100>, Error> {
-    run(self, token, |gc| async move { gc.do_groups_post(group).await }).await
+    run(
+      self,
+      token,
+      |gc| async move { gc.do_groups_post(group).await },
+    )
+    .await
   }
 
   /// `POST /hsm/v2/groups/{group_label}/members` — add a single member
@@ -204,7 +212,12 @@ impl Ochami {
     token: &str,
     label: &str,
   ) -> Result<HsmActionResponse, Error> {
-    run(self, token, |gc| async move { gc.do_group_delete(label).await }).await
+    run(
+      self,
+      token,
+      |gc| async move { gc.do_group_delete(label).await },
+    )
+    .await
   }
 
   /// `DELETE /hsm/v2/groups/{group_label}/members/{xname_id}` — remove a
