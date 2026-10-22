@@ -23,9 +23,8 @@ impl From<Error> for MantaError {
         MantaError::RequestError { response, payload }
       }
       Error::OchamiError { status, body } => {
-        let detail = extract_rfc7807_detail(&body).unwrap_or_else(|| {
-          format!("HSM/OCHAMI error status={status}")
-        });
+        let detail = extract_rfc7807_detail(&body)
+          .unwrap_or_else(|| format!("HSM/OCHAMI error status={status}"));
         MantaError::CsmError {
           status,
           detail,
@@ -63,7 +62,11 @@ mod tests {
     };
     let manta: MantaError = err.into();
     match manta {
-      MantaError::CsmError { status, detail, body } => {
+      MantaError::CsmError {
+        status,
+        detail,
+        body,
+      } => {
         assert_eq!(status, 409);
         assert_eq!(detail, "conflict: group exists");
         assert!(body.is_some());

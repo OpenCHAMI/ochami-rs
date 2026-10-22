@@ -62,7 +62,6 @@
 //! `inventory_hardware.rs`/`inventory_hardware_by_fru.rs`.
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{
     generated::types::{
@@ -75,6 +74,7 @@ use crate::{
     wrapper::run,
   },
   http::retry_on_5xx,
+  Ochami,
 };
 
 impl Ochami {
@@ -285,7 +285,8 @@ impl Ochami {
     ip_address: &str,
   ) -> Result<HsmActionResponse, Error> {
     run(self, token, |c| async move {
-      c.do_comp_eth_interface_ip_address_delete_v2(id, ip_address).await
+      c.do_comp_eth_interface_ip_address_delete_v2(id, ip_address)
+        .await
     })
     .await
   }

@@ -5,6 +5,8 @@ use manta_backend_dispatcher::types::pcs::transitions::types::{
   TransitionResponse as FrontEndTransitionResponse,
 };
 
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
@@ -66,9 +68,11 @@ pub enum Operation {
   ForceOff,
 }
 
-impl Operation {
-  /// Parses a lowercase operation name (e.g. `"on"`, `"soft-off"`) into an [`Operation`].
-  pub fn from_str(operation: &str) -> Result<Operation, Error> {
+/// Parses a lowercase operation name (e.g. `"on"`, `"soft-off"`) into an [`Operation`].
+impl FromStr for Operation {
+  type Err = Error;
+
+  fn from_str(operation: &str) -> Result<Operation, Error> {
     match operation {
       "on" => Ok(Operation::On),
       "off" => Ok(Operation::Off),
@@ -127,11 +131,7 @@ impl From<FrontEndTransition> for Transition {
     Transition {
       operation: Operation::from(value.operation),
       task_deadline_minutes: value.task_deadline_minutes,
-      location: value
-        .location
-        .into_iter()
-        .map(Location::from)
-        .collect(),
+      location: value.location.into_iter().map(Location::from).collect(),
     }
   }
 }
@@ -218,9 +218,7 @@ impl From<FrontEndTask> for Task {
 impl From<Task>
   for manta_backend_dispatcher::types::pcs::transitions::types::Task
 {
-  fn from(
-    val: Task,
-  ) -> Self {
+  fn from(val: Task) -> Self {
     manta_backend_dispatcher::types::pcs::transitions::types::Task {
       xname: val.xname,
       task_status: val.task_status,
@@ -292,10 +290,7 @@ pub struct TransitionResponseList {
 impl From<Vec<FrontEndTransitionResponse>> for TransitionResponseList {
   fn from(value: Vec<FrontEndTransitionResponse>) -> Self {
     TransitionResponseList {
-      transitions: value
-        .into_iter()
-        .map(TransitionResponse::from)
-        .collect(),
+      transitions: value.into_iter().map(TransitionResponse::from).collect(),
     }
   }
 }

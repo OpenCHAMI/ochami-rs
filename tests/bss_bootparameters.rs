@@ -196,7 +196,10 @@ async fn bss_bootparameters_post_does_not_retry_on_5xx() {
     )
     .await;
   let elapsed = start.elapsed();
-  assert!(result.is_err(), "POST should not have retried and succeeded");
+  assert!(
+    result.is_err(),
+    "POST should not have retried and succeeded"
+  );
   assert!(
     elapsed < std::time::Duration::from_millis(500),
     "elapsed = {elapsed:?} — POST unexpectedly retried"

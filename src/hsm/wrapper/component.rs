@@ -18,7 +18,6 @@
 //! `/State/Components` path.
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{
     generated::types::{
@@ -30,6 +29,7 @@ use crate::{
     wrapper::{gen_client, map_err, run},
   },
   http::{build_client, handle_json_response, retry_on_5xx},
+  Ochami,
 };
 
 impl Ochami {
@@ -314,8 +314,10 @@ impl Ochami {
     token: &str,
     component: ComponentArrayPostArray,
   ) -> Result<(), Error> {
-    run(self, token, |c| async move { c.do_components_post(&component).await })
-      .await
+    run(self, token, |c| async move {
+      c.do_components_post(&component).await
+    })
+    .await
   }
 
   /// `POST /hsm/v2/State/Components/Query` — retrieve components
@@ -380,8 +382,10 @@ impl Ochami {
     token: &str,
     xname: &str,
   ) -> Result<HsmActionResponse, Error> {
-    run(self, token, |c| async move { c.do_component_delete(xname).await })
-      .await
+    run(self, token, |c| async move {
+      c.do_component_delete(xname).await
+    })
+    .await
   }
 
   /// `DELETE /hsm/v2/State/Components` — delete every component.
@@ -393,7 +397,9 @@ impl Ochami {
     &self,
     token: &str,
   ) -> Result<HsmActionResponse, Error> {
-    run(self, token, |c| async move { c.do_components_delete_all().await })
-      .await
+    run(self, token, |c| async move {
+      c.do_components_delete_all().await
+    })
+    .await
   }
 }

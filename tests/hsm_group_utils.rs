@@ -18,11 +18,9 @@ async fn update_hsm_group_members_deletes_then_adds() {
   // Deletion of x1 comes first.
   Mock::given(method("DELETE"))
     .and(path("/hsm/v2/groups/compute/members/x1"))
-    .respond_with(
-      ResponseTemplate::new(200).set_body_json(json!({
-        "code": "0", "message": "removed"
-      })),
-    )
+    .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+      "code": "0", "message": "removed"
+    })))
     .expect(1)
     .mount(&server)
     .await;
@@ -51,7 +49,8 @@ async fn update_hsm_group_members_returns_error_summary_on_partial_failure() {
   Mock::given(method("DELETE"))
     .and(path("/hsm/v2/groups/compute/members/x1"))
     .respond_with(
-      ResponseTemplate::new(200).set_body_json(json!({"code":"0","message":""})),
+      ResponseTemplate::new(200)
+        .set_body_json(json!({"code":"0","message":""})),
     )
     .mount(&server)
     .await;

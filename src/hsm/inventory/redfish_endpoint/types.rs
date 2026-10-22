@@ -11,8 +11,7 @@
 use std::str::FromStr;
 
 pub use crate::hsm::generated::types::{
-  HmsType100,
-  RedfishEndpoint100RedfishEndpoint as RedfishEndpoint,
+  HmsType100, RedfishEndpoint100RedfishEndpoint as RedfishEndpoint,
   RedfishEndpoint100RedfishEndpointDiscoveryInfo as DiscoveryInfo,
   RedfishEndpoint100RedfishEndpointDiscoveryInfoLastStatus as DiscoveryLastStatus,
   RedfishEndpoint100RedfishEndpointMacAddr as MacAddr,

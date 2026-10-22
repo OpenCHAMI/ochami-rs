@@ -32,7 +32,6 @@
 //! doc comments below for the corrected shapes.
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{
     inventory::types::{
@@ -43,6 +42,7 @@ use crate::{
   http::{
     build_client, handle_action_response, handle_json_response, retry_on_5xx,
   },
+  Ochami,
 };
 
 impl Ochami {

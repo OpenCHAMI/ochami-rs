@@ -142,9 +142,7 @@ impl From<crate::bss::generated::types::BootParams> for BootParameters {
             .filter_map(|n| {
               u32::try_from(n)
                 .map_err(|_| {
-                  log::warn!(
-                    "dropped negative/oversize BootParams.nid: {n}"
-                  );
+                  log::warn!("dropped negative/oversize BootParams.nid: {n}");
                 })
                 .ok()
             })
@@ -337,7 +335,7 @@ impl BootParameters {
           kernel_param.split_once('=').unwrap_or((kernel_param, ""))
         })
         .collect();
-    } ;
+    };
 
     // NOTE: NCN nodes have UUID image id 'nmd_data' kernel parameter
     let mut nmd_kernel_param: Vec<&str>;
@@ -358,7 +356,7 @@ impl BootParameters {
         .and_modify(|nmd_param| *nmd_param = &new_nmd_kernel_param);
 
       self.update_kernel_param("nmd_data", &new_nmd_kernel_param);
-    } ;
+    };
 
     self.kernel = format!("s3://boot-images/{}/kernel", new_image_id);
 
@@ -397,6 +395,7 @@ impl BootParameters {
   ///  - if kernel parameter already exists, then it will be updated
   ///  - if kernel parameters does not exists, then it will be deleted
   ///  - if kernel parameter does not exists, then it will be added
+  ///
   /// Returns true if kernel params have change
   pub fn apply_kernel_params(&mut self, new_params: &str) -> bool {
     let mut change = false;
@@ -457,7 +456,8 @@ impl BootParameters {
 
   /// Add a kernel parameter:
   ///  - if kernel parameter does not exists, then it will be added,
-  /// otherwise nothing will change
+  ///    otherwise nothing will change
+  ///
   /// Returns true if kernel params have change
   pub fn add_kernel_param(&mut self, key: &str, new_value: &str) -> bool {
     let mut changed = false;

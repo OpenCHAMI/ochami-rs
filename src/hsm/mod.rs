@@ -45,6 +45,16 @@
 //!   [`node_map`], [`inventory`], [`state`], [`defaults`] — per-resource
 //!   type modules matching HSM's REST resource families.
 //!
+//! [`types`]: crate::hsm::types
+//! [`component`]: crate::hsm::component
+//! [`group`]: crate::hsm::group
+//! [`partition`]: crate::hsm::partition
+//! [`memberships`]: crate::hsm::memberships
+//! [`node_map`]: crate::hsm::node_map
+//! [`inventory`]: crate::hsm::inventory
+//! [`state`]: crate::hsm::state
+//! [`defaults`]: crate::hsm::defaults
+//!
 //! See `MIGRATION.md` at the repository root for the beta.15 → beta.16
 //! breaking-change guide covering this module.
 

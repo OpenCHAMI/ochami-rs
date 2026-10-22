@@ -25,7 +25,6 @@
 //! real type is used as-is.
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{
     generated::types::{
@@ -36,6 +35,7 @@ use crate::{
     wrapper::run,
   },
   http::retry_on_5xx,
+  Ochami,
 };
 
 impl Ochami {
@@ -66,7 +66,12 @@ impl Ochami {
     xname: &str,
   ) -> Result<NodeMap, Error> {
     retry_on_5xx(|| async {
-      run(self, token, |c| async move { c.do_node_map_get(xname).await }).await
+      run(
+        self,
+        token,
+        |c| async move { c.do_node_map_get(xname).await },
+      )
+      .await
     })
     .await
   }
@@ -116,8 +121,12 @@ impl Ochami {
     &self,
     token: &str,
   ) -> Result<HsmActionResponse, Error> {
-    run(self, token, |c| async move { c.do_node_maps_delete_all().await })
-      .await
+    run(
+      self,
+      token,
+      |c| async move { c.do_node_maps_delete_all().await },
+    )
+    .await
   }
 
   /// `DELETE /hsm/v2/Defaults/NodeMaps/{xname}` — delete a single
@@ -131,7 +140,11 @@ impl Ochami {
     token: &str,
     xname: &str,
   ) -> Result<HsmActionResponse, Error> {
-    run(self, token, |c| async move { c.do_node_map_delete(xname).await })
-      .await
+    run(
+      self,
+      token,
+      |c| async move { c.do_node_map_delete(xname).await },
+    )
+    .await
   }
 }

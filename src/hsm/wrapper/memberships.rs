@@ -33,7 +33,6 @@
 use std::str::FromStr;
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{
     generated::types::{
@@ -43,6 +42,7 @@ use crate::{
     wrapper::{gen_client, map_err},
   },
   http::retry_on_5xx,
+  Ochami,
 };
 
 impl Ochami {

@@ -65,7 +65,9 @@ impl From<FrontendComponentEthernetInterface> for ComponentEthernetInterface {
       // server-populated and not round-tripped through the front-end).
       last_update: None,
       component_id: value.component_id.map(XNameRw100),
-      type_: value.parent_hms_type.and_then(|s| HmsType100::from_str(&s).ok()),
+      type_: value
+        .parent_hms_type
+        .and_then(|s| HmsType100::from_str(&s).ok()),
     }
   }
 }
@@ -100,7 +102,9 @@ impl From<ComponentEthernetInterface> for ComponentEthernetInterfacePatch {
   }
 }
 
-impl From<FrontendComponentEthernetInterface> for ComponentEthernetInterfacePatch {
+impl From<FrontendComponentEthernetInterface>
+  for ComponentEthernetInterfacePatch
+{
   fn from(value: FrontendComponentEthernetInterface) -> Self {
     ComponentEthernetInterfacePatch {
       component_id: value.component_id.map(XNameRw100),

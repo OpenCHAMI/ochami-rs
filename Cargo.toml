@@ -3,7 +3,7 @@ authors = ["Manuel Sopena Ballesteros <msopena@cscs.ch>"]
 name = "ochami-rs"
 description = "Rust bindings for OCHAMI backend"
 version = "1.0.0-beta.17"
-rust-version = "1.91.1"
+rust-version = "1.99.1"
 resolver = "2"
 readme = "README.md"
 edition = "2021"
@@ -16,7 +16,7 @@ keywords = ["hpc", "ochami", "openchami", "hsm"]
 categories = ["api-bindings", "asynchronous"]
 
 [package.metadata.cargo-machete]
-ignored = ["regress"]
+ignored = ["chrono", "regress", "strum"]
 
 [dependencies]
 manta-backend-dispatcher = "1.0.0-beta.15"
@@ -24,20 +24,19 @@ manta-backend-dispatcher = "1.0.0-beta.15"
 # manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
 # manta-backend-dispatcher = { git = "https://github.com/eth-cscs/manta-backend-dispatcher", branch="feature/power-status" } # Only for development purposes
 
-strum = { version = "0.27.1", default-features = false }
-strum_macros = "0.27.1"
+strum = { version = "0.28.0", default-features = false }
+strum_macros = "0.28.0"
 reqwest = { version = "0.12.15", default-features = false, features = ["json", "rustls-tls"] }
 tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "time"] }
 uuid = { version = "1.10.0", features = ["fast-rng", "v4", "serde"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 log = "0.4.17"
-thiserror = "1.0.56"
+thiserror = "2.0.12"
 regex = "1.6.0"
 hostlist-parser = "0.1.6"
 # futures = { version = "0.3.28", default-features = false }
 futures-io = "0.3.31"
-tracing = "0.1.41"
 progenitor-client = "0.8"
 regress = "0.10"
 http = "1.3.1"

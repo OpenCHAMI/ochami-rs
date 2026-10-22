@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::group::types::{Group, GroupExt},
   node::utils::validate_xnames_format_and_membership_against_single_hsm,
+  Ochami,
 };
 
 /// Add a list of xnames to target HSM group
@@ -163,9 +163,7 @@ pub async fn update_hsm_group_members(
       .hsm_group_delete_member(auth_token, group_label, xname)
       .await
     {
-      log::warn!(
-        "delete-member {xname} ← {group_label} failed: {e}"
-      );
+      log::warn!("delete-member {xname} ← {group_label} failed: {e}");
       failures.push(format!("delete {xname} ← {group_label}: {e}"));
     }
   }
@@ -175,9 +173,7 @@ pub async fn update_hsm_group_members(
       .hsm_group_post_member(auth_token, group_label, xname)
       .await
     {
-      log::warn!(
-        "post-member {xname} → {group_label} failed: {e}"
-      );
+      log::warn!("post-member {xname} → {group_label} failed: {e}");
       failures.push(format!("post {xname} → {group_label}: {e}"));
     }
   }
@@ -299,9 +295,7 @@ pub async fn migrate_hsm_members(
         .hsm_group_post_member(shasta_token, target_hsm_group_name, xname)
         .await
       {
-        log::warn!(
-          "post-member {xname} → {target_hsm_group_name} failed: {e}"
-        );
+        log::warn!("post-member {xname} → {target_hsm_group_name} failed: {e}");
         failures.push(format!("post {xname} → {target_hsm_group_name}: {e}"));
       }
 
@@ -312,8 +306,7 @@ pub async fn migrate_hsm_members(
         log::warn!(
           "delete-member {xname} ← {parent_hsm_group_name} failed: {e}"
         );
-        failures
-          .push(format!("delete {xname} ← {parent_hsm_group_name}: {e}"));
+        failures.push(format!("delete {xname} ← {parent_hsm_group_name}: {e}"));
       }
     }
     if !failures.is_empty() {

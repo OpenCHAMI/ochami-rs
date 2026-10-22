@@ -99,9 +99,7 @@ impl From<FrontEndPowerStatus> for PowerStatus {
       xname: value.xname,
       //power_state_filter: value.power_state_filter.map( |v| PowerState::from(v)),
       power_state: value.power_state.map(PowerState::from),
-      management_state: value
-        .management_state
-        .map(ManagementState::from),
+      management_state: value.management_state.map(ManagementState::from),
       //management_state_filter: value.management_state_filter.map(|v| ManagementState::from(v)),
       error: value.error,
       supported_power_transitions: value

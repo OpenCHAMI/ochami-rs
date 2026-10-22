@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::{Ochami, hsm};
+use crate::{hsm, Ochami};
 
 /// Validate xname is correct (it uses regex taken from HPE Cray CSM docs)
 pub fn validate_xname_format(xname: &str) -> bool {
@@ -20,6 +20,8 @@ pub fn validate_xname_format(xname: &str) -> bool {
 ///
 /// Returns [`Error`] if the underlying HSM group lookup fails
 /// (network, deserialization, or HSM error response).
+///
+/// [`Error`]: crate::error::Error
 pub async fn validate_xnames_format_and_membership_against_single_hsm(
   client: &Ochami,
   shasta_token: &str,

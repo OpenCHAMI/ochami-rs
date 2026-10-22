@@ -20,8 +20,9 @@ use ochami_rs::{error::Error, Ochami};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn StdError>> {
-  let base_url = env::var("OCHAMI_URL")
-    .map_err(|_| "OCHAMI_URL must be set (base URL of the OpenCHAMI ingress)")?;
+  let base_url = env::var("OCHAMI_URL").map_err(|_| {
+    "OCHAMI_URL must be set (base URL of the OpenCHAMI ingress)"
+  })?;
   let token = env::var("OCHAMI_TOKEN")
     .map_err(|_| "OCHAMI_TOKEN must be set (bearer token)")?;
   let ca_path = env::var("OCHAMI_CA")
@@ -32,7 +33,10 @@ async fn main() -> Result<(), Box<dyn StdError>> {
 
   let ochami = Ochami::new(&base_url, &root_cert);
 
-  match ochami.hsm_component_get_all_nodes(&token, Some("true")).await {
+  match ochami
+    .hsm_component_get_all_nodes(&token, Some("true"))
+    .await
+  {
     Ok(array) => {
       println!("{} components:", array.components.len());
       for c in &array.components {

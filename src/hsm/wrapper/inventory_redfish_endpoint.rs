@@ -53,11 +53,11 @@
 use std::str::FromStr;
 
 use crate::{
-  Ochami,
   error::Error,
   hsm::{
     generated::types::{
-      DoRedfishEndpointsGetType, RedfishEndpoint100RedfishEndpoint as RedfishEndpoint,
+      DoRedfishEndpointsGetType,
+      RedfishEndpoint100RedfishEndpoint as RedfishEndpoint,
       RedfishEndpointArrayRedfishEndpointArray as RedfishEndpointArray,
       ResourceUri100,
     },
@@ -65,6 +65,7 @@ use crate::{
     wrapper::run,
   },
   http::retry_on_5xx,
+  Ochami,
 };
 
 impl Ochami {
@@ -97,7 +98,13 @@ impl Ochami {
         type_.and_then(|s| DoRedfishEndpointsGetType::from_str(s).ok());
       run(self, token, |c| async move {
         c.do_redfish_endpoints_get(
-          fqdn, id, ip_address, last_status, macaddr, type_, uuid,
+          fqdn,
+          id,
+          ip_address,
+          last_status,
+          macaddr,
+          type_,
+          uuid,
         )
         .await
       })

@@ -10,11 +10,13 @@ use std::str::FromStr;
 
 pub use crate::hsm::generated::types::{
   Component100Component as Component,
-  Component100ComponentCreate as ComponentCreate, Component100Put as ComponentPut,
+  Component100ComponentCreate as ComponentCreate,
+  Component100Put as ComponentPut,
   ComponentArrayComponentArray as ComponentArray, ComponentArrayPostArray,
-  ComponentArrayPostByNidQuery, ComponentArrayPostQuery, HmsArch100, HmsClass100,
-  HmsFlag100, HmsRole100, HmsState100, HmsSubRole100, HmsType100, NetType100,
-  NidRange100, XName100, XNameForQuery100, XNamePartition100, XNameRw100,
+  ComponentArrayPostByNidQuery, ComponentArrayPostQuery, HmsArch100,
+  HmsClass100, HmsFlag100, HmsRole100, HmsState100, HmsSubRole100, HmsType100,
+  NetType100, NidRange100, XName100, XNameForQuery100, XNamePartition100,
+  XNameRw100,
 };
 
 use manta_backend_dispatcher::types::{
@@ -36,9 +38,7 @@ where
   opt.and_then(|s| match T::from_str(&s) {
     Ok(v) => Some(v),
     Err(e) => {
-      log::warn!(
-        "dropped unparseable {field_name}: {s:?} ({e:?})"
-      );
+      log::warn!("dropped unparseable {field_name}: {s:?} ({e:?})");
       None
     }
   })
@@ -61,7 +61,10 @@ impl From<FrontEndComponent> for Component {
       sub_role: value.sub_role.map(HmsSubRole100),
       nid: value.nid.map(|n| n as i64),
       subtype: value.subtype,
-      net_type: parse_enum_field::<NetType100>(value.net_type, "component.net_type"),
+      net_type: parse_enum_field::<NetType100>(
+        value.net_type,
+        "component.net_type",
+      ),
       arch: parse_enum_field::<HmsArch100>(value.arch, "component.arch"),
       class: parse_enum_field::<HmsClass100>(value.class, "component.class"),
       reservation_disabled: value.reservation_disabled,
@@ -125,7 +128,8 @@ impl From<FrontEndComponentCreate> for ComponentCreate {
   fn from(value: FrontEndComponentCreate) -> Self {
     ComponentCreate {
       id: XNameRw100(value.id),
-      state: HmsState100::from_str(&value.state).unwrap_or(HmsState100::Unknown),
+      state: HmsState100::from_str(&value.state)
+        .unwrap_or(HmsState100::Unknown),
       flag: parse_enum_field::<HmsFlag100>(value.flag, "component.flag"),
       enabled: value.enabled,
       software_status: value.software_status,
@@ -133,7 +137,10 @@ impl From<FrontEndComponentCreate> for ComponentCreate {
       sub_role: value.sub_role.map(HmsSubRole100),
       nid: value.nid.map(|n| n as i64),
       subtype: value.subtype,
-      net_type: parse_enum_field::<NetType100>(value.net_type, "component.net_type"),
+      net_type: parse_enum_field::<NetType100>(
+        value.net_type,
+        "component.net_type",
+      ),
       arch: parse_enum_field::<HmsArch100>(value.arch, "component.arch"),
       class: parse_enum_field::<HmsClass100>(value.class, "component.class"),
     }
@@ -166,7 +173,11 @@ impl From<ComponentCreate> for FrontEndComponentCreate {
 impl From<FrontEndComponentArrayPostArray> for ComponentArrayPostArray {
   fn from(value: FrontEndComponentArrayPostArray) -> Self {
     ComponentArrayPostArray {
-      components: value.components.into_iter().map(ComponentCreate::from).collect(),
+      components: value
+        .components
+        .into_iter()
+        .map(ComponentCreate::from)
+        .collect(),
       force: value.force,
     }
   }

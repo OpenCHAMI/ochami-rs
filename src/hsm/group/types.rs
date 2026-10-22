@@ -54,10 +54,7 @@ pub trait GroupExt {
 impl GroupExt for Group {
   fn new(label: &str, member_vec_opt: Option<Vec<&str>>) -> Self {
     let members = member_vec_opt.map(|v| Members {
-      ids: v
-        .into_iter()
-        .map(|s| XNameRw100(s.to_string()))
-        .collect(),
+      ids: v.into_iter().map(|s| XNameRw100(s.to_string())).collect(),
     });
     Group {
       label: resource_name(label),
@@ -121,9 +118,7 @@ impl From<FrontEndGroup> for Group {
         .filter_map(|t| match ResourceName::from_str(&t) {
           Ok(r) => Some(r),
           Err(e) => {
-            log::warn!(
-              "dropped unparseable Group.tag: {t:?} ({e:?})"
-            );
+            log::warn!("dropped unparseable Group.tag: {t:?} ({e:?})");
             None
           }
         })

@@ -552,7 +552,7 @@ impl ComponentTrait for Ochami {
       // Get list of xnames the user is asking for
       for hsm_component in hsm_component_vec {
         let nid_long =
-          format!("nid{:06}", &hsm_component.nid.expect("No NID found"));
+          format!("nid{:06}", hsm_component.nid.expect("No NID found"));
         for regex in &regex_vec {
           if regex.is_match(&nid_long) {
             log::debug!(
@@ -560,13 +560,7 @@ impl ComponentTrait for Ochami {
               nid_long,
               regex.as_str()
             );
-            xname_vec.push(
-              hsm_component
-                .id
-                .clone()
-                .expect("No XName found")
-                .0,
-            );
+            xname_vec.push(hsm_component.id.clone().expect("No XName found").0);
           }
         }
       }
@@ -596,7 +590,9 @@ impl ComponentTrait for Ochami {
         .map(|nid_long| {
           nid_long
             .strip_prefix("nid")
-            .unwrap_or_else(|| panic!("Nid '{}' not valid, 'nid' prefix missing", nid_long))
+            .unwrap_or_else(|| {
+              panic!("Nid '{}' not valid, 'nid' prefix missing", nid_long)
+            })
             .trim_start_matches("0")
         })
         .collect::<Vec<&str>>()
@@ -640,9 +636,7 @@ impl ComponentTrait for Ochami {
         .filter_map(|component| match component.id.as_ref() {
           Some(id) => Some(id.0.clone()),
           None => {
-            log::warn!(
-              "HSM component with no id skipped: {component:?}"
-            );
+            log::warn!("HSM component with no id skipped: {component:?}");
             None
           }
         })
@@ -810,10 +804,7 @@ impl RedfishEndpointTrait for Ochami {
     // per call (mirrors the real HSM OpenAPI schema — the hand-written
     // http_client.rs::post's array-payload was overly permissive). Iterate
     // over the front-end array and POST each endpoint individually.
-    let eps = redfish_endpoint
-      .redfish_endpoints
-      .as_deref()
-      .unwrap_or(&[]);
+    let eps = redfish_endpoint.redfish_endpoints.as_deref().unwrap_or(&[]);
     for ep in eps {
       let gen_ep: hsm::inventory::redfish_endpoint::types::RedfishEndpoint =
         ep.clone().into();
@@ -940,15 +931,11 @@ impl ComponentEthernetInterfaceTrait for Ochami {
     eth_interface_id: &str,
   ) -> Result<Value, Error> {
     let resp = self
-      .hsm_inventory_ethernet_interface_delete_one(
-        auth_token,
-        eth_interface_id,
-      )
+      .hsm_inventory_ethernet_interface_delete_one(auth_token, eth_interface_id)
       .await
       .map_err(Error::from)?;
     serde_json::to_value(resp).map_err(Error::from)
   }
-
 }
 
 impl AuthenticationTrait for Ochami {
