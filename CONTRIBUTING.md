@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **Rust** `>= 1.91.1` (the crate's declared `rust-version` / MSRV in
+- **Rust** `>= 1.99.1` (the crate's declared `rust-version` / MSRV in
   `Cargo.toml`). Ordinary `cargo build`/`cargo test` work with any
   toolchain at or above this version.
 - **Node.js** (any recent LTS) — only needed to regenerate the HSM
