@@ -20,6 +20,8 @@ pub fn validate_xname_format(xname: &str) -> bool {
 ///
 /// Returns [`Error`] if the underlying HSM group lookup fails
 /// (network, deserialization, or HSM error response).
+///
+/// [`Error`]: crate::error::Error
 pub async fn validate_xnames_format_and_membership_against_single_hsm(
   client: &Ochami,
   shasta_token: &str,
