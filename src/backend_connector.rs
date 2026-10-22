@@ -552,7 +552,7 @@ impl ComponentTrait for Ochami {
       // Get list of xnames the user is asking for
       for hsm_component in hsm_component_vec {
         let nid_long =
-          format!("nid{:06}", &hsm_component.nid.expect("No NID found"));
+          format!("nid{:06}", hsm_component.nid.expect("No NID found"));
         for regex in &regex_vec {
           if regex.is_match(&nid_long) {
             log::debug!(

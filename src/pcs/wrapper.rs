@@ -363,7 +363,7 @@ impl Ochami {
 
   /// POST /power-control/v1/transitions — start a new transition
   /// (power on/off/soft-off/...). `operation` accepts the same
-  /// lowercase strings as [`Operation::from_str`] (`"on"`, `"off"`,
+  /// lowercase strings as [`Operation`]'s `FromStr` impl (`"on"`, `"off"`,
   /// `"soft-off"`, `"soft-restart"`, `"hard-restart"`, `"init"`,
   /// `"force-off"`).
   ///
@@ -387,7 +387,7 @@ impl Ochami {
       })
       .collect();
     let request_payload = Transition {
-      operation: Operation::from_str(operation)?,
+      operation: operation.parse()?,
       task_deadline_minutes: None,
       location: location_vec,
     };
@@ -534,16 +534,16 @@ impl From<generated::types::PowerStatus>
         .supported_power_transitions
         .into_iter()
         .filter_map(|op| {
-          crate::pcs::transitions::types::Operation::from_str(
-            &op.to_string().to_lowercase(),
-          )
-          .ok()
-          .or_else(|| {
-            log::warn!(
-              "dropped unparseable pcs supported_power_transitions entry: {op:?}"
-            );
-            None
-          })
+          op.to_string()
+            .to_lowercase()
+            .parse::<Operation>()
+            .ok()
+            .or_else(|| {
+              log::warn!(
+                "dropped unparseable pcs supported_power_transitions entry: {op:?}"
+              );
+              None
+            })
         })
         .collect(),
       last_updated: value

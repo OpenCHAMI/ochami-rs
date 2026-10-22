@@ -395,6 +395,7 @@ impl BootParameters {
   ///  - if kernel parameter already exists, then it will be updated
   ///  - if kernel parameters does not exists, then it will be deleted
   ///  - if kernel parameter does not exists, then it will be added
+  ///
   /// Returns true if kernel params have change
   pub fn apply_kernel_params(&mut self, new_params: &str) -> bool {
     let mut change = false;
@@ -455,7 +456,8 @@ impl BootParameters {
 
   /// Add a kernel parameter:
   ///  - if kernel parameter does not exists, then it will be added,
-  /// otherwise nothing will change
+  ///    otherwise nothing will change
+  ///
   /// Returns true if kernel params have change
   pub fn add_kernel_param(&mut self, key: &str, new_value: &str) -> bool {
     let mut changed = false;

@@ -5,6 +5,8 @@ use manta_backend_dispatcher::types::pcs::transitions::types::{
   TransitionResponse as FrontEndTransitionResponse,
 };
 
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
@@ -66,9 +68,11 @@ pub enum Operation {
   ForceOff,
 }
 
-impl Operation {
-  /// Parses a lowercase operation name (e.g. `"on"`, `"soft-off"`) into an [`Operation`].
-  pub fn from_str(operation: &str) -> Result<Operation, Error> {
+/// Parses a lowercase operation name (e.g. `"on"`, `"soft-off"`) into an [`Operation`].
+impl FromStr for Operation {
+  type Err = Error;
+
+  fn from_str(operation: &str) -> Result<Operation, Error> {
     match operation {
       "on" => Ok(Operation::On),
       "off" => Ok(Operation::Off),
