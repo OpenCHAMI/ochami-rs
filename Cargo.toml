@@ -19,7 +19,7 @@ categories = ["api-bindings", "asynchronous"]
 ignored = ["chrono", "regress", "strum"]
 
 [dependencies]
-manta-backend-dispatcher = "1.0.0-beta.15"
+manta-backend-dispatcher = "1.0.0-beta.16"
 
 # manta-backend-dispatcher = { path = "../manta-backend-dispatcher" } # Only for development purposes
 # manta-backend-dispatcher = { git = "https://github.com/eth-cscs/manta-backend-dispatcher", branch="feature/power-status" } # Only for development purposes
