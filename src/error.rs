@@ -7,6 +7,14 @@ pub enum Error {
   /// Free-form error message from this crate.
   #[error("OCHAMI-RS: {0}")]
   Message(String),
+  /// The identity provider rejected the token; the caller should log
+  /// in again.
+  #[error("OCHAMI-RS: unauthorized: {0}")]
+  Unauthorized(String),
+  /// The identity provider does not permit the operation for this
+  /// caller.
+  #[error("OCHAMI-RS: forbidden: {0}")]
+  Forbidden(String),
   /// JSON (de)serialisation failure.
   #[error("OCHAMI-RS > Serde: {0}")]
   SerdeError(#[from] serde_json::Error),

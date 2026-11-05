@@ -17,6 +17,8 @@ impl From<Error> for MantaError {
   fn from(err: Error) -> Self {
     match err {
       Error::Message(s) => MantaError::Message(s),
+      Error::Unauthorized(s) => MantaError::Unauthorized(s),
+      Error::Forbidden(s) => MantaError::Forbidden(s),
       Error::SerdeError(e) => MantaError::SerdeError(e),
       Error::NetError(e) => MantaError::NetError(e),
       Error::RequestError { response, payload } => {
