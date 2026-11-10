@@ -8,6 +8,12 @@ policy); breaking changes may land between `beta.N` releases.
 
 ## [Unreleased]
 
+## [1.0.0-beta.21](https://github.com/OpenCHAMI/ochami-rs/compare/v1.0.0-beta.20...v1.0.0-beta.21) - 2026-11-10
+
+### Other
+
+- Useless commit
+
 ### Breaking Changes
 
 - BSS client migrated to progenitor codegen. Removed
