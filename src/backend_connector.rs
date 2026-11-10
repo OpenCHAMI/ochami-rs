@@ -45,7 +45,7 @@ use regex::Regex;
 use serde_json::Value;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::authentication;
+use crate::authentication::{self, TokenExchange};
 use crate::hsm;
 use crate::hsm::generated::types::{
   CompEthInterface100IpAddressMapping as GenIpAddressMapping,
@@ -56,10 +56,13 @@ use crate::hsm::generated::types::{
 ///
 /// Holds the API base URL and the root certificate used to build the
 /// underlying `reqwest::Client` for each request.
+/// [`AuthenticationTrait::exchange_api_token`] also needs the client
+/// credentials set with [`Ochami::with_token_exchange`].
 #[derive(Debug, Clone)]
 pub struct Ochami {
   base_url: String,
   root_cert: Vec<u8>,
+  token_exchange: Option<TokenExchange>,
 }
 
 impl Ochami {
@@ -68,7 +71,16 @@ impl Ochami {
     Self {
       base_url: base_url.to_string(),
       root_cert: root_cert.to_vec(),
+      token_exchange: None,
     }
+  }
+
+  /// Sets the client credentials used by
+  /// [`AuthenticationTrait::exchange_api_token`].
+  #[must_use]
+  pub fn with_token_exchange(mut self, token_exchange: TokenExchange) -> Self {
+    self.token_exchange = Some(token_exchange);
+    self
   }
 
   pub(crate) fn base_url(&self) -> &str {
@@ -951,17 +963,25 @@ impl AuthenticationTrait for Ochami {
     })
   }
 
-  /// Pass-through for now: returns `subject_token` unchanged after a
-  /// non-empty check. OpenCHAMI does not accept the CSCS token, so the
-  /// real exchange (via TokenSmith) still has to be implemented here.
   async fn exchange_api_token(
     &self,
     subject_token: &str,
   ) -> Result<String, Error> {
-    authentication::validate_api_token(subject_token).map_err(|_e| {
-      Error::Unauthorized("Authentication token is empty".to_string())
+    let token_exchange = self.token_exchange.as_ref().ok_or_else(|| {
+      Error::Message(
+        "token exchange is not configured for this OCHAMI site".to_string(),
+      )
     })?;
-    Ok(subject_token.to_string())
+
+    let client = crate::http::build_client(self.root_cert())?;
+    authentication::exchange_token(
+      &client,
+      self.base_url(),
+      token_exchange,
+      subject_token,
+    )
+    .await
+    .map_err(Error::from)
   }
 }
 
